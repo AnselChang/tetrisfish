@@ -95,15 +95,15 @@ def getCurrentPiece(pieces):
                     
 
 # Remove top piece from the board. Use in conjunction with getCurrentPiece()
-def RemoveTopPiece(pieces,pieceType):
+def removeTopPiece(pieces,pieceType):
 
     # Assert piece was detected.
     assert(pieceType == getCurrentPiece(pieces))
 
     for row in range(2):
-        for col in range(3,8):
+        for col in range(3,7):
             
-            if TETRONIMO_SHAPES[pieceType][row][col] == 1:
+            if TETRONIMO_SHAPES[pieceType][row][col-3] == 1:
                 
                 assert(pieces[row][col] == 1)
                 pieces[row][col] = 0
@@ -342,8 +342,8 @@ def main():
     bounds = None
     nextBounds = None
 
-    minosMain = None
-    minosNext = None
+    minosMain = None # 2d array for main tetris board. 10x20
+    minosNext = None # 2d array for lookahead. 8x4
 
     # Scale constant for tetris footage
     SCALAR = 0.5
@@ -409,8 +409,16 @@ def main():
                     print("Tetris board:")
                     print2d(minosMain)
                     print()
-                    print("Current piece: ", TETRONIMO_NAMES[getCurrentPiece(minosMain)])
-                    print("Next piece: ", TETRONIMO_NAMES[getNextBox(minosNext)])
+
+                    currentPiece = getCurrentPiece(minosMain)
+                    nextPiece = getNextBox(minosNext)
+                    
+                    
+                    print("Current piece: ", TETRONIMO_NAMES[currentPiece])
+                    print("Next piece: ", TETRONIMO_NAMES[nextPiece])
+                    print("Removing top piece:")
+                    removeTopPiece(minosMain, currentPiece)
+                    print2d(minosMain)
                     
 
             elif buttons.get(B_PLAY).pressed:
