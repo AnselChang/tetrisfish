@@ -16,6 +16,7 @@ GREEN = [50,168,82]
 BRIGHT_GREEN = [0,255,0]
 RED = [255,0,0]
 BLUE = [0,0,255]
+LIGHT_BLUE = [65,105,225]
 
 
 SCREEN_WIDTH = 1200
@@ -33,7 +34,7 @@ COLOR_CALLIBRATION = 100
 B_CALLIBRATE = 0
 B_NEXTBOX = 1
 B_PLAY = 2
-
+B_RUN = 3
 
 def lighten(color, amount, doThis = True):
     if doThis:
@@ -45,11 +46,69 @@ def avg(array):
     return sum(array) / len(array)
 
 def print2d(array):
+
+    """
     for row in range(len(array)):
         for col in range(len(array[row])):
             print(array[row][col], end = " ")
         print()
     print()
+    """
+
+    # prints faster at loss of aesthetic
+    for row in range(len(array)):
+        print(array[row])
+    print()
+
+
+# Given a 2d binary array for the tetris board, identify the current piece (at the top of the screen)
+# If piece does not exist, return None.
+# If multiple pieces exist, return -1. Likely a topout situation.
+# Unlike tetronimo mask in next box, this has to be exactly equal, because board array is much more accurate
+# Account for the possibilty that other pieces could be in this 4x2 box (in a very high stack for example)
+# Ignore the possibility of topout (will be handled by other stuff)
+def getCurrentPiece(pieces):
+
+    detectedPiece = None
+
+    i = 0 # iterate over TETRONIMOS
+    for pieceShape in TETRONIMO_SHAPES:
+        # row 0 to 1, column 3 to 7
+
+        isPiece = True
+        
+        for row in range(0,2):
+            for col in range(0,4):
+                if pieceShape[row][col] == 1 and pieces[row][col+3] == 0:
+                    isPiece = False
+
+        if isPiece:
+            if detectedPiece == None:
+                detectedPiece = TETRONIMOS[i]
+            else:
+                # multiple piece shapes fit the board. Likely a topout situation.
+                return -1
+
+        i += 1
+
+    return detectedPiece
+                    
+
+# Remove top piece from the board. Use in conjunction with getCurrentPiece()
+def RemoveTopPiece(pieces,pieceType):
+
+    # Assert piece was detected.
+    assert(pieceType == getCurrentPiece(pieces))
+
+    for row in range(2):
+        for col in range(3,8):
+            
+            if TETRONIMO_SHAPES[pieceType][row][col] == 1:
+                
+                assert(pieces[row][col] == 1)
+                pieces[row][col] = 0
+    
+
 
 # return a number signifying the number of differences between the two arrays
 def arraySimilarity(array1, array2):
@@ -66,23 +125,22 @@ def arraySimilarity(array1, array2):
 
     return count
 
-# Given a 2d array, find the piece mask that is the most similar to the array, and return piece constant
-# Precondition that TETRONIMOMASKS and TETRONIMOS have constants in the same order
-def getPieceType(array):
+# Given a 2d array, find the piece mask for next box that is the most similar to the array, and return piece constant
+# Precondition that TETRONIMO_MASKS and TETRONIMOS have constants in the same order
+def getNextBox(array):
 
     bestPiece = None
     bestCount = math.inf # optimize for lowest
 
-    currentPiece = 0
+    i = 0
     for pieceMask in TETRONIMO_MASKS:
-        print(TETRONIMO_NAMES[currentPiece])
+
         count = arraySimilarity(array,pieceMask)
-        print(count)
         if count < bestCount:
-            bestPiece = currentPiece
+            bestPiece = TETRONIMOS[i]
             bestCount = count
             
-        currentPiece += 1
+        i += 1
 
     # Too inaccurate, no closely-matching piece found
     if bestCount > 5:
@@ -215,7 +273,7 @@ class Bounds:
         return dx, dy, (dx+dy)/2/8
 
     # Draw the markings for detected minos and return a 2d array. Not great programming style but too bad
-    def drawOn(self, surface):
+    def getMinosAndDisplay(self, surface):
 
         # draw Red bounds
         pygame.draw.rect(surface, self.color, [self.x1, self.y1, self.x2-self.x1, self.y2-self.y1], width = 2)
@@ -277,11 +335,15 @@ def main():
     buttons.add(B_CALLIBRATE, "Callibrate Dimensions", SCREEN_WIDTH-350, 100, 300, 50, GREEN, WHITE)
     buttons.add(B_NEXTBOX, "Callibrate Next box", SCREEN_WIDTH-350, 200, 300, 50, GREEN, WHITE)
     buttons.add(B_PLAY, "Play", SCREEN_WIDTH-350, 300, 300, 50, GREEN, WHITE)
+
+    # only for testing purposes to test analysis on current frame
+    buttons.add(B_RUN, "Run", SCREEN_WIDTH-350, 400, 300, 50, LIGHT_BLUE, WHITE)
     
     bounds = None
     nextBounds = None
 
-    minos = None
+    minosMain = None
+    minosNext = None
 
     # Scale constant for tetris footage
     SCALAR = 0.5
@@ -341,7 +403,14 @@ def main():
                 if bounds != None:
                     bounds.set()
                 
-                
+            elif buttons.get(B_RUN).pressed:
+                # Test stuff
+                if bounds != None:
+                    print("Tetris board:")
+                    print2d(minosMain)
+                    print()
+                    print("Current piece: ", TETRONIMO_NAMES[getCurrentPiece(minosMain)])
+                    print("Next piece: ", TETRONIMO_NAMES[getNextBox(minosNext)])
                     
 
             elif buttons.get(B_PLAY).pressed:
@@ -368,14 +437,11 @@ def main():
         
         if bounds != None:
             bounds.updateMouse(mx,my)
-            bounds.drawOn(screen)
+            minosMain = bounds.getMinosAndDisplay(screen)
 
         if nextBounds != None:
             nextBounds.updateMouse(mx,my)
-            minos = nextBounds.drawOn(screen)
-            if click and not buttons.get(B_CALLIBRATE).pressed and not buttons.get(B_NEXTBOX).pressed:
-                print2d(minos)
-                print("Piece match: " + TETRONIMO_NAMES[getPieceType(minos)])
+            minosNext = nextBounds.getMinosAndDisplay(screen)
                 
 
         # Draw buttons
