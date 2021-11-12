@@ -3,10 +3,12 @@ import cv2
 import pygame, sys
 from PieceMasks import *
 import math
+import time
 
 pygame.init()
 pygame.font.init()
 font = pygame.font.SysFont('Comic Sans MS', 30)
+font2 = pygame.font.SysFont('Comic Sans MS', 20)
 
 filename = "/Users/anselchang/Documents/I broke the rules of NES tetris by getting exactly 1 mino in the matrix.mp4"
 
@@ -25,6 +27,9 @@ SCREEN_WIDTH = 1200
 SCREEN_HEIGHT = 600
 VIDEO_X = 50
 VIDEO_Y = 50
+
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
 
 NUM_HORIZONTAL_CELLS = 10
 NUM_VERTICAL_CELLS = 20
@@ -336,10 +341,10 @@ B_LEFT = 5
 B_RIGHT = 6
 B_RESET = 7
 
-def main():
 
-    
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+# Initiates user-callibrated tetris field. Returns currentFrame, bounds, nextBounds for rendering
+def callibrate():
 
     # Open a sample video available in sample-videos
     vcap = cv2.VideoCapture(filename)
@@ -356,7 +361,7 @@ def main():
     buttons.add(B_LEFT, "Previous", SCREEN_WIDTH-350, 400, 140, 50, ORANGE, WHITE)
     buttons.add(B_RIGHT, "Next", SCREEN_WIDTH-180, 400, 140, 50, ORANGE, WHITE)
     
-    buttons.add(B_PLAY, "Render", SCREEN_WIDTH-350, 500, 300, 50, LIGHT_BLUE, WHITE)
+    buttons.add(B_RENDER, "Render", SCREEN_WIDTH-350, 500, 300, 50, LIGHT_BLUE, WHITE)
     
     bounds = None
     nextBounds = None
@@ -367,6 +372,9 @@ def main():
     # Scale constant for tetris footage
     SCALAR = 0.5
 
+    # seconds to display render error message
+    ERROR_TIME = 3
+
     isPressed = False
     wasPressed = False
 
@@ -374,6 +382,8 @@ def main():
 
     allVideoFrames = []
     frameCount = 0
+
+    errorMsg = None
     
     # Get new frame from opencv
     ret, newframe = vcap.read()
@@ -463,6 +473,20 @@ def main():
                     
                 isPlay = not isPlay
 
+            elif buttons.get(B_RENDER).pressed:
+
+                # If not callibrated, do not allow render
+                if bounds == None or nextBounds == None or getNextBox(minosNext) == None:
+                    errorMsg = time.time()  # display error message by logging time to display for 3 seconds
+                
+                else:
+                    
+                    # When everything done, release the capture
+                    vcap.release()
+
+                    # Exit callibration, initiate rendering with returned parameters
+                    return frameCount, bounds, nextBounds
+
             else:
                 if bounds != None:
                     bounds.click()
@@ -479,10 +503,17 @@ def main():
         if nextBounds != None:
             nextBounds.updateMouse(mx,my)
             minosNext = nextBounds.getMinosAndDisplay(screen)
-                
 
         # Draw buttons
         buttons.display(screen)
+
+        # Draw error message
+        if errorMsg != None:
+            if time.time() - errorMsg < ERROR_TIME:
+                text = font2.render("You must finish callibrating and go to the first frame to be rendered.", False, RED)
+                screen.blit(text, [SCREEN_WIDTH - 440, 560] )
+            else:
+                errorMsg = None
 
 
         wasPressed = isPressed
@@ -493,16 +524,35 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-                break
+                 # When everything done, release the capture
+                vcap.release()
+                return None
 
         
                 
 
-    # When everything done, release the capture
-    vcap.release()
-    cv2.destroyAllWindows()
-    print("Video stop")
+   
+    return None
 
+def render():
+    print("Beginning render...")
+
+def analyze():
+    pass
+
+def main():
+    
+    output = callibrate()
+    
+    if output == None:
+        return # exit if pygame screen closed
+    
+    currentFrame, bounds, nextBounds = output
+
+    print("Successfully callibrated video.")
+    
+    render()
+    analyze()
 
 if __name__ == "__main__":
     main()
