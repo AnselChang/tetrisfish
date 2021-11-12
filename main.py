@@ -15,8 +15,10 @@ WHITE = [255,255,255]
 GREEN = [50,168,82]
 BRIGHT_GREEN = [0,255,0]
 RED = [255,0,0]
+LIGHT_RED = [255,51,51]
 BLUE = [0,0,255]
 LIGHT_BLUE = [65,105,225]
+ORANGE = [255,128,0]
 
 
 SCREEN_WIDTH = 1200
@@ -28,13 +30,6 @@ NUM_HORIZONTAL_CELLS = 10
 NUM_VERTICAL_CELLS = 20
 COLOR_CALLIBRATION = 100
 
-
-
-
-B_CALLIBRATE = 0
-B_NEXTBOX = 1
-B_PLAY = 2
-B_RUN = 3
 
 def lighten(color, amount, doThis = True):
     if doThis:
@@ -147,8 +142,20 @@ def getNextBox(array):
         return None
     else:
         return bestPiece
-    
 
+
+# Store a complete postion. This includes:
+"""   the frame number and image of the first frame before placement
+        the frame number and image of the last frame after plcaement
+        the binary 2d arrays of both frames
+        The current piece
+        The lookahead
+
+"""
+class Position:
+    pass
+
+# Handle the display and click-checking of all button objects
 class ButtonHandler:
 
     def __init__(self):
@@ -177,6 +184,7 @@ class ButtonHandler:
         assert(False)
 
 
+# GUI button
 class Button:
     
     def __init__(self,ID, text,x,y,width,height,buttonColor,textColor):
@@ -319,7 +327,14 @@ class Bounds:
         return (colorValue > COLOR_CALLIBRATION)
     
     
-
+B_CALLIBRATE = 0
+B_NEXTBOX = 1
+B_PLAY = 2
+B_RUN = 3
+B_RENDER = 4
+B_LEFT = 5
+B_RIGHT = 6
+B_RESET = 7
 
 def main():
 
@@ -334,10 +349,14 @@ def main():
     buttons = ButtonHandler()
     buttons.add(B_CALLIBRATE, "Callibrate Dimensions", SCREEN_WIDTH-350, 100, 300, 50, GREEN, WHITE)
     buttons.add(B_NEXTBOX, "Callibrate Next box", SCREEN_WIDTH-350, 200, 300, 50, GREEN, WHITE)
-    buttons.add(B_PLAY, "Play", SCREEN_WIDTH-350, 300, 300, 50, GREEN, WHITE)
-
-    # only for testing purposes to test analysis on current frame
-    buttons.add(B_RUN, "Run", SCREEN_WIDTH-350, 400, 300, 50, LIGHT_BLUE, WHITE)
+    
+    buttons.add(B_PLAY, "Play", SCREEN_WIDTH-350, 300, 140, 50, GREEN, WHITE)
+    buttons.add(B_RESET, "Reset", SCREEN_WIDTH-180, 300, 140, 50, LIGHT_RED, WHITE)
+    
+    buttons.add(B_LEFT, "Previous", SCREEN_WIDTH-350, 400, 140, 50, ORANGE, WHITE)
+    buttons.add(B_RIGHT, "Next", SCREEN_WIDTH-180, 400, 140, 50, ORANGE, WHITE)
+    
+    buttons.add(B_PLAY, "Render", SCREEN_WIDTH-350, 500, 300, 50, LIGHT_BLUE, WHITE)
     
     bounds = None
     nextBounds = None
@@ -351,33 +370,61 @@ def main():
     isPressed = False
     wasPressed = False
 
-    incrementFrame = False
+    isPlay = False
+
+    allVideoFrames = []
+    frameCount = 0
     
     # Get new frame from opencv
     ret, newframe = vcap.read()
-    if type(newframe) == np.ndarray:
-        
-        frame = newframe.transpose(1,0,2)
-        frame = np.flip(frame,2)
+    assert(type(newframe) == np.ndarray)
+    frame = newframe.transpose(1,0,2)
+    frame = np.flip(frame,2)
+    allVideoFrames.append(frame)
     
     while True:
 
-        # Get new frame from opencv
-
-        if incrementFrame:
-            ret, newframe = vcap.read()
-            if type(newframe) == np.ndarray:
-                
-                frame = newframe.transpose(1,0,2)
-                frame = np.flip(frame,2)
-
-        screen.fill(BLACK)
-
-         # get mouse position
+        # get mouse position
         mx,my = pygame.mouse.get_pos()
         isPressed =  pygame.mouse.get_pressed()[0]
         click = wasPressed and not isPressed
         buttons.updatePressed(mx,my)
+
+        # Get new frame from opencv
+
+        if click and buttons.get(B_RESET).pressed:
+            
+            b.text = "Play"
+            b.buttonColor = BRIGHT_GREEN
+            isPlay = False
+
+            frame = allVideoFrames[0]
+            frameCount = 0
+            
+        elif isPlay or click and buttons.get(B_RIGHT).pressed:
+            
+            # If run out of frames to load
+            if frameCount == len(allVideoFrames) - 1:
+                ret, newframe = vcap.read()
+                if type(newframe) == np.ndarray:
+                    
+                    frame = newframe.transpose(1,0,2)
+                    frame = np.flip(frame,2)
+                    allVideoFrames.append(frame)
+                    frameCount += 1
+
+            else:
+                # load next frame
+                frameCount += 1
+                frame = allVideoFrames[frameCount]
+        elif click and buttons.get(B_LEFT).pressed and frameCount > 0:
+            # load previous frame
+            frameCount -= 1
+            frame = allVideoFrames[frameCount]
+
+                
+
+        screen.fill(BLACK)
 
 
         # draw text
@@ -402,37 +449,19 @@ def main():
                 nextBounds = Bounds(True,VIDEO_X+surf.get_width()/2, VIDEO_Y+surf.get_height()/2,VIDEO_X+surf.get_width()/2+50, VIDEO_Y+surf.get_height()/2+50)
                 if bounds != None:
                     bounds.set()
-                
-            elif buttons.get(B_RUN).pressed:
-                # Test stuff
-                if bounds != None:
-                    print("Tetris board:")
-                    print2d(minosMain)
-                    print()
-
-                    currentPiece = getCurrentPiece(minosMain)
-                    nextPiece = getNextBox(minosNext)
-                    
-                    
-                    print("Current piece: ", TETRONIMO_NAMES[currentPiece])
-                    print("Next piece: ", TETRONIMO_NAMES[nextPiece])
-                    print("Removing top piece:")
-                    removeTopPiece(minosMain, currentPiece)
-                    print2d(minosMain)
-                    
 
             elif buttons.get(B_PLAY).pressed:
                 
                 b = buttons.get(B_PLAY)
 
-                if incrementFrame:
+                if isPlay:
                     b.text = "Play"
                     b.buttonColor = GREEN
                 else:
                     b.text = "Pause"
                     b.buttonColor = RED
                     
-                incrementFrame = not incrementFrame
+                isPlay = not isPlay
 
             else:
                 if bounds != None:
