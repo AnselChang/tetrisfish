@@ -9,6 +9,7 @@ pygame.init()
 pygame.font.init()
 font = pygame.font.SysFont('Comic Sans MS', 30)
 font2 = pygame.font.SysFont('Comic Sans MS', 20)
+fontbig = pygame.font.SysFont('Comic Sans MS', 45)
 
 filename = "/Users/anselchang/Documents/I broke the rules of NES tetris by getting exactly 1 mino in the matrix.mp4"
 
@@ -30,6 +31,9 @@ VIDEO_Y = 50
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+# Scale constant for tetris footage
+SCALAR = 0.5
+
 
 NUM_HORIZONTAL_CELLS = 10
 NUM_VERTICAL_CELLS = 20
@@ -46,14 +50,6 @@ def avg(array):
     return sum(array) / len(array)
 
 def print2d(array):
-
-    """
-    for row in range(len(array)):
-        for col in range(len(array[row])):
-            print(array[row][col], end = " ")
-        print()
-    print()
-    """
 
     # prints faster at loss of aesthetic
     for row in range(len(array)):
@@ -149,16 +145,23 @@ def getNextBox(array):
         return bestPiece
 
 
-# Store a complete postion. This includes:
-"""   the frame number and image of the first frame before placement
-        the frame number and image of the last frame after plcaement
-        the binary 2d arrays of both frames
-        The current piece
-        The lookahead
+# Stores image, frame number, and tetris board state
+class Frame:
 
-"""
+    def __init__(self,imgSurface, frameNum, board):
+        self.imgSurface = imgSurface
+        self.frameNum = frameNum
+        self.board = board
+
+# Store a complete postion, including both frames, the current piece, and lookahead. (eventually evaluation as well)
 class Position:
-    pass
+
+    def __init__(self, frameA, frameB, currentPiece, nextPiece):
+        self.frameA = frameA
+        self.frameB = frameB
+        self.currentPiece = currentPiece
+        self.nextPiece = nextPiece
+        
 
 # Handle the display and click-checking of all button objects
 class ButtonHandler:
@@ -332,24 +335,25 @@ class Bounds:
         return (colorValue > COLOR_CALLIBRATION)
     
     
-B_CALLIBRATE = 0
-B_NEXTBOX = 1
-B_PLAY = 2
-B_RUN = 3
-B_RENDER = 4
-B_LEFT = 5
-B_RIGHT = 6
-B_RESET = 7
-
 
 
 # Initiates user-callibrated tetris field. Returns currentFrame, bounds, nextBounds for rendering
 def callibrate():
 
-    # Open a sample video available in sample-videos
+    # Open video from opencv
     vcap = cv2.VideoCapture(filename)
     if not vcap.isOpened():
         print ("File Cannot be Opened")
+
+
+    B_CALLIBRATE = 0
+    B_NEXTBOX = 1
+    B_PLAY = 2
+    B_RUN = 3
+    B_RENDER = 4
+    B_LEFT = 5
+    B_RIGHT = 6
+    B_RESET = 7
 
     buttons = ButtonHandler()
     buttons.add(B_CALLIBRATE, "Callibrate Dimensions", SCREEN_WIDTH-350, 100, 300, 50, GREEN, WHITE)
@@ -368,9 +372,6 @@ def callibrate():
 
     minosMain = None # 2d array for main tetris board. 10x20
     minosNext = None # 2d array for lookahead. 8x4
-
-    # Scale constant for tetris footage
-    SCALAR = 0.5
 
     # seconds to display render error message
     ERROR_TIME = 3
@@ -431,22 +432,18 @@ def callibrate():
             # load previous frame
             frameCount -= 1
             frame = allVideoFrames[frameCount]
-
-                
+         
 
         screen.fill(BLACK)
 
-
-        # draw text
-        text = font.render("({},{})".format(mx,my), False, WHITE)
-        screen.blit(text, (100,10))
-
-        
+        # draw title
+        text = fontbig.render("Step 1: Callibration", False, WHITE)
+        screen.blit(text, (10,10))
             
 
         surf = pygame.surfarray.make_surface(frame)
         surf = pygame.transform.scale(surf, [surf.get_width()*SCALAR, surf.get_height()*SCALAR] )
-
+        screen.blit(surf, (VIDEO_X, VIDEO_Y))
         
         # If click
         if click:
@@ -492,9 +489,7 @@ def callibrate():
                     bounds.click()
                 if nextBounds != None:
                     nextBounds.click()
-                
-        
-        screen.blit(surf, (VIDEO_X, VIDEO_Y))
+            
         
         if bounds != None:
             bounds.updateMouse(mx,my)
@@ -528,30 +523,101 @@ def callibrate():
                 vcap.release()
                 return None
 
-        
-                
 
-   
-    return None
+def drawProgressBar(screen,percent):
+    CENTER_Y = 25
+    SMALL_R = 3
+    BIG_R = 10
+    LEFT_X = 250
+    WIDTH = 400
+    SIDE_BUMP = 10
 
-def render():
+    # small
+    pygame.draw.rect(screen, WHITE, [LEFT_X, CENTER_Y-SMALL_R, WIDTH, SMALL_R*2])
+
+    # big
+    pygame.draw.rect(screen, WHITE, [LEFT_X, CENTER_Y-BIG_R, WIDTH*percent, BIG_R*2])
+
+    # side
+    pygame.draw.rect(screen, WHITE, [LEFT_X+WIDTH, CENTER_Y-BIG_R, SIDE_BUMP, BIG_R*2])
+    
+
+def render(currentFrame, bounds, nextBounds):
     print("Beginning render...")
+
+     # Open video from opencv
+    vcap = cv2.VideoCapture(filename)
+    if not vcap.isOpened():
+        print ("File Cannot be Opened")
+
+    totalFrames = int(vcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    print("Total Frames: ", totalFrames)
+    
+    frameCount = 0 # to be immediately set to 0
+
+    while frameCount < currentFrame:
+        vcap.read()
+        frameCount += 1
+
+    while True:
+
+        screen.fill(BLACK)
+
+        # read frame sequentially
+        ret, newframe = vcap.read()
+        if type(newframe) != np.ndarray:
+            break
+            
+        frame = newframe.transpose(1,0,2)
+        frame = np.flip(frame,2)
+
+        surf = pygame.surfarray.make_surface(frame)
+        surf = pygame.transform.scale(surf, [surf.get_width()*SCALAR, surf.get_height()*SCALAR] )
+        screen.blit(surf, (VIDEO_X, VIDEO_Y))
+
+        drawProgressBar(screen, frameCount / totalFrames)
+
+        # draw title
+        text = fontbig.render("Step 2: Render", False, WHITE)
+        screen.blit(text, (10,10))
+
+
+        # Commence Calculations!
+        minosMain = bounds.getMinosAndDisplay(screen)
+        minosNext = nextBounds.getMinosAndDisplay(screen)
+        
+
+        pygame.display.update()
+        frameCount += 1
+        
+       
+
+    
 
 def analyze():
     pass
 
 def main():
-    
+    """
     output = callibrate()
     
     if output == None:
         return # exit if pygame screen closed
     
     currentFrame, bounds, nextBounds = output
+    print(bounds.x1,bounds.y1,bounds.x2,bounds.y2)
+    print(nextBounds.x1,nextBounds.y1,nextBounds.x2,nextBounds.y2)
+    print(currentFrame)
 
     print("Successfully callibrated video.")
-    
-    render()
+    """
+
+    # test callibration parameters for now
+    currentFrame = 0
+    bounds = Bounds(False, 305, 136, 522, 569)
+    nextBounds = Bounds(True, 564, 288, 650, 398)
+        
+    render(currentFrame, bounds, nextBounds)
     analyze()
 
 if __name__ == "__main__":
