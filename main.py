@@ -317,16 +317,23 @@ class Bounds:
         colorValue = avg(readings)
         return (colorValue > COLOR_CALLIBRATION)
     
-    
 
+ # Open video from opencv
+def getVideo():
+    vcap = cv2.VideoCapture(filename)
+    if not vcap.isOpened():
+        print ("File Cannot be Opened")
+    return vcap
+
+def displayTetrisImage(screen, frame):
+    surf = pygame.surfarray.make_surface(frame)
+    surf = pygame.transform.scale(surf, [surf.get_width()*SCALAR, surf.get_height()*SCALAR] )
+    screen.blit(surf, (VIDEO_X, VIDEO_Y))
 
 # Initiates user-callibrated tetris field. Returns currentFrame, bounds, nextBounds for rendering
 def callibrate():
 
-    # Open video from opencv
-    vcap = cv2.VideoCapture(filename)
-    if not vcap.isOpened():
-        print ("File Cannot be Opened")
+    vcap = getVideo()
 
 
     B_CALLIBRATE = 0
@@ -359,6 +366,7 @@ def callibrate():
     # seconds to display render error message
     ERROR_TIME = 3
 
+    # for detecting press and release of mouse
     isPressed = False
     wasPressed = False
 
@@ -387,6 +395,7 @@ def callibrate():
         # Get new frame from opencv
 
         if click and buttons.get(B_RESET).pressed:
+            b = buttons.get(B_PLAY)
             
             b.text = "Play"
             b.buttonColor = BRIGHT_GREEN
@@ -394,8 +403,22 @@ def callibrate():
 
             frame = allVideoFrames[0]
             frameCount = 0
+
+        elif click and buttons.get(B_PLAY).pressed:
+                
+            b = buttons.get(B_PLAY)
+
+            if isPlay:
+                b.text = "Play"
+                b.buttonColor = GREEN
+            else:
+                b.text = "Pause"
+                b.buttonColor = RED
+                
+            isPlay = not isPlay
             
-        elif isPlay or click and buttons.get(B_RIGHT).pressed:
+
+        if isPlay or (click and buttons.get(B_RIGHT).pressed):
             
             # If run out of frames to load
             if frameCount == len(allVideoFrames) - 1:
@@ -411,6 +434,7 @@ def callibrate():
                 # load next frame
                 frameCount += 1
                 frame = allVideoFrames[frameCount]
+                
         elif click and buttons.get(B_LEFT).pressed and frameCount > 0:
             # load previous frame
             frameCount -= 1
@@ -423,10 +447,7 @@ def callibrate():
         text = fontbig.render("Step 1: Callibration", False, WHITE)
         screen.blit(text, (10,10))
             
-
-        surf = pygame.surfarray.make_surface(frame)
-        surf = pygame.transform.scale(surf, [surf.get_width()*SCALAR, surf.get_height()*SCALAR] )
-        screen.blit(surf, (VIDEO_X, VIDEO_Y))
+        displayTetrisImage(screen, frame)
         
         # If click
         if click:
@@ -439,19 +460,6 @@ def callibrate():
                 nextBounds = Bounds(True,VIDEO_X+surf.get_width()/2, VIDEO_Y+surf.get_height()/2,VIDEO_X+surf.get_width()/2+50, VIDEO_Y+surf.get_height()/2+50)
                 if bounds != None:
                     bounds.set()
-
-            elif buttons.get(B_PLAY).pressed:
-                
-                b = buttons.get(B_PLAY)
-
-                if isPlay:
-                    b.text = "Play"
-                    b.buttonColor = GREEN
-                else:
-                    b.text = "Pause"
-                    b.buttonColor = RED
-                    
-                isPlay = not isPlay
 
             elif buttons.get(B_RENDER).pressed:
 
@@ -493,11 +501,8 @@ def callibrate():
             else:
                 errorMsg = None
 
-
         wasPressed = isPressed
         pygame.display.update()
-        
-
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -533,34 +538,147 @@ class Position:
         self.board = board
         self.currentPiece = currentPiece
         self.nextPiece = nextPiece
+        self.placement = None # the final placement for the current piece. 2d binary array (mask)
 
     def print(self):
         print("Current: ", TETRONIMO_NAMES[self.currentPiece])
         print("Next: ", TETRONIMO_NAMES[self.nextPiece])            
         print2d(self.board)
 
+
+def countZeros(board):
+    zeros = 0
+    for row in range(len(board)):
+        for col in range(len(board[row])):
+            if board[row][col] == 0:
+                zeros += 1
+    return zeros
+
+# Assume the difference between the two boards are one tetronimo.
+def getBoardDifference(oldBoard,newBoard):
+    assert(len(oldBoard) == len(newBoard))
+    assert(len(oldBoard[0]) == len(newBoard[0]))
+
+    diff = []
+    for row in range(len(oldBoard)):
+        
+        diff.append([])
+        
+        for col in range(len(oldBoard[row])):
+            
+            if oldBoard[row][col] == 0 and newBoard[row][col] == 1:
+                diff[row].append(1)
+                
+            elif oldBoard[row][col] == newBoard[row][col]:
+                diff[row].append(0)
+                
+            else:
+                print("failed")
+                print2d(oldBoard)
+                print2d(newBoard)
+                assert(False)
+
+    return diff
+
+
+"""If pre-placement has at least as many blacks as post-placement,
+then easy placement detection. Otherwise, start at the first frame when
+piece spawns, and compare frame by frame keeping track of the number
+of black cells each frame. When the piece is dropping, the number of
+black cells should be constant. The first frame that line(s) start clearing,
+there will be an increase in the number of black cells. Use the frame right
+before that, which should be the frame the piece lands in its final spot. Boom."""
+
+def getFinalPlacement(minoList, oldBoard, newBoard):
+
+    if countZeros(newBoard) <= countZeros(oldBoard):
+        # No line clears
+        return getBoardDifference(oldBoard,newBoard)
+    
+    else:
+        
+        # Line clear
+        print("line clear")
+        print(countZeros(oldBoard))
+        print2d(oldBoard)
+        print(countZeros(newBoard))
+        print2d(newBoard)
+
+
+        prevBlack = countZeros(minoList[0])
+        i = 1
+        finalBoard = None # to store the frame which the piece locks before line clear
+        while i < len(minoList)-1:
+            black = countZeros(minoList[i])
+            if black - 2 <= prevBlack: # line clear frame will remove at least two minos
+                finalBoard = minoList[i-1] # the frame before the frame that begins line clear
+                break
+            prevBlack = black
+
+            i += 1
+
+        assert(finalBoard != None) # if None, means that no line clear frame detected which is contradictory
+
+        return getBoardDifference(oldBoard,finalBoard)
+        
+
+
+
+def calculatePosition(isFirstFrame, minoList, positionDatabase, prevMinosNext, minosNext):
+    
+    # If first frame of render, get currentPiece from top of tetris field, and next piece from next box
+    # Remove top piece and use that as tetris board
+    if isFirstFrame:
+        currentPiece = getCurrentPiece(minoList[-1])
+        removeTopPiece(minoList[-1], currentPiece)
+        board = minoList[-1]
+
+    else:    
+        # Otherwise, get currentPiece from previous next piece
+        # Get tetris board from previous frame
+        currentPiece = getNextBox(prevMinosNext)
+        board = minoList[-2]
+
+        # Now, calculate the final piece placement for the PREVIOUS position.
+        positionDatabase[-1].placement = getFinalPlacement(minoList, positionDatabase[-1].board, minoList[-2])
+        print2d(positionDatabase[-1].placement)
+            
+        # at every new piece placement, reset minosList, mainly to save space
+        last = minoList[-1]
+        minoList.clear()
+        minoList.append(last)
+        
+    
+    nextPiece = getNextBox(minosNext)
+
+    # Now, board, currentPiece, and nextPiece are accurate for current  frame
+    return Position(board,currentPiece, nextPiece)
+    
+
 def render(firstFrame, bounds, nextBounds):
     print("Beginning render...")
 
-     # Open video from opencv
-    vcap = cv2.VideoCapture(filename)
-    if not vcap.isOpened():
-        print ("File Cannot be Opened")
+    vcap = getVideo()
 
     totalFrames = int(vcap.get(cv2.CAP_PROP_FRAME_COUNT))
     print("Total Frames: ", totalFrames)
     
     frameCount = 0 # to be immediately set to 0
 
+    # Start vcap at specified frame from callibration
     while frameCount < firstFrame:
         vcap.read()
         frameCount += 1
     print(firstFrame,frameCount)
 
-    filled = False
+    filled = False # whether the upper tetris board where piece spawns is filled
 
-    minosMain = None
-    minosNext = None
+    minosNext = None # 2d array for next box
+
+    positionDatabase = [] # The generated list of all the positions in the video. To be returned
+
+    minoList = [] # Storing 2d array of minos at each frame.
+    # specifically for backtracking to find final position for line clears
 
     while True:
 
@@ -574,9 +692,7 @@ def render(firstFrame, bounds, nextBounds):
         frame = newframe.transpose(1,0,2)
         frame = np.flip(frame,2)
 
-        surf = pygame.surfarray.make_surface(frame)
-        surf = pygame.transform.scale(surf, [surf.get_width()*SCALAR, surf.get_height()*SCALAR] )
-        screen.blit(surf, (VIDEO_X, VIDEO_Y))
+        displayTetrisImage(screen, frame)
 
         drawProgressBar(screen, frameCount / totalFrames)
 
@@ -584,9 +700,8 @@ def render(firstFrame, bounds, nextBounds):
         text = fontbig.render("Step 2: Render", False, WHITE)
         screen.blit(text, (10,10))
 
-        prevMinosMain = minosMain
         prevMinosNext = minosNext
-        minosMain = bounds.getMinosAndDisplay(screen)
+        minoList.append(bounds.getMinosAndDisplay(screen))
         minosNext = nextBounds.getMinosAndDisplay(screen)
 
 
@@ -596,37 +711,28 @@ def render(firstFrame, bounds, nextBounds):
         prevFilled = filled
         # not the greatest solution, but if either of the top 4 boxes in 2x2 it is considered filled, to account for
         #   rotation or translation in the first frame
+        minosMain = minoList[-1]
         filled = (minosMain[0][4] == 1 or minosMain[0][5] == 1 or minosMain[1][4] == 1 or minosMain[1][5] == 1 or minosMain[0][6] == 1)
        #[0][6] in case you somehow rotate AND shift to the right the longar in the FIRST FRAME
 
         # first frame of new piece
         if filled and not prevFilled:
 
-            # If first frame of render, get currentPiece from top of tetris field, and next piece from next box
-            # Remove top piece and use that as tetris board
-            if frameCount == firstFrame:
-                currentPiece = getCurrentPiece(minosMain)
-                removeTopPiece(minosMain, currentPiece)
-                board = minosMain
-
-            else:    
-                # Otherwise, get currentPiece from previous next piece
-                # Get tetris board from previous frame
-                currentPiece = getNextBox(prevMinosNext)
-                board = prevMinosMain
-            
-            nextPiece = getNextBox(minosNext)
-
-            # Now, board, currentPiece, and nextPiece are accurate for current  frame
-            position = Position(board,currentPiece, nextPiece)
+            position = calculatePosition(frameCount == firstFrame, minoList, positionDatabase, prevMinosNext, minosNext)
             position.print()
+            positionDatabase.append(position)
+        
+        # -- end of  if else (frameCount == firstFrame) statement --
         
 
-
-        # must run this at the end of each iteration oof the loop
+        # must run this at the end of each iteration of the loop
         frameCount += 1
-        
-       
+
+    if len(positionDatabase) > 1:
+        positionDatabase.pop() # last position must be popped because it has incomplete final placement data
+        return positionDatabse
+    else:
+        return None
 
     
 
