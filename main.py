@@ -30,6 +30,7 @@ VIDEO_X = 50
 VIDEO_Y = 50
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+#screen = pygame.Surface((SCREEN_WIDTH,SCREEN_HEIGHT))
 
 # Scale constant for tetris footage
 SCALAR = 0.5
@@ -143,24 +144,6 @@ def getNextBox(array):
         return None
     else:
         return bestPiece
-
-
-# Stores image, frame number, and tetris board state
-class Frame:
-
-    def __init__(self,imgSurface, frameNum, board):
-        self.imgSurface = imgSurface
-        self.frameNum = frameNum
-        self.board = board
-
-# Store a complete postion, including both frames, the current piece, and lookahead. (eventually evaluation as well)
-class Position:
-
-    def __init__(self, frameA, frameB, currentPiece, nextPiece):
-        self.frameA = frameA
-        self.frameB = frameB
-        self.currentPiece = currentPiece
-        self.nextPiece = nextPiece
         
 
 # Handle the display and click-checking of all button objects
@@ -513,6 +496,7 @@ def callibrate():
 
         wasPressed = isPressed
         pygame.display.update()
+        
 
         
         for event in pygame.event.get():
@@ -540,9 +524,22 @@ def drawProgressBar(screen,percent):
 
     # side
     pygame.draw.rect(screen, WHITE, [LEFT_X+WIDTH, CENTER_Y-BIG_R, SIDE_BUMP, BIG_R*2])
-    
 
-def render(currentFrame, bounds, nextBounds):
+
+# Store a complete postion, including both frames, the current piece, and lookahead. (eventually evaluation as well)
+class Position:
+
+    def __init__(self, board, currentPiece, nextPiece):
+        self.board = board
+        self.currentPiece = currentPiece
+        self.nextPiece = nextPiece
+
+    def print(self):
+        print("Current: ", TETRONIMO_NAMES[self.currentPiece])
+        print("Next: ", TETRONIMO_NAMES[self.nextPiece])            
+        print2d(self.board)
+
+def render(firstFrame, bounds, nextBounds):
     print("Beginning render...")
 
      # Open video from opencv
@@ -555,9 +552,15 @@ def render(currentFrame, bounds, nextBounds):
     
     frameCount = 0 # to be immediately set to 0
 
-    while frameCount < currentFrame:
+    while frameCount < firstFrame:
         vcap.read()
         frameCount += 1
+    print(firstFrame,frameCount)
+
+    filled = False
+
+    minosMain = None
+    minosNext = None
 
     while True:
 
@@ -581,13 +584,46 @@ def render(currentFrame, bounds, nextBounds):
         text = fontbig.render("Step 2: Render", False, WHITE)
         screen.blit(text, (10,10))
 
-
-        # Commence Calculations!
+        prevMinosMain = minosMain
+        prevMinosNext = minosNext
         minosMain = bounds.getMinosAndDisplay(screen)
         minosNext = nextBounds.getMinosAndDisplay(screen)
-        
+
 
         pygame.display.update()
+
+        # --- Commence Calculations ---!
+        prevFilled = filled
+        # not the greatest solution, but if either of the top 4 boxes in 2x2 it is considered filled, to account for
+        #   rotation or translation in the first frame
+        filled = (minosMain[0][4] == 1 or minosMain[0][5] == 1 or minosMain[1][4] == 1 or minosMain[1][5] == 1 or minosMain[0][6] == 1)
+       #[0][6] in case you somehow rotate AND shift to the right the longar in the FIRST FRAME
+
+        # first frame of new piece
+        if filled and not prevFilled:
+
+            # If first frame of render, get currentPiece from top of tetris field, and next piece from next box
+            # Remove top piece and use that as tetris board
+            if frameCount == firstFrame:
+                currentPiece = getCurrentPiece(minosMain)
+                removeTopPiece(minosMain, currentPiece)
+                board = minosMain
+
+            else:    
+                # Otherwise, get currentPiece from previous next piece
+                # Get tetris board from previous frame
+                currentPiece = getNextBox(prevMinosNext)
+                board = prevMinosMain
+            
+            nextPiece = getNextBox(minosNext)
+
+            # Now, board, currentPiece, and nextPiece are accurate for current  frame
+            position = Position(board,currentPiece, nextPiece)
+            position.print()
+        
+
+
+        # must run this at the end of each iteration oof the loop
         frameCount += 1
         
        
@@ -613,7 +649,7 @@ def main():
     """
 
     # test callibration parameters for now
-    currentFrame = 0
+    currentFrame = 12
     bounds = Bounds(False, 305, 136, 522, 569)
     nextBounds = Bounds(True, 564, 288, 650, 398)
         
