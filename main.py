@@ -22,6 +22,9 @@ LIGHT_RED = [255,51,51]
 BLUE = [0,0,255]
 LIGHT_BLUE = [65,105,225]
 ORANGE = [255,128,0]
+YELLOW = [255,255,51]
+LIGHT_PURPLE = [150,111,214]
+BACKGROUND = LIGHT_PURPLE
 
 
 SCREEN_WIDTH = 1200
@@ -35,7 +38,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 #screen = pygame.Surface((SCREEN_WIDTH,SCREEN_HEIGHT))
 
 # Scale constant for tetris footage
-SCALAR = 0.5
+SCALAR = 0.4
 
 
 NUM_HORIZONTAL_CELLS = 10
@@ -60,7 +63,7 @@ def print2d(array):
     print()
 
 def clamp(n,smallest,largest):
-    return max(smallest, min(n, largest))
+    return max(smallest, min(n, largest-1))
 
 
 # Given a 2d binary array for the tetris board, identify the current piece (at the top of the screen)
@@ -366,7 +369,7 @@ class Bounds:
 
         #  Draw cell callibration markers. Start on the center of the first cell
 
-        r = int(self.r * SCALAR)
+        r = max(1,int(self.r * SCALAR))
         for i in range(self.vertical):
                         
             for j in range(self.horizontal):
@@ -377,7 +380,8 @@ class Bounds:
                 y = int(self.ylist[i] * SCALAR + VIDEO_Y)
                 pygame.draw.circle(surface, BRIGHT_GREEN if exists else RED, [x,y], (r+2) if exists else r, width = (0 if exists else 1))
 
-        return minos           
+        return minos
+    
 
  # Open video from opencv
 def getVideo():
@@ -392,6 +396,44 @@ def displayTetrisImage(screen, frame):
     surf = pygame.transform.scale(surf, [surf.get_width()*SCALAR, surf.get_height()*SCALAR] )
     screen.blit(surf, (VIDEO_X, VIDEO_Y))
     return surf
+
+
+class Slider:
+
+    def __init__(self,leftx, y, width, height, sliderWidth):
+        self.leftx = leftx
+        self.x = self.leftx + (COLOR_CALLIBRATION/255) * sliderWidth
+        self.y = y
+        self.width = width
+        self.height = height
+        self.sliderWidth = sliderWidth
+        self.SH = 10
+
+        self.active = False
+
+    def tick(self, isPressed, mx):
+        if isPressed and self.active:
+            self.adjust(mx)
+        else:
+            self.active = False
+            
+
+    def adjust(self,mx):
+        global COLOR_CALLIBRATION
+        self.x = clamp(mx-self.width/2, self.leftx, self.leftx+self.sliderWidth)
+        COLOR_CALLIBRATION = int( ((self.x - self.leftx) / self.sliderWidth) * 255)
+
+    def isHovering(self,mx,my):
+        return mx >= self.x and mx <= self.x+self.width and my  >= self.y-self.height/2 and my <= self.y+self.height/2
+
+    def draw(self,screen):
+        
+        pygame.draw.rect(screen, YELLOW, [self.leftx + self.width/2, self.y-self.SH/2, self.sliderWidth,self.SH])
+
+        color = [COLOR_CALLIBRATION,COLOR_CALLIBRATION,COLOR_CALLIBRATION]
+        pygame.draw.rect(screen, color, [self.x, self.y-self.height/2, self.width, self.height])
+        pygame.draw.rect(screen, LIGHT_BLUE, [self.x, self.y-self.height/2, self.width, self.height])
+        
 
 # Initiates user-callibrated tetris field. Returns currentFrame, bounds, nextBounds for rendering
 def callibrate():
@@ -424,6 +466,16 @@ def callibrate():
     
     buttons.add(B_RENDER, "Render", SCREEN_WIDTH-350, 500, 300, 50, LIGHT_BLUE, WHITE)
     
+    # Slider stuff
+    SW = 270
+    RX = SCREEN_WIDTH - 335
+    RY = 80
+    RWIDTH = 15
+    RHEIGHT = 30
+    
+    slider = Slider(RX-RWIDTH/2,RY-RHEIGHT/2,RWIDTH,RHEIGHT, SW)
+
+
     bounds = None
     nextBounds = None
 
@@ -456,6 +508,7 @@ def callibrate():
         mx,my = pygame.mouse.get_pos()
         isPressed =  pygame.mouse.get_pressed()[0]
         click = wasPressed and not isPressed
+        startPress = isPressed and not wasPressed
         buttons.updatePressed(mx,my)
 
         # Get new frame from opencv
@@ -506,7 +559,7 @@ def callibrate():
             frame = allVideoFrames[frameCount]
          
 
-        screen.fill(BLACK)
+        screen.fill(BACKGROUND)
         
 
         # draw title
@@ -560,7 +613,17 @@ def callibrate():
             minosNext = nextBounds.displayBounds(screen, nparray = frame)
 
         # Draw buttons
+        pygame.draw.rect(screen,BACKGROUND,[SCREEN_WIDTH-375,0,375,SCREEN_HEIGHT])
         buttons.display(screen)
+
+        # Draw color callibration slider
+        text = font.render("Color Detection", False, WHITE)
+        screen.blit(text, [SCREEN_WIDTH - 270, 15])
+        slider.draw(screen)
+        if startPress and slider.isHovering(mx,my):
+            slider.active = True
+        slider.tick(isPressed, mx)
+       
 
         # Draw error message
         if errorMsg != None:
@@ -813,7 +876,7 @@ def render(firstFrame, bounds, nextBounds):
         
         if True or updateDisplay:
             # A start frame. We blit to pygame display on these frames. We don't do this on every frame to save computation time.
-            screen.fill(BLACK)
+            screen.fill(BACKGROUND)
 
             displayTetrisImage(screen, frame)
             drawProgressBar(screen, frameCount / totalFrames)
