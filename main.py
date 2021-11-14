@@ -15,16 +15,18 @@ filename = "/Users/anselchang/Documents/I broke the rules of NES tetris by getti
 
 BLACK = [0,0,0]
 WHITE = [255,255,255]
-GREEN = [50,168,82]
+GREEN = [119,229,176]
 BRIGHT_GREEN = [0,255,0]
-RED = [255,0,0]
+BRIGHT_RED = [255,0,0]
+RED = [255,105,97]
 LIGHT_RED = [255,51,51]
 BLUE = [0,0,255]
 LIGHT_BLUE = [65,105,225]
 ORANGE = [255,128,0]
 YELLOW = [255,255,51]
 LIGHT_PURPLE = [150,111,214]
-BACKGROUND = LIGHT_PURPLE
+LIGHT_GREY = [236,236,236]
+BACKGROUND = LIGHT_GREY
 
 
 SCREEN_WIDTH = 1200
@@ -250,7 +252,7 @@ class Bounds:
             self.X_LEFT = 0.05
             self.X_RIGHT = 0.9
         else:
-            self.color = RED
+            self.color = BRIGHT_RED
             self.horizontal = NUM_HORIZONTAL_CELLS
             self.vertical = NUM_VERTICAL_CELLS
             self.Y_TOP = 0
@@ -378,7 +380,7 @@ class Bounds:
                 
                 x = int(self.xlist[j] * SCALAR + VIDEO_X)
                 y = int(self.ylist[i] * SCALAR + VIDEO_Y)
-                pygame.draw.circle(surface, BRIGHT_GREEN if exists else RED, [x,y], (r+2) if exists else r, width = (0 if exists else 1))
+                pygame.draw.circle(surface, BRIGHT_GREEN if exists else BRIGHT_RED, [x,y], (r+2) if exists else r, width = (0 if exists else 1))
 
         return minos
     
@@ -397,7 +399,7 @@ def displayTetrisImage(screen, frame):
     screen.blit(surf, (VIDEO_X, VIDEO_Y))
     return surf
 
-
+# Slider object during callibration. Move with mousex
 class Slider:
 
     def __init__(self,leftx, y, width, height, sliderWidth):
@@ -410,18 +412,27 @@ class Slider:
         self.SH = 10
 
         self.active = False
-
-    def tick(self, isPressed, mx):
+        
+    # return float 0-1 indicating position on slider rect
+    def tick(self, screen, value, startPress, isPressed, mx, my, animate = False):
+        if startPress and self.isHovering(mx,my):
+            self.active = True
+            
         if isPressed and self.active:
-            self.adjust(mx)
+            value =  self.adjust(mx)
         else:
             self.active = False
+            if animate:
+                self.x = self.leftx + value * self.sliderWidth
+            
+        self.draw(screen)
+        
+        return value
             
 
     def adjust(self,mx):
-        global COLOR_CALLIBRATION
         self.x = clamp(mx-self.width/2, self.leftx, self.leftx+self.sliderWidth)
-        COLOR_CALLIBRATION = int( ((self.x - self.leftx) / self.sliderWidth) * 255)
+        return (self.x - self.leftx) / self.sliderWidth
 
     def isHovering(self,mx,my):
         return mx >= self.x and mx <= self.x+self.width and my  >= self.y-self.height/2 and my <= self.y+self.height/2
@@ -429,11 +440,16 @@ class Slider:
     def draw(self,screen):
         
         pygame.draw.rect(screen, YELLOW, [self.leftx + self.width/2, self.y-self.SH/2, self.sliderWidth,self.SH])
-
-        color = [COLOR_CALLIBRATION,COLOR_CALLIBRATION,COLOR_CALLIBRATION]
-        pygame.draw.rect(screen, color, [self.x, self.y-self.height/2, self.width, self.height])
         pygame.draw.rect(screen, LIGHT_BLUE, [self.x, self.y-self.height/2, self.width, self.height])
         
+
+def goToFrame(vcap, framecount, frame = None):
+    vcap.set(cv2.CAP_PROP_POS_FRAMES, framecount)
+    ret, newframe = vcap.read()
+    if type(newframe) == np.ndarray:
+        frame = np.flip(newframe,2)
+    return frame, framecount
+    
 
 # Initiates user-callibrated tetris field. Returns currentFrame, bounds, nextBounds for rendering
 def callibrate():
@@ -442,6 +458,7 @@ def callibrate():
     global VIDEO_WIDTH, VIDEO_HEIGHT
     VIDEO_WIDTH = int(vcap.get(cv2.CAP_PROP_FRAME_WIDTH))
     VIDEO_HEIGHT = int(vcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    totalFrames = int(vcap.get(cv2.CAP_PROP_FRAME_COUNT))
 
     print(VIDEO_WIDTH, VIDEO_HEIGHT)
 
@@ -473,8 +490,12 @@ def callibrate():
     RWIDTH = 15
     RHEIGHT = 30
     
-    slider = Slider(RX-RWIDTH/2,RY-RHEIGHT/2,RWIDTH,RHEIGHT, SW)
+    colorSlider = Slider(RX-RWIDTH/2,RY-RHEIGHT/2,RWIDTH,RHEIGHT, SW)
+    videoSlider = Slider(320,27,RWIDTH,RHEIGHT,200)
+    zoomSlider = Slider(550, 27, RWIDTH, RHEIGHT, 200)
 
+    prevSliderFrame = 0
+    currentSliderFrame = 0
 
     bounds = None
     nextBounds = None
@@ -497,10 +518,7 @@ def callibrate():
     errorMsg = None
     
     # Get new frame from opencv
-    ret, newframe = vcap.read()
-    assert(type(newframe) == np.ndarray)
-    frame = np.flip(newframe,2)
-    allVideoFrames.append(frame)
+    frame, frameCount = goToFrame(vcap, 0)
     
     while True:
 
@@ -519,9 +537,7 @@ def callibrate():
             b.text = "Play"
             b.buttonColor = BRIGHT_GREEN
             isPlay = False
-
-            frame = allVideoFrames[0]
-            frameCount = 0
+            frame, frameCount = goToFrame(vcap, 0)
 
         elif click and buttons.get(B_PLAY).pressed:
                 
@@ -539,31 +555,17 @@ def callibrate():
 
         if isPlay or (click and buttons.get(B_RIGHT).pressed):
             
-            # If run out of frames to load
-            if frameCount == len(allVideoFrames) - 1:
-                ret, newframe = vcap.read()
-                if type(newframe) == np.ndarray:
-                    
-                    frame = np.flip(newframe,2)
-                    allVideoFrames.append(frame)
-                    frameCount += 1
-
-            else:
-                # load next frame
-                frameCount += 1
-                frame = allVideoFrames[frameCount]
+            frame, frameCount = goToFrame(vcap, frameCount + 1)
                 
         elif click and buttons.get(B_LEFT).pressed and frameCount > 0:
             # load previous frame
-            frameCount -= 1
-            frame = allVideoFrames[frameCount]
+            frame, frameCount = goToFrame(vcap, frameCount - 1)
          
 
         screen.fill(BACKGROUND)
-        
 
         # draw title
-        text = fontbig.render("Step 1: Callibration", False, WHITE)
+        text = fontbig.render("Step 1: Callibration", False, BLACK)
         screen.blit(text, (10,10))
             
         surf = displayTetrisImage(screen, frame)
@@ -616,14 +618,19 @@ def callibrate():
         pygame.draw.rect(screen,BACKGROUND,[SCREEN_WIDTH-375,0,375,SCREEN_HEIGHT])
         buttons.display(screen)
 
-        # Draw color callibration slider
-        text = font.render("Color Detection", False, WHITE)
+        # Draw sliders
+        text = font.render("Color Detection", False, BLACK)
         screen.blit(text, [SCREEN_WIDTH - 270, 15])
-        slider.draw(screen)
-        if startPress and slider.isHovering(mx,my):
-            slider.active = True
-        slider.tick(isPressed, mx)
-       
+        global COLOR_CALLIBRATION
+        COLOR_CALLIBRATION = 255*colorSlider.tick(screen, COLOR_CALLIBRATION/255, startPress, isPressed, mx, my)
+        
+        currentSliderFrame = videoSlider.tick(screen, frameCount / totalFrames, startPress, isPressed, mx, my,True)
+        if prevSliderFrame != currentSliderFrame and videoSlider.isHovering(mx,my):
+            frame, frameCount = goToFrame(vcap, int(currentSliderFrame * totalFrames))
+        prevSliderFrame = currentSliderFrame
+        
+        global SCALAR
+        SCALAR = zoomSlider.tick(screen, SCALAR, startPress, isPressed, mx, my)
 
         # Draw error message
         if errorMsg != None:
@@ -882,7 +889,7 @@ def render(firstFrame, bounds, nextBounds):
             drawProgressBar(screen, frameCount / totalFrames)
 
              # draw title
-            text = fontbig.render("Step 2: Render", False, WHITE)
+            text = fontbig.render("Step 2: Render", False, BLACK)
             screen.blit(text, (10,10))
 
             # Draw bounds
