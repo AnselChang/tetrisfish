@@ -28,6 +28,8 @@ SCREEN_WIDTH = 1200
 SCREEN_HEIGHT = 600
 VIDEO_X = 50
 VIDEO_Y = 50
+VIDEO_WIDTH = None
+VIDEO_HEIGHT = None
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 #screen = pygame.Surface((SCREEN_WIDTH,SCREEN_HEIGHT))
@@ -56,6 +58,9 @@ def print2d(array):
     for row in range(len(array)):
         print(array[row])
     print()
+
+def clamp(n,smallest,largest):
+    return max(smallest, min(n, largest))
 
 
 # Given a 2d binary array for the tetris board, identify the current piece (at the top of the screen)
@@ -216,6 +221,10 @@ class Bounds:
         self.x2 = x2
         self.y2 = y2
         self.callibration = 1 # 1 = setting top-left point, 2 = setting bottom-right point, 0 = already set
+        self.r = 2 if isNextBox else 4
+
+        self.xrlist = None
+        self.yrlist = None
 
         self.directions = [
             [0,0],
@@ -238,18 +247,23 @@ class Bounds:
             self.vertical = NUM_VERTICAL_CELLS
             self.Y_TOP = 0
             self.Y_BOTTOM = 0.993
-            self.X_LEFT = 0
-            self.X_RIGHT = 1
+            self.X_LEFT = 0.01
+            self.X_RIGHT = 0.99
+
+        # initialize lookup tables for bounds
+        self.updateConversions()
 
     def updateMouse(self,mx,my):
         
         if self.callibration == 1:
             self.x1 = mx
             self.y1 = my
+            self.updateConversions()
         elif self.callibration == 2:
             self.x2 = mx
             self.y2 = my
-
+            self.updateConversions()
+        
 
     def click(self):
         if self.callibration == 1:
@@ -266,57 +280,98 @@ class Bounds:
     def _getPosition(self):
         
         dx = self.X_RIGHT*(self.x2-self.x1) / self.horizontal
-        dy = self.Y_BOTTOM*(self.y2-self.y1) / self.vertical
+        margin = (self.y2-self.y1)*self.Y_TOP
+        dy = self.Y_BOTTOM*(self.y2-self.y1-margin) / self.vertical
 
         # dx, dy, radius
         return dx, dy, (dx+dy)/2/8
 
-    # Draw the markings for detected minos and return a 2d array. Not great programming style but too bad
-    def getMinosAndDisplay(self, surface):
+    # After change x1/y1/x2/y2, update conversions to scale
+    # Generate lookup tables of locations of elements
+    def updateConversions(self):
+        self.x1s = (self.x1 - VIDEO_X) / SCALAR
+        self.y1s = (self.y1 - VIDEO_Y) / SCALAR
+        self.x2s = (self.x2 - VIDEO_X) / SCALAR
+        self.y2s = (self.y2 - VIDEO_Y) / SCALAR
 
+        w = self.x2s - self.x1s
+        h = self.y2s - self.y1s
+
+        # Generate a list of every x scaled location of the center of all 10 minos in a row
+        self.xlist = []
+        x = self.x1s + w*self.X_LEFT + w / (self.horizontal*2)
+        for i in range(self.horizontal):
+            self.xlist.append( int( clamp(x, 0, VIDEO_WIDTH) ) )
+            x += self.X_RIGHT*(w / self.horizontal)
+
+         # Generate a list of every y scaled location of the center of all 10 minos in a row
+        self.ylist = []
+        y = self.y1s + w*self.Y_TOP + h / (self.vertical*2)
+        for i in range(self.vertical):
+            self.ylist.append( int( clamp(y, 0, VIDEO_HEIGHT) ) )
+            y += self.Y_BOTTOM*(h / self.vertical)
+
+        # xrlist and xylist are an 5-element array of different variants of xlist and ylist.
+        # Specifically, they store xlist and ylist offset by radius by different directions.
+        # It is precomputed this way for efficiency during each frame.
+        # They will be used to quickly get numpy pixels and see if average of each of those 5 points
+        #   constitute a filled or empty cell
+        self.xrlist = [ self.xlist ]
+        self.yrlist = [ self.ylist ]
+        for a,b in self.directions: # (a,b) represent some (x,y) offset from the center
+            # abbreviated: current x/y list. List comprehension to generate copies of lists with given offset
+            self.cxl = [(x+a) for x in self.xlist]
+            self.cyl = [(y+b) for y in self.ylist]
+
+            self.xrlist.append(self.cxl)
+            self.yrlist.append(self.cyl)
+
+
+    # Faster replacement for getMinosAndDisplay(). Works directly from nparray.
+    # Generates a 2d nparray of minos from nparray of pixels without explicit iteration over each pixel.
+    # Called every frame so must be optimized well.
+    def getMinos(self, nparray):
+
+        minosList = [] # Represents the 2d arrays of colors at each mino of slightly different offsets from each tetronimo
+        for i in range(0,5):
+            # colorsList is a [10x20x3] array (vertical x horizontal x rgb] for regular, [4x8x3] for nextbox
+            colorsList = nparray[ self.yrlist[0] ][ :  , self.xrlist[0] ]
+
+            # minosVariant is a 10x20 array (4x8 for nextbox), each element representing the average of the rgb values on that pixel for the mino
+            minosVariant = np.mean(colorsList, axis = 2)
+            minosList.append(minosVariant)
+
+        # np.mean averages all 5 2d arrays. averagedMinosInts is a 10x20 array (4x8 for nextbox), each element the brightness (0-255) of the entire mino
+        averagedMinosInts = np.mean(minosList, axis = 0)
+
+        # We use a step function for each element: f(x) = 1 if x >= COLOR_CALLIBRATION else 0
+        finalMinos = np.heaviside(averagedMinosInts - COLOR_CALLIBRATION, 1) # 1 means borderline case (x = COLOR_CALLIBRATION) still 1
+
+        return finalMinos
+        
+
+    # Draw the markings for detected minos and return a 2d array. Not great programming style but too bad
+    def displayBounds(self, surface, nparray):
+
+        minos = self.getMinos(nparray)
+        
         # draw Red bounds
         pygame.draw.rect(surface, self.color, [self.x1, self.y1, self.x2-self.x1, self.y2-self.y1], width = 2)
 
         #  Draw cell callibration markers. Start on the center of the first cell
-        minos = []
-        
-        dx,dy, r = self._getPosition()
-        y = (self.y2-self.y1)*self.Y_TOP + self.y1 + dx/2
+
+        r = int(self.r * SCALAR)
         for i in range(self.vertical):
-            x = (self.x2-self.x1)*self.X_LEFT + self.x1 + dx/2
-            minos.append([])
+                        
             for j in range(self.horizontal):
-                exists = self.isThereMino(surface,x,y)
-                minos[-1].append(1 if exists else 0)
-                pygame.draw.circle(surface, BRIGHT_GREEN if exists else RED, [x,y], (r+2) if exists else r, width = (0 if exists else 1))
-                x += dx
                 
-            y += dy
+                exists = (minos[i][j] == 1)
+                
+                x = int(self.xlist[j] * SCALAR + VIDEO_X)
+                y = int(self.ylist[i] * SCALAR + VIDEO_Y)
+                pygame.draw.circle(surface, BRIGHT_GREEN if exists else RED, [x,y], (r+2) if exists else r, width = (0 if exists else 1))
 
-        return minos
-
-    # return true if tetronimo exists at that location.
-    # Get average color of (x,y) and four points generated all four directions from center for accuracy
-    def isThereMino(self,surface, x, y):
-
-        
-        dx,dy, r = self._getPosition()
-
-        readings = []
-        for a,b in self.directions:
-
-            xr = int(x + a*r)
-            yr = int(y + a*r)
-
-            # if out of bounds, return false
-            if xr < 0 or xr >= SCREEN_WIDTH or yr < 0 or yr >= SCREEN_HEIGHT:
-                return False
-    
-            readings.append(avg( surface.get_at( [xr,yr] ) ) )
-
-        colorValue = avg(readings)
-        return (colorValue > COLOR_CALLIBRATION)
-    
+        return minos           
 
  # Open video from opencv
 def getVideo():
@@ -326,15 +381,20 @@ def getVideo():
     return vcap
 
 def displayTetrisImage(screen, frame):
+    frame = frame.transpose(1,0,2)
     surf = pygame.surfarray.make_surface(frame)
     surf = pygame.transform.scale(surf, [surf.get_width()*SCALAR, surf.get_height()*SCALAR] )
     screen.blit(surf, (VIDEO_X, VIDEO_Y))
+    return surf
 
 # Initiates user-callibrated tetris field. Returns currentFrame, bounds, nextBounds for rendering
 def callibrate():
 
     vcap = getVideo()
-
+    global VIDEO_WIDTH, VIDEO_HEIGHT
+    VIDEO_WIDTH = int(vcap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    VIDEO_HEIGHT = int(vcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    print(VIDEO_WIDTH, VIDEO_HEIGHT)
 
     B_CALLIBRATE = 0
     B_NEXTBOX = 1
@@ -380,8 +440,7 @@ def callibrate():
     # Get new frame from opencv
     ret, newframe = vcap.read()
     assert(type(newframe) == np.ndarray)
-    frame = newframe.transpose(1,0,2)
-    frame = np.flip(frame,2)
+    frame = np.flip(newframe,2)
     allVideoFrames.append(frame)
     
     while True:
@@ -425,8 +484,7 @@ def callibrate():
                 ret, newframe = vcap.read()
                 if type(newframe) == np.ndarray:
                     
-                    frame = newframe.transpose(1,0,2)
-                    frame = np.flip(frame,2)
+                    frame = np.flip(newframe,2)
                     allVideoFrames.append(frame)
                     frameCount += 1
 
@@ -442,12 +500,13 @@ def callibrate():
          
 
         screen.fill(BLACK)
+        
 
         # draw title
         text = fontbig.render("Step 1: Callibration", False, WHITE)
         screen.blit(text, (10,10))
             
-        displayTetrisImage(screen, frame)
+        surf = displayTetrisImage(screen, frame)
         
         # If click
         if click:
@@ -468,6 +527,9 @@ def callibrate():
                     errorMsg = time.time()  # display error message by logging time to display for 3 seconds
                 
                 else:
+
+                    print2d(bounds.getMinos(frame))
+                    print2d(nextBounds.getMinos(frame))
                     
                     # When everything done, release the capture
                     vcap.release()
@@ -484,11 +546,11 @@ def callibrate():
         
         if bounds != None:
             bounds.updateMouse(mx,my)
-            minosMain = bounds.getMinosAndDisplay(screen)
+            minosMain = bounds.displayBounds(screen, frame)
 
         if nextBounds != None:
             nextBounds.updateMouse(mx,my)
-            minosNext = nextBounds.getMinosAndDisplay(screen)
+            minosNext = nextBounds.displayBounds(screen, frame)
 
         # Draw buttons
         buttons.display(screen)
@@ -623,7 +685,7 @@ def getFinalPlacement(minoList, oldBoard, newBoard):
         
 
 
-
+# Parse all data for a position (current piece, next piece, board state), as well as the PREVIOUS position's placement
 def calculatePosition(isFirstFrame, minoList, positionDatabase, prevMinosNext, minosNext):
     
     # If first frame of render, get currentPiece from top of tetris field, and next piece from next box
@@ -655,6 +717,7 @@ def calculatePosition(isFirstFrame, minoList, positionDatabase, prevMinosNext, m
     return Position(board,currentPiece, nextPiece)
     
 
+# Update: render everything through numpy (no conversion to lists at all)
 def render(firstFrame, bounds, nextBounds):
     print("Beginning render...")
 
@@ -685,13 +748,10 @@ def render(firstFrame, bounds, nextBounds):
         screen.fill(BLACK)
 
         # read frame sequentially
-        ret, newframe = vcap.read()
-        if type(newframe) != np.ndarray:
+        ret, frame = vcap.read()
+        if type(frame) != np.ndarray:
             break
             
-        frame = newframe.transpose(1,0,2)
-        frame = np.flip(frame,2)
-
         displayTetrisImage(screen, frame)
 
         drawProgressBar(screen, frameCount / totalFrames)
@@ -701,8 +761,8 @@ def render(firstFrame, bounds, nextBounds):
         screen.blit(text, (10,10))
 
         prevMinosNext = minosNext
-        minoList.append(bounds.getMinosAndDisplay(screen))
-        minosNext = nextBounds.getMinosAndDisplay(screen)
+        minoList.append(bounds.getMinos(frame))
+        minosNext = nextBounds.getMinos(frame)
 
 
         pygame.display.update()
@@ -712,11 +772,12 @@ def render(firstFrame, bounds, nextBounds):
         # not the greatest solution, but if either of the top 4 boxes in 2x2 it is considered filled, to account for
         #   rotation or translation in the first frame
         minosMain = minoList[-1]
-        filled = (minosMain[0][4] == 1 or minosMain[0][5] == 1 or minosMain[1][4] == 1 or minosMain[1][5] == 1 or minosMain[0][6] == 1)
+        filled = (minosMain[0][4] == 1 or minosMain[0][5] == 1 or minosMain[0][6] == 1 or minosMain[1][4] == 1 or minosMain[1][5] == 1)
        #[0][6] in case you somehow rotate AND shift to the right the longar in the FIRST FRAME
+        firstFilled = (getCurrentPiece(minosMain) != None) # getCurrentPiece
 
         # first frame of new piece
-        if filled and not prevFilled:
+        if firstFilled and filled and not prevFilled:
 
             position = calculatePosition(frameCount == firstFrame, minoList, positionDatabase, prevMinosNext, minosNext)
             position.print()
@@ -740,7 +801,7 @@ def analyze():
     pass
 
 def main():
-    """
+    
     output = callibrate()
     
     if output == None:
@@ -752,7 +813,7 @@ def main():
     print(currentFrame)
 
     print("Successfully callibrated video.")
-    """
+    
 
     # test callibration parameters for now
     currentFrame = 12
