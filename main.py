@@ -97,7 +97,10 @@ def getCurrentPiece(pieces):
                     
 
 # Remove top piece from the board. Use in conjunction with getCurrentPiece()
-def removeTopPiece(pieces,pieceType):
+# Returns a new array, does not modify original.
+def removeTopPiece(piecesOriginal,pieceType):
+
+    pieces = np.copy(piecesOriginal)
 
     # Assert piece was detected.
     assert(pieceType == getCurrentPiece(pieces))
@@ -109,6 +112,8 @@ def removeTopPiece(pieces,pieceType):
                 
                 assert(pieces[row][col] == 1)
                 pieces[row][col] = 0
+
+    return pieces
     
 
 
@@ -350,10 +355,11 @@ class Bounds:
         return finalMinos
         
 
-    # Draw the markings for detected minos and return a 2d array. Not great programming style but too bad
-    def displayBounds(self, surface, nparray):
+    # Draw the markings for detected minos.
+    def displayBounds(self, surface, nparray = None, minos = None):
 
-        minos = self.getMinos(nparray)
+        if type(minos) != np.ndarray:
+            minos = self.getMinos(nparray)
         
         # draw Red bounds
         pygame.draw.rect(surface, self.color, [self.x1, self.y1, self.x2-self.x1, self.y2-self.y1], width = 2)
@@ -394,6 +400,7 @@ def callibrate():
     global VIDEO_WIDTH, VIDEO_HEIGHT
     VIDEO_WIDTH = int(vcap.get(cv2.CAP_PROP_FRAME_WIDTH))
     VIDEO_HEIGHT = int(vcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
     print(VIDEO_WIDTH, VIDEO_HEIGHT)
 
     B_CALLIBRATE = 0
@@ -523,7 +530,7 @@ def callibrate():
             elif buttons.get(B_RENDER).pressed:
 
                 # If not callibrated, do not allow render
-                if bounds == None or nextBounds == None or getNextBox(minosNext) == None:
+                if bounds == None or nextBounds == None or getNextBox(minosNext) == None or getCurrentPiece(minosMain) == None:
                     errorMsg = time.time()  # display error message by logging time to display for 3 seconds
                 
                 else:
@@ -546,11 +553,11 @@ def callibrate():
         
         if bounds != None:
             bounds.updateMouse(mx,my)
-            minosMain = bounds.displayBounds(screen, frame)
+            minosMain = bounds.displayBounds(screen, nparray = frame)
 
         if nextBounds != None:
             nextBounds.updateMouse(mx,my)
-            minosNext = nextBounds.displayBounds(screen, frame)
+            minosNext = nextBounds.displayBounds(screen, nparray = frame)
 
         # Draw buttons
         buttons.display(screen)
@@ -606,116 +613,155 @@ class Position:
         print("Current: ", TETRONIMO_NAMES[self.currentPiece])
         print("Next: ", TETRONIMO_NAMES[self.nextPiece])            
         print2d(self.board)
+        print2d(self.placement)
 
 
-def countZeros(board):
-    zeros = 0
-    for row in range(len(board)):
-        for col in range(len(board[row])):
-            if board[row][col] == 0:
-                zeros += 1
-    return zeros
 
-# Assume the difference between the two boards are one tetronimo.
-def getBoardDifference(oldBoard,newBoard):
-    assert(len(oldBoard) == len(newBoard))
-    assert(len(oldBoard[0]) == len(newBoard[0]))
+""" For very first piece, use first frame and remove current piece in initial location. Otherwise,
+if line clear detected, let x be calculated total filled cells right before line clear animation starts.
+The frame right before line clear animation starts is designated as the final frame, and,
+comparing with initial board, can be used to get final placement.
 
-    diff = []
-    for row in range(len(oldBoard)):
-        
-        diff.append([])
-        
-        for col in range(len(oldBoard[row])):
+Let y be the number of cells that will be removed (should be 10/20/30/40). Calculate this by
+looking at which cells were removed in the first line clear animation frame. Keep moving to the
+next frame until [frame's filled cells] < x - y + 4. (this should be somewhere in the end of the
+line clear animation or the first frame of the drop) Then, keep moving to the next frame until
+[frame's filled cells] == x - y + 4. This indicates that this is the initial frame of the next piece.
+
+If there was no drop in the number of filled squares to detect a line clear, and instead, there is an
+increase of 4 filled squares, this means there was no line clear at all, and the frame with the filled
+square increase is the initial frame of the next piece. The frame before this one will yield the final
+position of the previous piece.
+
+This function returns [updated isLineclear, boolean whether it's a start frame, frames moved ahead]
+"""
+
+def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount):
+
+     # --- Commence Calculations ---!
+
+    if isFirst:
             
-            if oldBoard[row][col] == 0 and newBoard[row][col] == 1:
-                diff[row].append(1)
-                
-            elif oldBoard[row][col] == newBoard[row][col]:
-                diff[row].append(0)
-                
-            else:
-                print("failed")
-                print2d(oldBoard)
-                print2d(newBoard)
-                assert(False)
+        # For very first piece, use first frame and remove current piece in initial location
+        assert(getCurrentPiece(minosMain) != None)
+        currentP = getCurrentPiece(minosMain)
+        nextP = getNextBox(minosNext)
 
-    return diff
+        positionDatabase.append( Position( removeTopPiece(minosMain, currentP), currentP, nextP ))
 
-
-"""If pre-placement has at least as many blacks as post-placement,
-then easy placement detection. Otherwise, start at the first frame when
-piece spawns, and compare frame by frame keeping track of the number
-of black cells each frame. When the piece is dropping, the number of
-black cells should be constant. The first frame that line(s) start clearing,
-there will be an increase in the number of black cells. Use the frame right
-before that, which should be the frame the piece lands in its final spot. Boom."""
-
-def getFinalPlacement(minoList, oldBoard, newBoard):
-
-    if countZeros(newBoard) <= countZeros(oldBoard):
-        # No line clears
-        return getBoardDifference(oldBoard,newBoard)
-    
-    else:
+        return [False,True, 0, finalCount] # not line clear
         
-        # Line clear
-        print("line clear")
-        print(countZeros(oldBoard))
-        print2d(oldBoard)
-        print(countZeros(newBoard))
-        print2d(newBoard)
+    elif not isLineClear and count == prevCount + 4:
+        """ If there was no drop in the number of filled squares to detect a line clear, and
+        instead, there is an increase of 4 filled squares, this means there was no line clear
+        at all, and the frame with the filled square increase is the initial frame of the next piece.
+        The frame before this one will yield the final position of the previous piece. """
 
+       # Update final placement of previous position. The difference between the original board and the
+        # board after placement yields a mask of the placed piece
+        positionDatabase[-1].placement = prevMinosMain - positionDatabase[-1].board
+        positionDatabase[-1].print()
 
-        prevBlack = countZeros(minoList[0])
-        i = 1
-        finalBoard = None # to store the frame which the piece locks before line clear
-        while i < len(minoList)-1:
-            black = countZeros(minoList[i])
-            if black - 2 <= prevBlack: # line clear frame will remove at least two minos
-                finalBoard = minoList[i-1] # the frame before the frame that begins line clear
+        # The starting board for the current piece is simply the frame before this one.  It is unecessary
+        # to find the exact placement the current piece as we can simply use previous next box.
+        positionDatabase.append(Position(prevMinosMain,  positionDatabase[-1].nextPiece, getNextBox(minosNext)))
+
+        return [False,True, 0, finalCount] # not line clear
+
+    elif not isLineClear and count < prevCount-1:
+        # Condition for if line clear detected.
+        
+        # There is ONE ANNOYING POSSIBILITY for rotation on the first frame to lower mino count.
+        # The solution is to look for the next DISTINCT frame and see if decrease continues. This will
+        # confirm line clear, otherwise it is a false positive.
+        frames = 0
+        while True:
+            ret, frame = vcap.read()
+            frames += 1
+            minos = bounds.getMinos(frame)
+
+            # frame is distinct from previous
+            if not (minos == minosMain).all():
                 break
-            prevBlack = black
+            assert(frames < 100) # something has gone terribly wrong
+        
+        # Now, minos is the 2d array for the next frame. If next frame does not have less filled cells, it's a false positive
+        if np.count_nonzero(minos) >= count:
+            print("false positive")
+            return [False, False, frames, finalCount]
+        
+        # Update final placement of previous position. The difference between the original board and the
+        # board after placement yields a mask of the placed piece
+        positionDatabase[-1].placement = prevMinosMain - positionDatabase[-1].board
+        positionDatabase[-1].print()
 
-            i += 1
+        # To find the starting position from the filled frame, we must manually perform line clear computation.
 
-        assert(finalBoard != None) # if None, means that no line clear frame detected which is contradictory
+        # This yields a list of all the rows that are not filled
+         # https://stackoverflow.com/questions/23726026/finding-which-rows-have-all-elements-as-zeros-in-a-matrix-with-numpy
+        nonFilledRows = np.where((1-prevMinosMain).any(axis=1))[0]
+        numFilled = 20 - len(nonFilledRows)
 
-        return getBoardDifference(oldBoard,finalBoard)
+        print("numFilled:",numFilled)
+
+        # Nice numpy trick which stores all the non-filled rows in a list.
+        newBoard = prevMinosMain[nonFilledRows]
+
+        #  All you need to do now is insert rows at the top to complete line clear computation.
+        for i in range(numFilled):
+            newBoard = np.insert(newBoard, 0, np.array([0,0,0,0,0,0,0,0,0,0]),0 )
         
 
+        print("old:")
+        print2d(prevMinosMain)
+        print("new:")
+        print2d(newBoard)
+        assert(len(newBoard) == 20)
 
-# Parse all data for a position (current piece, next piece, board state), as well as the PREVIOUS position's placement
-def calculatePosition(isFirstFrame, minoList, positionDatabase, prevMinosNext, minosNext):
-    
-    # If first frame of render, get currentPiece from top of tetris field, and next piece from next box
-    # Remove top piece and use that as tetris board
-    if isFirstFrame:
-        currentPiece = getCurrentPiece(minoList[-1])
-        removeTopPiece(minoList[-1], currentPiece)
-        board = minoList[-1]
+        # Finally, create a new position using the generated resultant board.
+        # We don't know what the nextbox piece is yet, and must wait until start piece actually spawns
+        positionDatabase.append(Position(newBoard,  getNextBox(minosNext), None))
 
-    else:    
-        # Otherwise, get currentPiece from previous next piece
-        # Get tetris board from previous frame
-        currentPiece = getNextBox(prevMinosNext)
-        board = minoList[-2]
-
-        # Now, calculate the final piece placement for the PREVIOUS position.
-        positionDatabase[-1].placement = getFinalPlacement(minoList, positionDatabase[-1].board, minoList[-2])
-        print2d(positionDatabase[-1].placement)
-            
-        # at every new piece placement, reset minosList, mainly to save space
-        last = minoList[-1]
-        minoList.clear()
-        minoList.append(last)
         
-    
-    nextPiece = getNextBox(minosNext)
+        # Wecalculate the count after those filledrows are cleared so that we can find the next start frame.
 
-    # Now, board, currentPiece, and nextPiece are accurate for current  frame
-    return Position(board,currentPiece, nextPiece)
-    
+        # numpy magic to generate a list of indexes where the row is all 1 (looking for line clear rows)
+        # https://stackoverflow.com/questions/23726026/finding-which-rows-have-all-elements-as-zeros-in-a-matrix-with-numpy
+        # note that (1-a) is to invert the 0s and 1s, because original code finds for number of rows of all 0s
+        filledRows = np.where(~(1-prevMinosMain).any(axis=1))[0]
+        print(filledRows)
+        assert(len(filledRows) > 0) # this assert fails if there are too many skipped frames and the frame before line clear doesn't have locked piece yet
+        
+        # We subtract 10 to the number of filled cells for every filled row there is
+        # prevCount is number of filled cells for the frame right before line clear (aka frame with full row(s))
+        finalCount = prevCount - len(filledRows)*10
+
+        # We need to skip past line clear and drop animation into next start frame. We wait until count drops BELOW finalCount+4
+        # We are setting isLineClear to 1 here
+        return [1, False, 0, finalCount]
+
+    elif isLineClear == 1 and count < finalCount+4:
+        print(isLineClear, count, finalCount+4)
+        # Now that count has dipped below finalCount + 4, we keep waiting until the new piece appears, where count == finalCount+4 would be true
+        # We are setting isLineClear to 2 here
+        return [2, False, 0, finalCount]
+
+    elif isLineClear == 2 and count == finalCount + 4:
+        
+        # We finally have reached the start frame of the next piece after the previous line clear animation!
+
+        # Since we created this position previously during line clear, we didn't know the next box then. Now that
+        # we are at a new frame, set the next box of the position.
+        positionDatabase[-1].nextPiece = getNextBox(minosNext)
+        
+        return [False, False, 0, finalCount] # we reset the isLineClear state
+
+    else:
+        if isLineClear == 1 or isLineClear == 2:
+            print(isLineClear, count, finalCount+4)
+        # Some uninteresting frame, so just move on to the next frame and don't change isLineClear
+        return [isLineClear, False, 0, finalCount]
+
 
 # Update: render everything through numpy (no conversion to lists at all)
 def render(firstFrame, bounds, nextBounds):
@@ -732,69 +778,73 @@ def render(firstFrame, bounds, nextBounds):
     while frameCount < firstFrame:
         vcap.read()
         frameCount += 1
-    print(firstFrame,frameCount)
 
-    filled = False # whether the upper tetris board where piece spawns is filled
 
     minosNext = None # 2d array for next box
+    minosMain = None
+    prevMinosMain = None
 
+    isLineClear = False
+    finalCount = -1 # Specifically for the use of the number of filled cells for a board after a line clear
+
+    count = -1
+    prevCount = -1
+    
     positionDatabase = [] # The generated list of all the positions in the video. To be returned
 
-    minoList = [] # Storing 2d array of minos at each frame.
-    # specifically for backtracking to find final position for line clears
 
     while True:
-
-        screen.fill(BLACK)
 
         # read frame sequentially
         ret, frame = vcap.read()
         if type(frame) != np.ndarray:
             break
             
-        displayTetrisImage(screen, frame)
 
-        drawProgressBar(screen, frameCount / totalFrames)
-
-        # draw title
-        text = fontbig.render("Step 2: Render", False, WHITE)
-        screen.blit(text, (10,10))
-
-        prevMinosNext = minosNext
-        minoList.append(bounds.getMinos(frame))
+        prevMinosMain = minosMain
+        minosMain = bounds.getMinos(frame)
         minosNext = nextBounds.getMinos(frame)
 
+        # The number of 1s in the array (how many minos there are in the field)
+        prevCount = count
+        count = np.count_nonzero(minosMain)
 
-        pygame.display.update()
 
-        # --- Commence Calculations ---!
-        prevFilled = filled
-        # not the greatest solution, but if either of the top 4 boxes in 2x2 it is considered filled, to account for
-        #   rotation or translation in the first frame
-        minosMain = minoList[-1]
-        filled = (minosMain[0][4] == 1 or minosMain[0][5] == 1 or minosMain[0][6] == 1 or minosMain[1][4] == 1 or minosMain[1][5] == 1)
-       #[0][6] in case you somehow rotate AND shift to the right the longar in the FIRST FRAME
-        firstFilled = (getCurrentPiece(minosMain) != None) # getCurrentPiece
-
-        # first frame of new piece
-        if firstFilled and filled and not prevFilled:
-
-            position = calculatePosition(frameCount == firstFrame, minoList, positionDatabase, prevMinosNext, minosNext)
-            position.print()
-            positionDatabase.append(position)
         
-        # -- end of  if else (frameCount == firstFrame) statement --
-        
+        if True or updateDisplay:
+            # A start frame. We blit to pygame display on these frames. We don't do this on every frame to save computation time.
+            screen.fill(BLACK)
 
-        # must run this at the end of each iteration of the loop
+            displayTetrisImage(screen, frame)
+            drawProgressBar(screen, frameCount / totalFrames)
+
+             # draw title
+            text = fontbig.render("Step 2: Render", False, WHITE)
+            screen.blit(text, (10,10))
+
+            # Draw bounds
+            bounds.displayBounds(screen, minos = minosMain)
+            nextBounds.displayBounds(screen, minos = minosNext)
+            pygame.display.update()
+
+        # Possibly update positionDatabase given the current frame.
+        params = [frameCount == firstFrame, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount]
+        isLineClear, updateDisplay, frameDelta, finalCount = parseBoard(*params) # lots of params!
+        frameCount += frameDelta
+
+
+        # Increment frame counter (perhaps slightly too self-explanatory but well, you've read it already so...)
         frameCount += 1
 
+
+    # End of loop signifying no more frames to read
     if len(positionDatabase) > 1:
         positionDatabase.pop() # last position must be popped because it has incomplete final placement data
-        return positionDatabse
+        return positionDatabase
     else:
         return None
 
+            
     
 
 def analyze():
@@ -814,13 +864,18 @@ def main():
 
     print("Successfully callibrated video.")
     
-
+    """
     # test callibration parameters for now
     currentFrame = 12
+    global VIDEO_WIDTH, VIDEO_HEIGHT
+    VIDEO_WIDTH = 1920
+    VIDEO_HEIGHT = 1080
     bounds = Bounds(False, 305, 136, 522, 569)
     nextBounds = Bounds(True, 564, 288, 650, 398)
+    """
         
     render(currentFrame, bounds, nextBounds)
+    
     analyze()
 
 if __name__ == "__main__":
