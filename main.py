@@ -56,6 +56,16 @@ NUM_VERTICAL_CELLS = 20
 COLOR_CALLIBRATION = 50
 
 
+def getScaledPos(x,y):
+    x = (x / realscreen.get_rect().width) * SCREEN_WIDTH
+    y = (y / (realscreen.get_rect().width * SCREEN_HEIGHT / SCREEN_WIDTH)) * SCREEN_HEIGHT
+    return x,y
+
+# Returns true if two binary 2d numpy arrays intersect
+def intersection(arr1, arr2):
+    return 2 in (arr1 + arr2)
+
+
 def lighten(color, amount, doThis = True):
     if doThis:
         return [i * amount for i in color]
@@ -742,11 +752,11 @@ def drawProgressBar(screen,percent):
 # Store a complete postion, including both frames, the current piece, and lookahead. (eventually evaluation as well)
 class Position:
 
-    def __init__(self, board, currentPiece, nextPiece):
+    def __init__(self, board, currentPiece, nextPiece, placement = None):
         self.board = board
         self.currentPiece = currentPiece
         self.nextPiece = nextPiece
-        self.placement = None # the final placement for the current piece. 2d binary array (mask)
+        self.placement = placement # the final placement for the current piece. 2d binary array (mask)
 
     def print(self):
         print("Current: ", TETRONIMO_NAMES[self.currentPiece])
@@ -995,41 +1005,53 @@ def render(firstFrame, bounds, nextBounds):
 
 EMPTY = 0
 WHITE_MINO = 1
+WHITE_MINO_2 = 4
 RED_MINO = 2
 BLUE_MINO = 3
 BOARD = "board"
 NEXT = "next"
 LEFTARROW = "leftarrow"
 RIGHTARROW = "rightarrow"
-IMAGE_NAMES = [WHITE_MINO, RED_MINO, BLUE_MINO, BOARD, NEXT, LEFTARROW, RIGHTARROW]
+IMAGE_NAMES = [WHITE_MINO, WHITE_MINO_2, RED_MINO, BLUE_MINO, BOARD, NEXT, LEFTARROW, RIGHTARROW]
 
 # Return surface with tetris board. 0 = empty, 1/-1 =  white, 2/-2 = red, 3/-3 = blue, negative = transparent
 
-def drawGeneralBoard(images, board, image, B_SCALE, hscale, hoffset, LEFT_MARGIN, TOP_MARGIN):
+def drawGeneralBoard(images, board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MARGIN, hover = None):
 
     b_width = image.get_width() * B_SCALE
     b_height = image.get_height() * B_SCALE*hscale
     b = pygame.transform.scale(image, [b_width , b_height])
 
-    surf = pygame.Surface([b_width,b_height+hoffset])
+    surf = pygame.Surface([b_width,b_height])
     
-    surf.blit(b, [0,hoffset])
+    surf.blit(b, [0,0])
 
     y = TOP_MARGIN
+    r = 0
     for row in board:
         x = LEFT_MARGIN
         y += MINO_OFFSET
+        c = 0
         for mino in row:
             if mino != EMPTY:
                 surf.blit(images[mino], [x,y])
+            if type(hover) == np.ndarray and hover[r][c] == 1:
+                s = pygame.Surface([MINO_OFFSET-4,MINO_OFFSET-4])
+                if mino != EMPTY:    
+                    s.fill(BLACK)
+                else:
+                    s.fill([100,100,100])
+                s.set_alpha(90)
+                
+                
+                surf.blit(s, [x, y])
             x += MINO_OFFSET
+            c += 1
+        r += 1
             
     return surf
 
-def drawTetrisBoard(board, images):
-   return drawGeneralBoard(images, board,images[BOARD], 0.647, 0.995, 6, 22, 0)
-
-def colorMinos(minos, piece):
+def colorMinos(minos, piece, white2 = False):
 
     num = 1
 
@@ -1041,7 +1063,21 @@ def colorMinos(minos, piece):
         #Blue tetronimo
         num = BLUE_MINO
 
+    elif white2:
+        num = WHITE_MINO_2
+
     return [[i*num for i in row] for row in minos]
+
+def colorOfPiece(piece):
+
+    if piece == L_PIECE or piece == Z_PIECE:
+        return RED_MINO
+    
+    elif piece == J_PIECE or piece == S_PIECE:
+        return BLUE_MINO
+    else:
+        return WHITE_MINO
+    
 
 # Return surface with nextbox
 def drawNextBox(nextPiece, images):
@@ -1050,9 +1086,167 @@ def drawNextBox(nextPiece, images):
 
     # Shift half-mino to the left for 3-wide pieces to fit into nextbox
     offset = 0 if (nextPiece == O_PIECE or nextPiece == I_PIECE) else (0 - MINO_OFFSET/2)
-    return drawGeneralBoard(images, minos, images[NEXT], 0.85, 1, 0, 32 + offset, -7)
+    return drawGeneralBoard(images, minos, images[NEXT], 0.85, 1, 32 + offset, -7)
     
+
+class AnalysisBoard:
+
+    def __init__(self, position):
+
+        self.x = 80
+        self.y = 6
+        self.xoffset = 22
+        self.yoffset = -6
+        
+        self.updatePosition(position)
+        self.hover = empty()
+        self.ph = [-1,-1]
+
+        self.hoverNum = 0
+        self.isHoverPiece = False
+        self.isAdjustCurrent = False
+
+    def updatePosition(self, position):
+        self.position = position
+
+    # Toggle hover piece
+    def toggle(self):
+        self.hoverNum += 1
+        self.hover = self.placements[self.hoverNum % len(self.placements)]
+        
+
+    # Update mouse-related events - namely, hover
+    def update(self, mx, my, click):
+        x1 = 100
+        y1 = 28
+        width = 320
+        height = 642
+
+        # Calculate row and col where mouse is hovering. Truncate to nearest cell
+        if mx >= x1 and mx < x1 + width and my >= y1 and my <= y1 + height:
+            c = int( (mx - x1) / width * NUM_HORIZONTAL_CELLS )
+            r = int ( (my - y1) / height * NUM_VERTICAL_CELLS)
+        else:
+            r = -1
+            c = -1
+
+        # If current piece clicked, enter placement selection mode
+        if click and self.touchingCurrent(r,c):
+            self.isAdjustCurrent = True
+
+        # Reset placement selection if clicking empty square that is not piece-placeable
+        if click and len(self.placements) == 0 and r != -1:
+            self.isAdjustCurrent = False
+                
+
+        # If mouse is now hovering on a different tile
+        if [r,c] != self.ph:
+
+            self.ph = [r,c]
+
+
+            # Many piece placements are possible from hovering at a tile. We sort this list by relevance,
+            # and hoverNum is the index of that list. When we change tile, we reset and go to best (first) placement
+            self.hoverNum = 0
+            self.placements = self.getHoverMask(r,c)
+
+            
+            if not self.isAdjustCurrent or len(self.placements) == 0:
+                
+                # If piece selection inactive or no possible piece selections, hover over mouse selection
+                self.isHoverPiece = False
+                if r != -1 and self.range(r,c):
+                    # In a special case that mouse is touching current piece, make current piece transparent (if clicked, activate piece selection)
+                    if self.touchingCurrent(r,c):
+                        self.hover = self.position.placement
+                    else:
+                        self.hover = empty()
+                        self.hover[r][c] = 1
+                        
+                else:
+                     self.hover = empty()
+            else:
+                # If there are hypothetical piece placements, display them
+                self.isHoverPiece = True
+                self.hover = self.placements[self.hoverNum % len(self.placements)]
+
+
+    # if in range
+    def range(self,r,c):
+        return r >= 0 and r < NUM_VERTICAL_CELLS and c >= 0 and c < NUM_HORIZONTAL_CELLS
+
+    def touchingCurrent(self,r,c):
+        if not self.range(r,c):
+            return False
+        return self.position.placement[r][c] == 1
+
+
+    # From hoverR and hoverC, return a piece placement mask if applicable
+    def getHoverMask(self, r, c):
+        b = self.position.board
+        if r == -1:
+            return []
+        
+        piece = self.position.currentPiece
+        placements = []
+        # We first generate a list of legal piece placements from the tile. Best first.
+
+        if piece == O_PIECE:
+            # Bottom-left then top-left tile
+            if c == 9:
+                return []
+
+            print2d(b)
+            for i in [c,c-1]:
+                
+                if (self.range(r+1,i) and b[r+1][i] == 1) or ((self.range(r+1,i+1) and b[r+1][i+1]) == 1) or r == 19:
+                    placements.append(stamp(O_PIECE, r-1, i-1))
+                    
+                elif (self.range(r+2,i) and b[r+2][i] == 1) or ((self.range(r+2,i+1) and b[r+2][i+1]) == 1) or r == 18:
+                    placements.append(stamp(O_PIECE, r, i-1))
+            
+        elif piece == I_PIECE:
+            # Vertical placement, then mid-left vertical
+            pass
+        elif piece == T_PIECE:
+            # All orientations at center
+            pass
+        elif piece == L_PIECE or J_PIECE:
+            # flat center both orientations (less holes first), upright center both orientations
+            pass
+        else:
+            # S/J flat center (both top and bottom tile), upright check all orientations for both center-left and center-right
+            pass
+
+        
+
+        # Remove all placements that collide with board
+        placements = [p for p in placements if not intersection(p, b)]            
+
+        return placements
+        
     
+
+    def draw(self, screen, images):
+
+        curr = self.position.currentPiece
+
+        # We add current piece to the board
+        plainBoard = self.position.board.copy()
+        placement = colorMinos(self.position.placement, curr, white2 = True)
+        print(self.isAdjustCurrent)
+
+
+        board = self.position.board.copy()
+        if self.isAdjustCurrent:
+            if self.isHoverPiece:
+                board += colorMinos(self.hover, curr, white2 = True)
+        else:
+            board += placement
+        
+        surf = drawGeneralBoard(images, board, images[BOARD], 0.647, 0.995, self.xoffset, self.yoffset, hover = self.hover)
+        screen.blit(surf ,[self.x,self.y])
+
 
 class EvalBar:
 
@@ -1101,18 +1295,24 @@ def analyze(positionDatabase):
     buttons.addImage(B_LEFT, images[LEFTARROW], 500, 500, 0.2, margin = 5)
     buttons.addImage(B_RIGHT, images[RIGHTARROW], 600, 500, 0.2, margin = 5)
 
+    positionNum = 0
+    analysisBoard = AnalysisBoard(positionDatabase[positionNum])
+
     wasPressed = False
 
-    positionNum = 0
 
     while True:
 
-        mx,my = pygame.mouse.get_pos()
+        # Mouse position
+        mx,my = getScaledPos(*pygame.mouse.get_pos())
         pressed = pygame.mouse.get_pressed()[0]
         click = not pressed and wasPressed
         wasPressed = pressed
-        
+
+
+        # Update with mouse event information        
         buttons.updatePressed(mx, my, click)
+        analysisBoard.update(mx, my, click)
         
         realscreen.fill(MID_GREY)
         screen.fill(MID_GREY)
@@ -1127,16 +1327,10 @@ def analyze(positionDatabase):
             positionNum = min(positionNum+1, len(positionDatabase)-1)
 
         currPos = positionDatabase[positionNum]
-        # We add current piece to the board
-
+       
         
-        board = currPos.board.copy()
-        placement = currPos.placement
-        board += colorMinos(placement, BLUE_MINO)
-        print2d(board)
-    
         # Tetris board
-        screen.blit(drawTetrisBoard(board, images) ,[80,0])
+        analysisBoard.draw(screen, images)
 
         # Next box
         screen.blit(drawNextBox(positionDatabase[positionNum].nextPiece, images), [445, 14])
@@ -1152,23 +1346,79 @@ def analyze(positionDatabase):
         flipDisplay()
 
         
-
+testing = True
 def main():
-    
-    output = callibrate()
-    
-    if output == None:
-        return # exit if pygame screen closed
-    
-    currentFrame, bounds, nextBounds = output
-    print(bounds.x1,bounds.y1,bounds.x2,bounds.y2)
-    print(nextBounds.x1,nextBounds.y1,nextBounds.x2,nextBounds.y2)
-    print(currentFrame)
 
-    print("Successfully callibrated video.")
+    if testing:
+
+        testboard = np.array([
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                  [1, 0, 0, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 1, 1, 1, 0, 0, 0,],
+                  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 1, 1,],
+                  [1, 1, 1, 1, 1, 0, 0, 0, 1, 1,],
+                  [1, 1, 1, 1, 0, 1, 1, 1, 1, 1,]
+                  ])
+        testplacement = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 1, 1, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 1, 1, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+        ])
+        
+        positionDatabase = [Position(testboard, O_PIECE, S_PIECE, placement = testplacement)]
+
+    else:
     
-    
-    positionDatabase = render(currentFrame, bounds, nextBounds)
+        output = callibrate()
+        
+        if output == None:
+            return # exit if pygame screen closed
+        
+        currentFrame, bounds, nextBounds = output
+        print(bounds.x1,bounds.y1,bounds.x2,bounds.y2)
+        print(nextBounds.x1,nextBounds.y1,nextBounds.x2,nextBounds.y2)
+        print(currentFrame)
+
+        print("Successfully callibrated video.")
+        
+        
+        positionDatabase = render(currentFrame, bounds, nextBounds)
+        
+
+        positionDatabase.append(Position())
+        
+
     if positionDatabase != None:
         analyze(positionDatabase)
 

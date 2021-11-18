@@ -1,3 +1,5 @@
+import numpy as np
+
 # 8x4 masks for all seven tetronimos to be used in next box
 
 
@@ -36,6 +38,25 @@ O_PIECESHAPE = [
     [0,1,1,0],
     [0,1,1,0]
 ]
+
+# return empty 20x10 array
+def empty(rows = 20, cols = 10):
+    return np.array([[0 for _ in range(cols)] for _ in range(rows)])
+
+# generate 20x10 mask of 2x4 piece translated by row and col
+def stamp(piece, row,col):
+    
+    # generate 20x10 array of 0s
+    mask = empty()
+
+    pieceShape = TETRONIMO_SHAPES[piece]
+    
+    for r in range(2):
+        for c in range(4):
+            if pieceShape[r][c] == 1:
+                mask[row + r][col + c] = 1
+
+    return mask
 
 
 # for nextbox usage
