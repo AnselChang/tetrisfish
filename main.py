@@ -4,6 +4,8 @@ import pygame, sys
 from PieceMasks import *
 import math
 import time
+import cProfile
+import random
 
 pygame.init()
 pygame.font.init()
@@ -26,18 +28,23 @@ ORANGE = [255,128,0]
 YELLOW = [255,255,51]
 LIGHT_PURPLE = [150,111,214]
 LIGHT_GREY = [236,236,236]
+MID_GREY = [200, 200, 200]
+DARK_GREY = [50,50,50]
 BACKGROUND = LIGHT_GREY
 
-
-SCREEN_WIDTH = 1200
-SCREEN_HEIGHT = 600
+info = pygame.display.Info()
+SCREEN_WIDTH = info.current_w*0.8
+SCREEN_HEIGHT = info.current_h*0.8
 VIDEO_X = 50
 VIDEO_Y = 50
 VIDEO_WIDTH = None
 VIDEO_HEIGHT = None
 
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-#screen = pygame.Surface((SCREEN_WIDTH,SCREEN_HEIGHT))
+MINO_OFFSET = 32 # Pixel offset between each mino
+
+# https://stackoverflow.com/questions/34910086/pygame-how-do-i-resize-a-surface-and-keep-all-objects-within-proportionate-to-t
+realscreen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.HWSURFACE |  pygame.DOUBLEBUF |  pygame.RESIZABLE)
+screen = realscreen.copy()
 
 # Scale constant for tetris footage
 SCALAR = 0.4
@@ -449,6 +456,30 @@ def goToFrame(vcap, framecount, frame = None):
     if type(newframe) == np.ndarray:
         frame = np.flip(newframe,2)
     return frame, framecount
+
+
+# Display screen and handle events, keeping ratio when resizing window
+# Returns true if exited
+def flipDisplay():
+
+    global realscreen
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT: 
+            pygame.display.quit()
+            sys.exit()
+            return True
+            
+        elif event.type == pygame.VIDEORESIZE:
+            realscreen = pygame.display.set_mode(event.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+
+    # Resize window, keep aspect ratio
+    rs = realscreen.get_rect()
+    ratio = (screen.get_rect().h / screen.get_rect().w)
+    realscreen.blit(pygame.transform.scale(screen, [rs.w, rs.w * ratio]), (0, 0))
+    
+    pygame.display.update()
+    return False
     
 
 # Initiates user-callibrated tetris field. Returns currentFrame, bounds, nextBounds for rendering
@@ -641,15 +672,12 @@ def callibrate():
                 errorMsg = None
 
         wasPressed = isPressed
-        pygame.display.update()
-        
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-                 # When everything done, release the capture
-                vcap.release()
-                return None
+
+        # Update board. If done, exit
+        if (flipDisplay()):
+            vcap.release()
+            return None
+
 
 
 def drawProgressBar(screen,percent):
@@ -705,7 +733,7 @@ position of the previous piece.
 
 This function returns [updated isLineclear, boolean whether it's a start frame, frames moved ahead]
 """
-
+# Given a 2d board, parse the board and update the position database
 def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount):
 
      # --- Commence Calculations ---!
@@ -793,7 +821,7 @@ def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minos
         positionDatabase.append(Position(newBoard,  getNextBox(minosNext), None))
 
         
-        # Wecalculate the count after those filledrows are cleared so that we can find the next start frame.
+        # We calculate the count after those filledrows are cleared so that we can find the next start frame.
 
         # numpy magic to generate a list of indexes where the row is all 1 (looking for line clear rows)
         # https://stackoverflow.com/questions/23726026/finding-which-rows-have-all-elements-as-zeros-in-a-matrix-with-numpy
@@ -874,6 +902,7 @@ def render(firstFrame, bounds, nextBounds):
         prevMinosMain = minosMain
         minosMain = bounds.getMinos(frame)
         minosNext = nextBounds.getMinos(frame)
+        print(minosMain)
 
         # The number of 1s in the array (how many minos there are in the field)
         prevCount = count
@@ -895,7 +924,7 @@ def render(firstFrame, bounds, nextBounds):
             # Draw bounds
             bounds.displayBounds(screen, minos = minosMain)
             nextBounds.displayBounds(screen, minos = minosNext)
-            pygame.display.update()
+            
 
         # Possibly update positionDatabase given the current frame.
         params = [frameCount == firstFrame, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount]
@@ -906,6 +935,10 @@ def render(firstFrame, bounds, nextBounds):
         # Increment frame counter (perhaps slightly too self-explanatory but well, you've read it already so...)
         frameCount += 1
 
+        # Update board. If exit, return none
+        if (flipDisplay()):
+            return None
+
 
     # End of loop signifying no more frames to read
     if len(positionDatabase) > 1:
@@ -914,14 +947,148 @@ def render(firstFrame, bounds, nextBounds):
     else:
         return None
 
+
+EMPTY = 0
+WHITE_MINO = 1
+RED_MINO = 2
+BLUE_MINO = 3
+BOARD = "board"
+NEXT = "next"
+IMAGE_NAMES = [WHITE_MINO, RED_MINO, BLUE_MINO, BOARD, NEXT]
+
+# Return surface with tetris board. 0 = empty, 1/-1 =  white, 2/-2 = red, 3/-3 = blue, negative = transparent
+
+def drawGeneralBoard(images, board, image, B_SCALE, hscale, hoffset, LEFT_MARGIN, TOP_MARGIN):
+
+    b_width = image.get_width() * B_SCALE
+    b_height = image.get_height() * B_SCALE*hscale
+    b = pygame.transform.scale(image, [b_width , b_height])
+
+    surf = pygame.Surface([b_width,b_height+hoffset])
+    
+    surf.blit(b, [0,hoffset])
+
+    y = TOP_MARGIN
+    for row in board:
+        x = LEFT_MARGIN
+        y += MINO_OFFSET
+        for mino in row:
+            if mino != EMPTY:
+                surf.blit(images[mino], [x,y])
+            x += MINO_OFFSET
             
+    return surf
+
+def drawTetrisBoard(board, images):
+   return drawGeneralBoard(images, board,images[BOARD], 0.647, 0.995, 6, 22, 0)
+
+def colorMinos(minos, num):
+    return [[i*num for i in row] for row in minos]
+
+# Return surface with nextbox
+def drawNextBox(nextPiece, images):
+
+    minos = TETRONIMO_SHAPES[nextPiece]
+
+    if nextPiece == L_PIECE or nextPiece == Z_PIECE:
+        # Red tetronimo
+        minos = colorMinos(minos, RED_MINO)
+    
+    elif nextPiece == J_PIECE or nextPiece == S_PIECE:
+        #Blue tetronimo
+        minos = colorMinos(minos, BLUE_MINO)
+
+    # Shift half-mino to the left for 3-wide pieces to fit into nextbox
+    offset = 0 if (nextPiece == O_PIECE or nextPiece == I_PIECE) else (0 - MINO_OFFSET/2)
+    return drawGeneralBoard(images, minos, images[NEXT], 0.85, 1, 0, 32 + offset, -7)
+    
     
 
+class EvalBar:
+
+    def __init__(self):
+        self.currentPercent = 0
+        self.targetPercent = 0
+
+    def tick(self, target):
+        self.targetPercent = target
+
+        # "Approach" the targetPercent with a cool slow-down animation
+        self.currentPercent = (self.currentPercent*2 + self.targetPercent) / 3
+
+    # percent 0-1, 1 is filled
+    def drawEval(self):
+
+        
+        width = 50
+        height = 660
+        surf = pygame.Surface([width, height])
+        surf.fill(DARK_GREY)
+        
+
+        sheight = int((1-self.currentPercent) * height)
+        pygame.draw.rect(surf, WHITE, [0,sheight, width, height - sheight])
+
+        return surf
+    
 def analyze():
-    pass
+
+    testboard = [
+                  [0, 0, 0, 0, 1, 1, 0, 0, 0, 0,],
+                  [0, 0, 0, 0, 0, 1, 1, 0, 0, 0,],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                  [1, 0, 0, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 1, 1, 1, 0, 0, 0,],
+                  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 1, 1,],
+                  [1, 1, 1, 1, 1, 0, 0, 0, 1, 1,],
+                  [1, 1, 1, 1, 0, 1, 1, 1, 1, 1,]
+                  ]
+
+    # Load all images.
+    imageName = "Images/{}.png"
+    images = {}
+    for name in IMAGE_NAMES:
+        images[name] = pygame.image.load(imageName.format(name))
+
+    evalBar = EvalBar()
+
+
+    while True:
+
+        mx,my = pygame.mouse.get_pos()
+        
+        realscreen.fill(MID_GREY)
+        screen.fill(MID_GREY)
+
+        evalBar.tick(0.3)
+
+        # Tetris board
+        screen.blit(drawTetrisBoard(testboard, images) ,[80,0])
+
+        # Next box
+        screen.blit(drawNextBox(J_PIECE, images), [445, 14])
+
+        # Eval bar
+        screen.blit(evalBar.drawEval(), [20,20])
+        
+        flipDisplay()
+
+        
 
 def main():
-    
+    """
     output = callibrate()
     
     if output == None:
@@ -934,17 +1101,9 @@ def main():
 
     print("Successfully callibrated video.")
     
-    """
-    # test callibration parameters for now
-    currentFrame = 12
-    global VIDEO_WIDTH, VIDEO_HEIGHT
-    VIDEO_WIDTH = 1920
-    VIDEO_HEIGHT = 1080
-    bounds = Bounds(False, 305, 136, 522, 569)
-    nextBounds = Bounds(True, 564, 288, 650, 398)
-    """
-        
+    currentFrame, bounds, nextBounds = None, None, None
     render(currentFrame, bounds, nextBounds)
+    """
     
     analyze()
 
