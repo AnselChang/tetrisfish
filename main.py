@@ -104,7 +104,7 @@ def getCurrentPiece(pieces):
         
         for row in range(0,2):
             for col in range(0,4):
-                if pieceShape[row][col] == 1 and pieces[row][col+3] == 0:
+                if pieceShape[0][row+2][col] == 1 and pieces[row][col+3] == 0:
                     isPiece = False
 
         if isPiece:
@@ -131,7 +131,7 @@ def removeTopPiece(piecesOriginal,pieceType):
     for row in range(2):
         for col in range(3,7):
             
-            if TETRONIMO_SHAPES[pieceType][row][col-3] == 1:
+            if TETRONIMO_SHAPES[pieceType][0][row][col-3] == 1:
                 
                 assert(pieces[row][col] == 1)
                 pieces[row][col] = 0
@@ -515,17 +515,6 @@ def goToFrame(vcap, framecount, frame = None):
 # Returns true if exited
 def flipDisplay():
 
-    global realscreen
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT: 
-            pygame.display.quit()
-            sys.exit()
-            return True
-            
-        elif event.type == pygame.VIDEORESIZE:
-            realscreen = pygame.display.set_mode(event.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
-
     # Resize window, keep aspect ratio
     rs = realscreen.get_rect()
     ratio = (screen.get_rect().h / screen.get_rect().w)
@@ -723,6 +712,16 @@ def callibrate():
                 errorMsg = None
 
         wasPressed = isPressed
+
+        global realscreen
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: 
+                pygame.display.quit()
+                sys.exit()
+                return True
+                
+            elif event.type == pygame.VIDEORESIZE:
+                realscreen = pygame.display.set_mode(event.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
 
         # Update board. If done, exit
         if (flipDisplay()):
@@ -990,9 +989,20 @@ def render(firstFrame, bounds, nextBounds):
         # Increment frame counter (perhaps slightly too self-explanatory but well, you've read it already so...)
         frameCount += 1
 
-        # Update board. If exit, return none
-        if (flipDisplay()):
-            return None
+        global realscreen
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: 
+                pygame.display.quit()
+                sys.exit()
+                return True
+                
+            elif event.type == pygame.VIDEORESIZE:
+                realscreen = pygame.display.set_mode(event.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+
+            # Update board. If exit, return none
+            if (flipDisplay()):
+                return None
 
 
     # End of loop signifying no more frames to read
@@ -1042,9 +1052,8 @@ def drawGeneralBoard(images, board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MAR
                 else:
                     s.fill([100,100,100])
                 s.set_alpha(90)
-                
-                
                 surf.blit(s, [x, y])
+                
             x += MINO_OFFSET
             c += 1
         r += 1
@@ -1082,7 +1091,7 @@ def colorOfPiece(piece):
 # Return surface with nextbox
 def drawNextBox(nextPiece, images):
 
-    minos = colorMinos(TETRONIMO_SHAPES[nextPiece], nextPiece)
+    minos = colorMinos(TETRONIMO_SHAPES[nextPiece][0][1:], nextPiece)
 
     # Shift half-mino to the left for 3-wide pieces to fit into nextbox
     offset = 0 if (nextPiece == O_PIECE or nextPiece == I_PIECE) else (0 - MINO_OFFSET/2)
@@ -1105,14 +1114,16 @@ class AnalysisBoard:
         self.hoverNum = 0
         self.isHoverPiece = False
         self.isAdjustCurrent = False
+        self.placements = []
 
     def updatePosition(self, position):
         self.position = position
 
     # Toggle hover piece
     def toggle(self):
-        self.hoverNum += 1
-        self.hover = self.placements[self.hoverNum % len(self.placements)]
+        if len(self.placements) > 0:
+            self.hoverNum  += 1
+            self.hover = self.placements[self.hoverNum % len(self.placements)]
         
 
     # Update mouse-related events - namely, hover
@@ -1130,24 +1141,37 @@ class AnalysisBoard:
             r = -1
             c = -1
 
-        # If current piece clicked, enter placement selection mode
-        if click and self.touchingCurrent(r,c):
-            self.isAdjustCurrent = True
+        newAdjust = False
 
-        # Reset placement selection if clicking empty square that is not piece-placeable
-        if click and len(self.placements) == 0 and r != -1:
+        if click:
+            print2d(self.hover)
+            print("a")
+            print2d(self.position.placement)
+            
+
+        # If current piece clicked, enter placement selection mode
+        if click and self.touchingCurrent(r,c) and not self.isAdjustCurrent:
+            self.isAdjustCurrent = True
+            newAdjust = True
+        elif click and (len(self.placements) == 0 and r != -1 or (self.hover == self.position.placement).all()):
+            # Reset placement selection if clicking empty square that is not piece-placeable
             self.isAdjustCurrent = False
+            self.isHoverPiece = False
+            newAdjust = True
+
+        
                 
 
         # If mouse is now hovering on a different tile
-        if [r,c] != self.ph:
+        if [r,c] != self.ph or newAdjust:
 
             self.ph = [r,c]
 
 
             # Many piece placements are possible from hovering at a tile. We sort this list by relevance,
             # and hoverNum is the index of that list. When we change tile, we reset and go to best (first) placement
-            self.hoverNum = 0
+            if self.position.currentPiece != I_PIECE:
+                self.hoverNum = 0
             self.placements = self.getHoverMask(r,c)
 
             
@@ -1184,7 +1208,7 @@ class AnalysisBoard:
     # From hoverR and hoverC, return a piece placement mask if applicable
     def getHoverMask(self, r, c):
         b = self.position.board
-        if r == -1:
+        if r == -1 or b[r][c] == 1:
             return []
         
         piece = self.position.currentPiece
@@ -1200,14 +1224,36 @@ class AnalysisBoard:
             for i in [c,c-1]:
                 
                 if (self.range(r+1,i) and b[r+1][i] == 1) or ((self.range(r+1,i+1) and b[r+1][i+1]) == 1) or r == 19:
-                    placements.append(stamp(O_PIECE, r-1, i-1))
+                    placements.append(stamp(O_PIECE, r-2, i-1))
                     
                 elif (self.range(r+2,i) and b[r+2][i] == 1) or ((self.range(r+2,i+1) and b[r+2][i+1]) == 1) or r == 18:
-                    placements.append(stamp(O_PIECE, r, i-1))
+                    placements.append(stamp(O_PIECE, r-1, i-1))
             
         elif piece == I_PIECE:
-            # Vertical placement, then mid-left vertical
-            pass
+            # Vertical placement, then mid-left horizontal
+            for i in range(0,4):
+                if (self.range(r+i+1,c) and b[r+i+1][c] == 1) or r+i == 19:
+                    placements.append(stamp(I_PIECE,r+i-3,c-2,1))
+                    break
+
+            for i in [1,2,0,3]:
+                cs = c - i # cs is start col of longbar
+                if cs >=7 or cs < 0:
+                    continue
+                valid = False
+                for cp in range(cs,cs+4):
+                    if self.range(r+1,cp) and b[r+1][cp] == 1 or r == 19:
+                        valid = True
+                if valid:
+                    p = stamp(I_PIECE,r-1,cs,0)
+                    if not intersection(p,b):
+                        print("YES")
+                        placements.append(p)
+                        break
+            
+
+            
+                
         elif piece == T_PIECE:
             # All orientations at center
             pass
@@ -1234,7 +1280,6 @@ class AnalysisBoard:
         # We add current piece to the board
         plainBoard = self.position.board.copy()
         placement = colorMinos(self.position.placement, curr, white2 = True)
-        print(self.isAdjustCurrent)
 
 
         board = self.position.board.copy()
@@ -1243,6 +1288,7 @@ class AnalysisBoard:
                 board += colorMinos(self.hover, curr, white2 = True)
         else:
             board += placement
+        print2d(board)
         
         surf = drawGeneralBoard(images, board, images[BOARD], 0.647, 0.995, self.xoffset, self.yoffset, hover = self.hover)
         screen.blit(surf ,[self.x,self.y])
@@ -1276,6 +1322,7 @@ class EvalBar:
         return surf
     
 def analyze(positionDatabase):
+    global realscreen
 
     print("START ANALYSIS")
 
@@ -1342,8 +1389,23 @@ def analyze(positionDatabase):
 
         text = font.render("Position: {}".format(positionNum + 1), False, BLACK)
         screen.blit(text, [600,600])
+
         
-        flipDisplay()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: 
+                pygame.display.quit()
+                sys.exit()
+                return True
+
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_t:
+                    analysisBoard.toggle()
+                
+            elif event.type == pygame.VIDEORESIZE:
+
+                realscreen = pygame.display.set_mode(event.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+            
+            flipDisplay()
 
         
 testing = True
@@ -1389,14 +1451,14 @@ def main():
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-            [0, 0, 0, 0, 0, 0, 1, 1, 0, 0,],
-            [0, 0, 0, 0, 0, 0, 1, 1, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
         ])
         
-        positionDatabase = [Position(testboard, O_PIECE, S_PIECE, placement = testplacement)]
+        positionDatabase = [Position(testboard, I_PIECE, S_PIECE, placement = testplacement)]
 
     else:
     
