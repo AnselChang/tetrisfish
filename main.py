@@ -6,6 +6,7 @@ import math
 import time
 import cProfile
 import random
+from abc import ABC, abstractmethod
 
 pygame.init()
 pygame.font.init()
@@ -13,7 +14,7 @@ font = pygame.font.SysFont('Comic Sans MS', 30)
 font2 = pygame.font.SysFont('Comic Sans MS', 20)
 fontbig = pygame.font.SysFont('Comic Sans MS', 45)
 
-filename = "/Users/anselchang/Documents/I broke the rules of NES tetris by getting exactly 1 mino in the matrix.mp4"
+filename = "/Users/anselchang/Library/Mobile Documents/com~apple~CloudDocs/Personal Projects/TetrisAnalysis/tetrisfish/test.mp4"
 
 BLACK = [0,0,0]
 WHITE = [255,255,255]
@@ -52,7 +53,7 @@ SCALAR = 0.4
 
 NUM_HORIZONTAL_CELLS = 10
 NUM_VERTICAL_CELLS = 20
-COLOR_CALLIBRATION = 100
+COLOR_CALLIBRATION = 50
 
 
 def lighten(color, amount, doThis = True):
@@ -174,13 +175,16 @@ class ButtonHandler:
     def __init__(self):
         self.buttons = []
 
-    def add(self, ID, text,x,y,width,height,buttonColor,textColor):
-        self.buttons.append( Button(ID, text,x,y,width,height,buttonColor,textColor) )
+    def addText(self, ID, text,x,y,width,height,buttonColor,textColor, margin = 0):
+        self.buttons.append( TextButton(ID, text, x, y, width, height, buttonColor, textColor, margin) )
 
-    def updatePressed(self, mx, my):
+    def addImage(self, ID, image, x, y, scale, margin = 0):
+        self.buttons.append( ImageButton(ID, image, x, y, scale, margin) )
+
+    def updatePressed(self, mx, my, click):
         
         for button in self.buttons:
-            button.updatePressed(mx,my)
+            button.updatePressed(mx,my, click)
 
     def display(self,screen):
 
@@ -197,23 +201,36 @@ class ButtonHandler:
         assert(False)
 
 
-# GUI button
-class Button:
-    
-    def __init__(self,ID, text,x,y,width,height,buttonColor,textColor):
+# Abtract class button for gui
+class Button(ABC):
+
+    def __init__(self, ID, x, y, width, height, margin):
         self.ID = ID
-        self.text = text
-        self.width = width
-        self.height = height
         self.x = x
         self.y = y
-        self.buttonColor = buttonColor
-        self.textColor = textColor
+        self.width = width
+        self.height = height
+        self.margin = margin
 
         self.pressed = False
+        self.clicked = False
 
-    def updatePressed(self, mx, my):
-        self.pressed = ( mx > self.x and mx < self.x+self.width and my >self.y and my < self.y+self.height )
+    def updatePressed(self, mx, my, click):
+        self.pressed = ( mx - self.margin > self.x and mx + self.margin < self.x+self.width and my - self.margin> self.y and my + self.margin < self.y+self.height )
+        self.clicked = self.pressed and click
+
+    @abstractmethod
+    def get(self):
+        pass
+
+# Text button has text and background rectangle, inherits Button
+class TextButton(Button):
+    
+    def __init__(self, ID, text, x, y, width, height, buttonColor, textColor, margin):
+        super().__init__(ID, x, y, width, height, margin)
+        self.text = text
+        self.buttonColor = buttonColor
+        self.textColor = textColor
 
     def get(self):
 
@@ -227,6 +244,31 @@ class Button:
         surface.blit(text, [ self.width / 2 - text.get_width()/2, self.height / 2 - text.get_height()/2 ] )
 
         return surface, [self.x, self.y]
+
+# Image button stores image as a button, inherits Button
+class ImageButton(Button):
+
+    def __init__(self, ID, image, x, y, scale, margin):
+
+        bscale = 1.14
+        self.image = pygame.transform.scale(image, [image.get_width() * scale, image.get_height() * scale])
+        self.bigimage = pygame.transform.scale(image, [self.image.get_width() * bscale, self.image.get_height() * bscale])
+
+        self.dx = self.bigimage.get_width() - self.image.get_width()
+        self.dy = self.bigimage.get_height() - self.image.get_height()
+        
+        super().__init__(ID, x, y, self.image.get_width(), self.image.get_height(), margin)
+
+    def get(self):
+
+        if self.pressed:
+            return self.bigimage, [self.x - self.dx / 2, self.y - self.dy / 2]
+        else:
+            return self.image, [self.x, self.y]
+
+        
+        
+        
 
 class Bounds:
 
@@ -397,6 +439,7 @@ def getVideo():
     vcap = cv2.VideoCapture(filename)
     if not vcap.isOpened():
         print ("File Cannot be Opened")
+        assert(False)
     return vcap
 
 def displayTetrisImage(screen, frame):
@@ -503,16 +546,16 @@ def callibrate():
     B_RESET = 7
 
     buttons = ButtonHandler()
-    buttons.add(B_CALLIBRATE, "Callibrate Dimensions", SCREEN_WIDTH-350, 100, 300, 50, GREEN, WHITE)
-    buttons.add(B_NEXTBOX, "Callibrate Next box", SCREEN_WIDTH-350, 200, 300, 50, GREEN, WHITE)
+    buttons.addText(B_CALLIBRATE, "Callibrate Dimensions", SCREEN_WIDTH-350, 100, 300, 50, GREEN, WHITE)
+    buttons.addText(B_NEXTBOX, "Callibrate Next box", SCREEN_WIDTH-350, 200, 300, 50, GREEN, WHITE)
     
-    buttons.add(B_PLAY, "Play", SCREEN_WIDTH-350, 300, 140, 50, GREEN, WHITE)
-    buttons.add(B_RESET, "Reset", SCREEN_WIDTH-180, 300, 140, 50, LIGHT_RED, WHITE)
+    buttons.addText(B_PLAY, "Play", SCREEN_WIDTH-350, 300, 140, 50, GREEN, WHITE)
+    buttons.addText(B_RESET, "Reset", SCREEN_WIDTH-180, 300, 140, 50, LIGHT_RED, WHITE)
     
-    buttons.add(B_LEFT, "Previous", SCREEN_WIDTH-350, 400, 140, 50, ORANGE, WHITE)
-    buttons.add(B_RIGHT, "Next", SCREEN_WIDTH-180, 400, 140, 50, ORANGE, WHITE)
+    buttons.addText(B_LEFT, "Previous", SCREEN_WIDTH-350, 400, 140, 50, ORANGE, WHITE)
+    buttons.addText(B_RIGHT, "Next", SCREEN_WIDTH-180, 400, 140, 50, ORANGE, WHITE)
     
-    buttons.add(B_RENDER, "Render", SCREEN_WIDTH-350, 500, 300, 50, LIGHT_BLUE, WHITE)
+    buttons.addText(B_RENDER, "Render", SCREEN_WIDTH-350, 500, 300, 50, LIGHT_BLUE, WHITE)
     
     # Slider stuff
     SW = 270
@@ -558,11 +601,11 @@ def callibrate():
         isPressed =  pygame.mouse.get_pressed()[0]
         click = wasPressed and not isPressed
         startPress = isPressed and not wasPressed
-        buttons.updatePressed(mx,my)
+        buttons.updatePressed(mx,my,click)
 
         # Get new frame from opencv
 
-        if click and buttons.get(B_RESET).pressed:
+        if buttons.get(B_RESET).clicked:
             b = buttons.get(B_PLAY)
             
             b.text = "Play"
@@ -570,7 +613,7 @@ def callibrate():
             isPlay = False
             frame, frameCount = goToFrame(vcap, 0)
 
-        elif click and buttons.get(B_PLAY).pressed:
+        elif buttons.get(B_PLAY).clicked:
                 
             b = buttons.get(B_PLAY)
 
@@ -584,11 +627,11 @@ def callibrate():
             isPlay = not isPlay
             
 
-        if isPlay or (click and buttons.get(B_RIGHT).pressed):
+        if isPlay or buttons.get(B_RIGHT).clicked:
             
             frame, frameCount = goToFrame(vcap, frameCount + 1)
                 
-        elif click and buttons.get(B_LEFT).pressed and frameCount > 0:
+        elif buttons.get(B_LEFT).clicked and frameCount > 0:
             # load previous frame
             frame, frameCount = goToFrame(vcap, frameCount - 1)
          
@@ -601,40 +644,38 @@ def callibrate():
             
         surf = displayTetrisImage(screen, frame)
         
-        # If click
-        if click:
-            if buttons.get(B_CALLIBRATE).pressed:
-                bounds = Bounds(False,VIDEO_X,VIDEO_Y, VIDEO_X+surf.get_width(), VIDEO_Y+surf.get_height())
-                if nextBounds != None:
-                    nextBounds.set()
+        if buttons.get(B_CALLIBRATE).clicked:
+            bounds = Bounds(False,VIDEO_X,VIDEO_Y, VIDEO_X+surf.get_width(), VIDEO_Y+surf.get_height())
+            if nextBounds != None:
+                nextBounds.set()
 
-            elif buttons.get(B_NEXTBOX).pressed:
-                nextBounds = Bounds(True,VIDEO_X+surf.get_width()/2, VIDEO_Y+surf.get_height()/2,VIDEO_X+surf.get_width()/2+50, VIDEO_Y+surf.get_height()/2+50)
-                if bounds != None:
-                    bounds.set()
+        elif buttons.get(B_NEXTBOX).clicked:
+            nextBounds = Bounds(True,VIDEO_X+surf.get_width()/2, VIDEO_Y+surf.get_height()/2,VIDEO_X+surf.get_width()/2+50, VIDEO_Y+surf.get_height()/2+50)
+            if bounds != None:
+                bounds.set()
 
-            elif buttons.get(B_RENDER).pressed:
+        elif buttons.get(B_RENDER).clicked:
 
-                # If not callibrated, do not allow render
-                if bounds == None or nextBounds == None or getNextBox(minosNext) == None or getCurrentPiece(minosMain) == None:
-                    errorMsg = time.time()  # display error message by logging time to display for 3 seconds
-                
-                else:
-
-                    print2d(bounds.getMinos(frame))
-                    print2d(nextBounds.getMinos(frame))
-                    
-                    # When everything done, release the capture
-                    vcap.release()
-
-                    # Exit callibration, initiate rendering with returned parameters
-                    return frameCount, bounds, nextBounds
-
+            # If not callibrated, do not allow render
+            if bounds == None or nextBounds == None or getNextBox(minosNext) == None or getCurrentPiece(minosMain) == None:
+                errorMsg = time.time()  # display error message by logging time to display for 3 seconds
+            
             else:
-                if bounds != None:
-                    bounds.click()
-                if nextBounds != None:
-                    nextBounds.click()
+
+                print2d(bounds.getMinos(frame))
+                print2d(nextBounds.getMinos(frame))
+                
+                # When everything done, release the capture
+                vcap.release()
+
+                # Exit callibration, initiate rendering with returned parameters
+                return frameCount, bounds, nextBounds
+
+        elif click:
+            if bounds != None:
+                bounds.click()
+            if nextBounds != None:
+                nextBounds.click()
             
         
         if bounds != None:
@@ -736,9 +777,13 @@ This function returns [updated isLineclear, boolean whether it's a start frame, 
 # Given a 2d board, parse the board and update the position database
 def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount):
 
+
      # --- Commence Calculations ---!
 
     if isFirst:
+        print("first")
+
+        print2d(minosMain)
             
         # For very first piece, use first frame and remove current piece in initial location
         assert(getCurrentPiece(minosMain) != None)
@@ -829,6 +874,7 @@ def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minos
         filledRows = np.where(~(1-prevMinosMain).any(axis=1))[0]
         print(filledRows)
         assert(len(filledRows) > 0) # this assert fails if there are too many skipped frames and the frame before line clear doesn't have locked piece yet
+
         
         # We subtract 10 to the number of filled cells for every filled row there is
         # prevCount is number of filled cells for the frame right before line clear (aka frame with full row(s))
@@ -870,12 +916,10 @@ def render(firstFrame, bounds, nextBounds):
     totalFrames = int(vcap.get(cv2.CAP_PROP_FRAME_COUNT))
     print("Total Frames: ", totalFrames)
     
-    frameCount = 0 # to be immediately set to 0
+    frameCount =  firstFrame
 
     # Start vcap at specified frame from callibration
-    while frameCount < firstFrame:
-        vcap.read()
-        frameCount += 1
+    vcap.set(cv2.CAP_PROP_POS_FRAMES, firstFrame)
 
 
     minosNext = None # 2d array for next box
@@ -890,6 +934,7 @@ def render(firstFrame, bounds, nextBounds):
     
     positionDatabase = [] # The generated list of all the positions in the video. To be returned
 
+    
 
     while True:
 
@@ -902,7 +947,6 @@ def render(firstFrame, bounds, nextBounds):
         prevMinosMain = minosMain
         minosMain = bounds.getMinos(frame)
         minosNext = nextBounds.getMinos(frame)
-        print(minosMain)
 
         # The number of 1s in the array (how many minos there are in the field)
         prevCount = count
@@ -927,6 +971,7 @@ def render(firstFrame, bounds, nextBounds):
             
 
         # Possibly update positionDatabase given the current frame.
+        print("Framecount:", frameCount)
         params = [frameCount == firstFrame, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount]
         isLineClear, updateDisplay, frameDelta, finalCount = parseBoard(*params) # lots of params!
         frameCount += frameDelta
@@ -954,7 +999,9 @@ RED_MINO = 2
 BLUE_MINO = 3
 BOARD = "board"
 NEXT = "next"
-IMAGE_NAMES = [WHITE_MINO, RED_MINO, BLUE_MINO, BOARD, NEXT]
+LEFTARROW = "leftarrow"
+RIGHTARROW = "rightarrow"
+IMAGE_NAMES = [WHITE_MINO, RED_MINO, BLUE_MINO, BOARD, NEXT, LEFTARROW, RIGHTARROW]
 
 # Return surface with tetris board. 0 = empty, 1/-1 =  white, 2/-2 = red, 3/-3 = blue, negative = transparent
 
@@ -982,21 +1029,24 @@ def drawGeneralBoard(images, board, image, B_SCALE, hscale, hoffset, LEFT_MARGIN
 def drawTetrisBoard(board, images):
    return drawGeneralBoard(images, board,images[BOARD], 0.647, 0.995, 6, 22, 0)
 
-def colorMinos(minos, num):
+def colorMinos(minos, piece):
+
+    num = 1
+
+    if piece == L_PIECE or piece == Z_PIECE:
+        # Red tetronimo
+        num = RED_MINO
+    
+    elif piece == J_PIECE or piece == S_PIECE:
+        #Blue tetronimo
+        num = BLUE_MINO
+
     return [[i*num for i in row] for row in minos]
 
 # Return surface with nextbox
 def drawNextBox(nextPiece, images):
 
-    minos = TETRONIMO_SHAPES[nextPiece]
-
-    if nextPiece == L_PIECE or nextPiece == Z_PIECE:
-        # Red tetronimo
-        minos = colorMinos(minos, RED_MINO)
-    
-    elif nextPiece == J_PIECE or nextPiece == S_PIECE:
-        #Blue tetronimo
-        minos = colorMinos(minos, BLUE_MINO)
+    minos = colorMinos(TETRONIMO_SHAPES[nextPiece], nextPiece)
 
     # Shift half-mino to the left for 3-wide pieces to fit into nextbox
     offset = 0 if (nextPiece == O_PIECE or nextPiece == I_PIECE) else (0 - MINO_OFFSET/2)
@@ -1031,30 +1081,10 @@ class EvalBar:
 
         return surf
     
-def analyze():
+def analyze(positionDatabase):
 
-    testboard = [
-                  [0, 0, 0, 0, 1, 1, 0, 0, 0, 0,],
-                  [0, 0, 0, 0, 0, 1, 1, 0, 0, 0,],
-                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                  [1, 0, 0, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 1, 1, 1, 0, 0, 0,],
-                  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 1, 1,],
-                  [1, 1, 1, 1, 1, 0, 0, 0, 1, 1,],
-                  [1, 1, 1, 1, 0, 1, 1, 1, 1, 1,]
-                  ]
+    print("START ANALYSIS")
+
 
     # Load all images.
     imageName = "Images/{}.png"
@@ -1064,31 +1094,67 @@ def analyze():
 
     evalBar = EvalBar()
 
+    B_LEFT = 0
+    B_RIGHT = 1
+    
+    buttons = ButtonHandler()
+    buttons.addImage(B_LEFT, images[LEFTARROW], 500, 500, 0.2, margin = 5)
+    buttons.addImage(B_RIGHT, images[RIGHTARROW], 600, 500, 0.2, margin = 5)
+
+    wasPressed = False
+
+    positionNum = 0
 
     while True:
 
         mx,my = pygame.mouse.get_pos()
+        pressed = pygame.mouse.get_pressed()[0]
+        click = not pressed and wasPressed
+        wasPressed = pressed
+        
+        buttons.updatePressed(mx, my, click)
         
         realscreen.fill(MID_GREY)
         screen.fill(MID_GREY)
 
         evalBar.tick(0.3)
 
+        # Buttons
+        buttons.display(screen)
+        if buttons.get(B_LEFT).clicked:
+            positionNum = max(positionNum-1, 0)
+        elif buttons.get(B_RIGHT).clicked:
+            positionNum = min(positionNum+1, len(positionDatabase)-1)
+
+        currPos = positionDatabase[positionNum]
+        # We add current piece to the board
+
+        
+        board = currPos.board.copy()
+        placement = currPos.placement
+        board += colorMinos(placement, BLUE_MINO)
+        print2d(board)
+    
         # Tetris board
-        screen.blit(drawTetrisBoard(testboard, images) ,[80,0])
+        screen.blit(drawTetrisBoard(board, images) ,[80,0])
 
         # Next box
-        screen.blit(drawNextBox(J_PIECE, images), [445, 14])
+        screen.blit(drawNextBox(positionDatabase[positionNum].nextPiece, images), [445, 14])
 
         # Eval bar
         screen.blit(evalBar.drawEval(), [20,20])
+
+        
+
+        text = font.render("Position: {}".format(positionNum + 1), False, BLACK)
+        screen.blit(text, [600,600])
         
         flipDisplay()
 
         
 
 def main():
-    """
+    
     output = callibrate()
     
     if output == None:
@@ -1101,11 +1167,10 @@ def main():
 
     print("Successfully callibrated video.")
     
-    currentFrame, bounds, nextBounds = None, None, None
-    render(currentFrame, bounds, nextBounds)
-    """
     
-    analyze()
+    positionDatabase = render(currentFrame, bounds, nextBounds)
+    if positionDatabase != None:
+        analyze(positionDatabase)
 
 if __name__ == "__main__":
     main()
