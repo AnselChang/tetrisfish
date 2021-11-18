@@ -1096,6 +1096,27 @@ def drawNextBox(nextPiece, images):
     # Shift half-mino to the left for 3-wide pieces to fit into nextbox
     offset = 0 if (nextPiece == O_PIECE or nextPiece == I_PIECE) else (0 - MINO_OFFSET/2)
     return drawGeneralBoard(images, minos, images[NEXT], 0.85, 1, 32 + offset, -7)
+
+
+# Get the sum of the number of leading zeros in each column
+def getHoles(array):
+    countA = 0
+    for col in range(NUM_HORIZONTAL_CELLS):
+        for row in range(NUM_VERTICAL_CELLS):
+            if array[row][col] == 1:
+                break
+            countA += 1
+
+    countB = 0
+    for col in range(NUM_HORIZONTAL_CELLS-1,-1,-1):
+        for row in range(NUM_VERTICAL_CELLS-1,-1,-1):
+            if array[row][col] == 0:
+                break
+            countB += 1
+    
+    return countA + countB
+
+        
     
 
 class AnalysisBoard:
@@ -1135,18 +1156,13 @@ class AnalysisBoard:
 
         # Calculate row and col where mouse is hovering. Truncate to nearest cell
         if mx >= x1 and mx < x1 + width and my >= y1 and my <= y1 + height:
-            c = int( (mx - x1) / width * NUM_HORIZONTAL_CELLS )
-            r = int ( (my - y1) / height * NUM_VERTICAL_CELLS)
+            c = clamp(int( (mx - x1) / width * NUM_HORIZONTAL_CELLS ), 0, NUM_HORIZONTAL_CELLS)
+            r = clamp(int ( (my - y1) / height * NUM_VERTICAL_CELLS), 0, NUM_VERTICAL_CELLS)
         else:
             r = -1
             c = -1
 
         newAdjust = False
-
-        if click:
-            print2d(self.hover)
-            print("a")
-            print2d(self.position.placement)
             
 
         # If current piece clicked, enter placement selection mode
@@ -1179,7 +1195,7 @@ class AnalysisBoard:
                 
                 # If piece selection inactive or no possible piece selections, hover over mouse selection
                 self.isHoverPiece = False
-                if r != -1 and self.range(r,c):
+                if r != -1 and rang(r,c):
                     # In a special case that mouse is touching current piece, make current piece transparent (if clicked, activate piece selection)
                     if self.touchingCurrent(r,c):
                         self.hover = self.position.placement
@@ -1195,12 +1211,8 @@ class AnalysisBoard:
                 self.hover = self.placements[self.hoverNum % len(self.placements)]
 
 
-    # if in range
-    def range(self,r,c):
-        return r >= 0 and r < NUM_VERTICAL_CELLS and c >= 0 and c < NUM_HORIZONTAL_CELLS
-
     def touchingCurrent(self,r,c):
-        if not self.range(r,c):
+        if not rang(r,c):
             return False
         return self.position.placement[r][c] == 1
 
@@ -1223,16 +1235,16 @@ class AnalysisBoard:
             print2d(b)
             for i in [c,c-1]:
                 
-                if (self.range(r+1,i) and b[r+1][i] == 1) or ((self.range(r+1,i+1) and b[r+1][i+1]) == 1) or r == 19:
+                if (rang(r+1,i) and b[r+1][i] == 1) or ((rang(r+1,i+1) and b[r+1][i+1]) == 1) or r == 19:
                     placements.append(stamp(O_PIECE, r-2, i-1))
                     
-                elif (self.range(r+2,i) and b[r+2][i] == 1) or ((self.range(r+2,i+1) and b[r+2][i+1]) == 1) or r == 18:
+                elif (rang(r+2,i) and b[r+2][i] == 1) or ((rang(r+2,i+1) and b[r+2][i+1]) == 1) or r == 18:
                     placements.append(stamp(O_PIECE, r-1, i-1))
             
         elif piece == I_PIECE:
             # Vertical placement, then mid-left horizontal
             for i in range(0,4):
-                if (self.range(r+i+1,c) and b[r+i+1][c] == 1) or r+i == 19:
+                if (rang(r+i+1,c) and b[r+i+1][c] == 1) or r+i == 19:
                     placements.append(stamp(I_PIECE,r+i-3,c-2,1))
                     break
 
@@ -1242,32 +1254,34 @@ class AnalysisBoard:
                     continue
                 valid = False
                 for cp in range(cs,cs+4):
-                    if self.range(r+1,cp) and b[r+1][cp] == 1 or r == 19:
+                    if rang(r+1,cp) and b[r+1][cp] == 1 or r == 19:
                         valid = True
                 if valid:
                     p = stamp(I_PIECE,r-1,cs,0)
                     if not intersection(p,b):
-                        print("YES")
                         placements.append(p)
                         break
             
-
-            
                 
-        elif piece == T_PIECE:
-            # All orientations at center
-            pass
-        elif piece == L_PIECE or J_PIECE:
-            # flat center both orientations (less holes first), upright center both orientations
-            pass
         else:
-            # S/J flat center (both top and bottom tile), upright check all orientations for both center-left and center-right
-            pass
+            # All orientations at both centers
+
+            for i in range(-2,1):
+                for rot in range(len(TETRONIMO_SHAPES[piece])):
+                    p = stamp(piece,r+i+1,c-2,rot)
+                    if type(p) != np.ndarray:
+                        continue
+                    if intersection(p, b):
+                        placements.append(stamp(piece,r+i,c-2,rot))
 
         
 
         # Remove all placements that collide with board
-        placements = [p for p in placements if not intersection(p, b)]            
+        placements = [p for p in placements if not intersection(p, b)]
+
+        # Sort based on least holes
+        if piece != I_PIECE and piece != O_PIECE:
+            placements.sort(reverse = True, key = lambda p: (getHoles(p+b)))
 
         return placements
         
@@ -1288,7 +1302,6 @@ class AnalysisBoard:
                 board += colorMinos(self.hover, curr, white2 = True)
         else:
             board += placement
-        print2d(board)
         
         surf = drawGeneralBoard(images, board, images[BOARD], 0.647, 0.995, self.xoffset, self.yoffset, hover = self.hover)
         screen.blit(surf ,[self.x,self.y])
@@ -1451,14 +1464,14 @@ def main():
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0,],
-            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0,],
-            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0,],
-            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 1, 1, 0, 0,],
+            [0, 0, 0, 0, 0, 1, 1, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
         ])
         
-        positionDatabase = [Position(testboard, I_PIECE, S_PIECE, placement = testplacement)]
+        positionDatabase = [Position(testboard, S_PIECE, L_PIECE, placement = testplacement)]
 
     else:
     
