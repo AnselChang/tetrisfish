@@ -13,7 +13,7 @@ from Analysis import analyze
 import config as c
 
         
-testing = False
+testing = True
 def main():
 
     if testing:
@@ -87,7 +87,7 @@ def main():
 
         from Position import Position
         
-        positionDatabase = [Position(testboard, S_PIECE, I_PIECE, placement = testplacement, evaluation = 0.2)]
+        positionDatabase = [Position(testboard, S_PIECE, S_PIECE, placement = testplacement, evaluation = 0.2)]
         positionDatabase.append(Position(testboard+testplacement, I_PIECE, L_PIECE, placement = testplacement2, evaluation = 0.7))
 
     else:

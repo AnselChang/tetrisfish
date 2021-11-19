@@ -1,9 +1,10 @@
 import pygame, sys, math
-from AnalysisBoard import *
+import AnalysisBoard
 import config as c
 from Position import Position
 import PygameButton
 from colors import *
+from PieceMasks import *
 
 
 class EvalBar:
@@ -44,6 +45,7 @@ def analyze(positionDatabase):
     images = {}
     for name in IMAGE_NAMES:
         images[name] = pygame.image.load(imageName.format(name))
+    AnalysisBoard.init(images)
 
     evalBar = EvalBar()
 
@@ -55,7 +57,7 @@ def analyze(positionDatabase):
     buttons.addImage(B_RIGHT, images[RIGHTARROW], 600, 500, 0.2, margin = 5)
 
     positionNum = 0
-    analysisBoard = AnalysisBoard(positionDatabase[positionNum])
+    analysisBoard = AnalysisBoard.AnalysisBoard(positionDatabase[positionNum])
 
     wasPressed = False
 
@@ -92,7 +94,7 @@ def analyze(positionDatabase):
        
         
         # Tetris board
-        analysisBoard.draw(c.screen, images)
+        analysisBoard.draw(c.screen)
         
 
         # Eval bar

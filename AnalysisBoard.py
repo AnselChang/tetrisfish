@@ -1,31 +1,70 @@
 import pygame
+import numpy as np
 from TetrisUtility import *
 from PieceMasks import *
 import config as c
 from colors import *
+import math
 
-MINO_OFFSET = 32 # Pixel offset between each mino
+MINO_SIZE = 28
+MINO_OFFSET = 4 # Pixel offset between each mino
+PANEL_MINO_SCALE = 0.5
 
-EMPTY = 0
-WHITE_MINO = 1
-WHITE_MINO_2 = 4
-RED_MINO = 2
-BLUE_MINO = 3
-BOARD = "board"
-NEXT = "next"
-LEFTARROW = "leftarrow"
-RIGHTARROW = "rightarrow"
-PANEL = "panel"
-IMAGE_NAMES = [WHITE_MINO, WHITE_MINO_2, RED_MINO, BLUE_MINO, BOARD, NEXT, PANEL, LEFTARROW, RIGHTARROW]
+images = None
+
+# To be displayed on panel. Each number represents tetronimo type in PieceMasks.py
+# NONE = 7, I = 0, L = 1, Z = 2, S = 3, J = 4, T = 5, O = 6
+# Constants defined in PieceMasks.py
+panelArray = np.array([
+    [4,7,7,7,7,7,3,3],
+    [4,4,4,7,7,3,3,7],
+    [7,7,7,7,7,7,7,7],
+    [7,7,1,7,7,2,2,7],
+    [1,1,1,7,7,7,2,2],
+    [7,7,7,7,7,7,7,7],
+    [7,6,6,7,7,7,5,7],
+    [7,6,6,7,7,5,5,5],
+    [7,7,7,7,7,7,7,7],
+    [7,7,0,0,0,0,7,7]
+])
+
+EMPTY_PANEL = empty(rows = len(panelArray), cols = len(panelArray[0]))
+
+# Cache a 2d array of panel colors as well
+panelColors = colorOfPieces(panelArray)
+smallMinoImages = {}
+
+
+def init(imagesParam):
+    global images, smallMinoImages
+    images = imagesParam
+    
+    # Cache "small" variants of minos
+    for minoColor in minoColors:
+        img = images[minoColor]
+        newWidth = int(img.get_width() *PANEL_MINO_SCALE)
+        newHeight = int(img.get_height() *PANEL_MINO_SCALE)
+        smallMinoImages[minoColor] = pygame.transform.scale(img, [newWidth, newHeight])
+
 
 # Return surface with tetris board. 0 = empty, 1/-1 =  white, 2/-2 = red, 3/-3 = blue, negative = transparent
-def drawGeneralBoard(images, board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MARGIN, hover = None):
+# Used for: main tetris board, next box, next box piece selection panel
+def drawGeneralBoard(board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MARGIN, hover = None, small = False, percent = 1):
+
+    if small:
+        minoImages = smallMinoImages
+        minoScale = PANEL_MINO_SCALE
+    else:
+        minoImages = images
+        minoScale = 1
+
+    offset = int(minoScale * (MINO_SIZE + MINO_OFFSET))
 
     b_width = image.get_width() * B_SCALE
     b_height = image.get_height() * B_SCALE*hscale
     b = pygame.transform.scale(image, [b_width , b_height])
-
-    surf = pygame.Surface([b_width,b_height])
+    
+    surf = pygame.Surface([b_width,int(b_height*percent)])
     
     surf.blit(b, [0,0])
 
@@ -33,13 +72,13 @@ def drawGeneralBoard(images, board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MAR
     r = 0
     for row in board:
         x = LEFT_MARGIN
-        y += MINO_OFFSET
+        y += offset
         c = 0
         for mino in row:
             if mino != EMPTY:
-                surf.blit(images[mino], [x,y])
+                surf.blit(minoImages[mino], [x,y])
             if (type(hover) != np.ndarray and mino != EMPTY and hover == True) or (type(hover) == np.ndarray and hover[r][c] == 1):
-                s = pygame.Surface([MINO_OFFSET-4,MINO_OFFSET-4])
+                s = pygame.Surface([int(MINO_SIZE*minoScale),int(MINO_SIZE*minoScale)])
                 if mino != EMPTY:    
                     s.fill(BLACK)
                 else:
@@ -47,39 +86,11 @@ def drawGeneralBoard(images, board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MAR
                 s.set_alpha(90)
                 surf.blit(s, [x, y])
                 
-            x += MINO_OFFSET
+            x += offset
             c += 1
         r += 1
             
     return surf
-
-def colorMinos(minos, piece, white2 = False):
-
-    num = 1
-
-    if piece == L_PIECE or piece == Z_PIECE:
-        # Red tetronimo
-        num = RED_MINO
-    
-    elif piece == J_PIECE or piece == S_PIECE:
-        #Blue tetronimo
-        num = BLUE_MINO
-
-    elif white2:
-        num = WHITE_MINO_2
-
-    return [[i*num for i in row] for row in minos]
-
-def colorOfPiece(piece):
-
-    if piece == L_PIECE or piece == Z_PIECE:
-        return RED_MINO
-    
-    elif piece == J_PIECE or piece == S_PIECE:
-        return BLUE_MINO
-    else:
-        return WHITE_MINO
-    
 
 
 # Get the sum of the number of leading zeros in each column
@@ -126,12 +137,17 @@ class AnalysisBoard:
         self.ph = [-1,-1]
         self.nextHover = False
         self.showNextPanel = False
+        self.panelHover = empty(rows = len(panelArray), cols = len(panelArray[0]))
 
-        xoffset = 0 if (position.nextPiece == O_PIECE or position.nextPiece == I_PIECE) else (0 - MINO_OFFSET/2)
-        yoffset = MINO_OFFSET/2 if position.nextPiece == I_PIECE else 0
-        self.xNextOffset = 32 + xoffset
+        offset = MINO_SIZE + MINO_OFFSET
+        xoffset = 0 if (position.nextPiece == O_PIECE or position.nextPiece == I_PIECE) else (0 - offset/2)
+        yoffset = offset/2 if position.nextPiece == I_PIECE else 0
+        self.xNextOffset = 30 + xoffset
         self.yNextOffset = -7 + yoffset
         self.panelPercent = 0
+
+        self.prevPanelR = -1
+        self.prevPanelC = -1
 
         self.NEXT_SCALE = 0.85
 
@@ -140,6 +156,32 @@ class AnalysisBoard:
         if len(self.placements) > 0:
             self.hoverNum  += 1
             self.hover = self.placements[self.hoverNum % len(self.placements)]
+
+    def updatePanelHover(self, mx, my):
+        x = mx - 474
+        y = my -145
+        width = 125
+        height = 158
+        
+        row = int(len(panelArray) * y/height)
+        col = int(len(panelArray[0]) * x/width)
+        
+        # new panel cell selected
+        if row != self.prevPanelR or col != self.prevPanelC:
+
+            if row < 0 or col < 0 or row >= len(panelArray) or col >= len(panelArray[0]):
+                 self.panelHover = EMPTY_PANEL
+            else:
+                piece = panelArray[row][col]
+                if piece == NO_PIECE:
+                    self.panelHover = EMPTY_PANEL
+                else:
+                    # numpy trick to get a mask (2d array) with element = 1 if it equals the piece number
+                    self.panelHover = (panelArray == piece).astype(int)
+
+        self.prevPanelR = row
+        self.prevPanelC = col
+
 
     # Update next box
     def updateNext(self, mx, my, click):
@@ -162,14 +204,21 @@ class AnalysisBoard:
         # display next box choices if clicked
         if self.nextHover and click:
             self.showNextPanel = not self.showNextPanel
+            if not self.showNextPanel:
+                self.panelHover = empty(rows = len(panelArray), cols = len(panelArray[0]))
 
+        amount = 0.1
+
+        # Update panel animation
         if self.showNextPanel:
-            self.panelPercent += (1 - self.panelPercent) * 0.15
-        else:
-            self.panelPercent -= self.panelPercent * 0.15
+            self.panelPercent += (1 - self.panelPercent) * amount
 
-        print(self.panelPercent)
-        
+            # Update panel hover
+            self.updatePanelHover(mx, my)
+            
+        else:
+            self.panelPercent -= self.panelPercent * amount
+                    
 
     # Update mouse-related events - namely, hover
     def update(self, mx, my, click):
@@ -312,7 +361,7 @@ class AnalysisBoard:
         return placements
 
     # Return surface with nextbox
-    def getNextBox(self, images):
+    def getNextBox(self):
 
         nextPiece = self.position.nextPiece
 
@@ -321,20 +370,20 @@ class AnalysisBoard:
         # Shift half-mino to the left for 3-wide pieces to fit into nextbox
         xoffset = 0 if (nextPiece == O_PIECE or nextPiece == I_PIECE) else (0 - MINO_OFFSET/2)
         yoffset = MINO_OFFSET/2 if nextPiece == I_PIECE else 0
-        return drawGeneralBoard(images, minos, images[NEXT], self.NEXT_SCALE, 1, self.xNextOffset, self.yNextOffset, hover = self.nextHover)
+        return drawGeneralBoard(minos, images[NEXT], self.NEXT_SCALE, 1, self.xNextOffset, self.yNextOffset, hover = self.nextHover)
 
-    def drawNextPanel(self, screen, images):
-        print("draw")
+    # Next piece selection panel
+    def drawNextPanel(self, screen):
 
-        panel = pygame.transform.scale(images[PANEL], [images[PANEL].get_width() * self.NEXT_SCALE, images[PANEL].get_height() * self.NEXT_SCALE])
-        surf = pygame.Surface([panel.get_width(), int(panel.get_height() * self.panelPercent)])
-        surf.blit(panel,[0,0])
-        
+        # Draw pieces onto panel
+        surf = drawGeneralBoard(panelColors,images[PANEL], self.NEXT_SCALE, 1, 28, 11, small = True, percent = self.panelPercent, hover = self.panelHover)
+
+        # Blit panel onto screen
         screen.blit(surf, [self.nextx,self.nexty + images[NEXT].get_height()*self.NEXT_SCALE - 5])
         
     
     # Draw tetris board to screen
-    def draw(self, screen, images):
+    def draw(self, screen):
 
         curr = self.position.currentPiece
 
@@ -350,11 +399,11 @@ class AnalysisBoard:
         else:
             board += placement
         
-        surf = drawGeneralBoard(images, board, images[BOARD], 0.647, 0.995, self.xoffset, self.yoffset, hover = self.hover)
+        surf = drawGeneralBoard(board, images[BOARD], 0.647, 0.995, self.xoffset, self.yoffset, hover = self.hover)
         screen.blit(surf ,[self.x,self.y])
 
         if self.showNextPanel or self.panelPercent > 0.01:
-            self.drawNextPanel(screen, images)
+            self.drawNextPanel(screen)
 
         # Next box
-        screen.blit(self.getNextBox(images), [self.nextx, self.nexty])
+        screen.blit(self.getNextBox(), [self.nextx, self.nexty])
