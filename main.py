@@ -84,6 +84,8 @@ def main():
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
         ])
+
+        from Position import Position
         
         positionDatabase = [Position(testboard, S_PIECE, I_PIECE, placement = testplacement, evaluation = 0.2)]
         positionDatabase.append(Position(testboard+testplacement, I_PIECE, L_PIECE, placement = testplacement2, evaluation = 0.7))

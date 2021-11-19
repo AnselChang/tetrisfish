@@ -2,6 +2,103 @@ import pygame
 from TetrisUtility import *
 from PieceMasks import *
 import config as c
+from colors import *
+
+MINO_OFFSET = 32 # Pixel offset between each mino
+
+EMPTY = 0
+WHITE_MINO = 1
+WHITE_MINO_2 = 4
+RED_MINO = 2
+BLUE_MINO = 3
+BOARD = "board"
+NEXT = "next"
+LEFTARROW = "leftarrow"
+RIGHTARROW = "rightarrow"
+PANEL = "panel"
+IMAGE_NAMES = [WHITE_MINO, WHITE_MINO_2, RED_MINO, BLUE_MINO, BOARD, NEXT, PANEL, LEFTARROW, RIGHTARROW]
+
+# Return surface with tetris board. 0 = empty, 1/-1 =  white, 2/-2 = red, 3/-3 = blue, negative = transparent
+def drawGeneralBoard(images, board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MARGIN, hover = None):
+
+    b_width = image.get_width() * B_SCALE
+    b_height = image.get_height() * B_SCALE*hscale
+    b = pygame.transform.scale(image, [b_width , b_height])
+
+    surf = pygame.Surface([b_width,b_height])
+    
+    surf.blit(b, [0,0])
+
+    y = TOP_MARGIN
+    r = 0
+    for row in board:
+        x = LEFT_MARGIN
+        y += MINO_OFFSET
+        c = 0
+        for mino in row:
+            if mino != EMPTY:
+                surf.blit(images[mino], [x,y])
+            if (type(hover) != np.ndarray and mino != EMPTY and hover == True) or (type(hover) == np.ndarray and hover[r][c] == 1):
+                s = pygame.Surface([MINO_OFFSET-4,MINO_OFFSET-4])
+                if mino != EMPTY:    
+                    s.fill(BLACK)
+                else:
+                    s.fill([100,100,100])
+                s.set_alpha(90)
+                surf.blit(s, [x, y])
+                
+            x += MINO_OFFSET
+            c += 1
+        r += 1
+            
+    return surf
+
+def colorMinos(minos, piece, white2 = False):
+
+    num = 1
+
+    if piece == L_PIECE or piece == Z_PIECE:
+        # Red tetronimo
+        num = RED_MINO
+    
+    elif piece == J_PIECE or piece == S_PIECE:
+        #Blue tetronimo
+        num = BLUE_MINO
+
+    elif white2:
+        num = WHITE_MINO_2
+
+    return [[i*num for i in row] for row in minos]
+
+def colorOfPiece(piece):
+
+    if piece == L_PIECE or piece == Z_PIECE:
+        return RED_MINO
+    
+    elif piece == J_PIECE or piece == S_PIECE:
+        return BLUE_MINO
+    else:
+        return WHITE_MINO
+    
+
+
+# Get the sum of the number of leading zeros in each column
+def getHoles(array):
+    countA = 0
+    for col in range(c.NUM_HORIZONTAL_CELLS):
+        for row in range(c.NUM_VERTICAL_CELLS):
+            if array[row][col] == 1:
+                break
+            countA += 1
+
+    countB = 0
+    for col in range(c.NUM_HORIZONTAL_CELLS-1,-1,-1):
+        for row in range(c.NUM_VERTICAL_CELLS-1,-1,-1):
+            if array[row][col] == 0:
+                break
+            countB += 1
+    
+    return countA + countB
 
 
 class AnalysisBoard:
@@ -86,17 +183,17 @@ class AnalysisBoard:
 
         # Calculate row and col where mouse is hovering. Truncate to nearest cell
         if mx >= x1 and mx < x1 + width and my >= y1 and my <= y1 + height:
-            c = clamp(int( (mx - x1) / width * NUM_HORIZONTAL_CELLS ), 0, NUM_HORIZONTAL_CELLS)
-            r = clamp(int ( (my - y1) / height * NUM_VERTICAL_CELLS), 0, NUM_VERTICAL_CELLS)
+            c1 = clamp(int( (mx - x1) / width * c.NUM_HORIZONTAL_CELLS ), 0, c.NUM_HORIZONTAL_CELLS)
+            r = clamp(int ( (my - y1) / height * c.NUM_VERTICAL_CELLS), 0, c.NUM_VERTICAL_CELLS)
         else:
             r = -1
-            c = -1
+            c1 = -1
 
         newAdjust = False
             
 
         # If current piece clicked, enter placement selection mode
-        if click and self.touchingCurrent(r,c) and not self.isAdjustCurrent:
+        if click and self.touchingCurrent(r,c1) and not self.isAdjustCurrent:
             self.isAdjustCurrent = True
             newAdjust = True
         elif click and (len(self.placements) == 0 and r != -1 or (self.hover == self.position.placement).all()):
@@ -107,29 +204,30 @@ class AnalysisBoard:
 
         
         # If mouse is now hovering on a different tile
-        if [r,c] != self.ph or newAdjust:
+        if [r,c1] != self.ph or newAdjust:
 
-            self.ph = [r,c]
+            self.ph = [r,c1]
+            print(self.ph)
 
 
             # Many piece placements are possible from hovering at a tile. We sort this list by relevance,
             # and hoverNum is the index of that list. When we change tile, we reset and go to best (first) placement
             if self.position.currentPiece != I_PIECE:
                 self.hoverNum = 0
-            self.placements = self.getHoverMask(r,c)
+            self.placements = self.getHoverMask(r,c1)
 
             
             if not self.isAdjustCurrent or len(self.placements) == 0:
                 
                 # If piece selection inactive or no possible piece selections, hover over mouse selection
                 self.isHoverPiece = False
-                if r != -1 and rang(r,c):
+                if r != -1 and rang(r,c1):
                     # In a special case that mouse is touching current piece, make current piece transparent (if clicked, activate piece selection)
-                    if self.touchingCurrent(r,c):
+                    if self.touchingCurrent(r,c1):
                         self.hover = self.position.placement
                     else:
                         self.hover = empty()
-                        self.hover[r][c] = 1
+                        self.hover[r][c1] = 1
                         
                 else:
                      self.hover = empty()
@@ -139,16 +237,16 @@ class AnalysisBoard:
                 self.hover = self.placements[self.hoverNum % len(self.placements)]
 
 
-    def touchingCurrent(self,r,c):
-        if not rang(r,c):
+    def touchingCurrent(self,r,c1):
+        if not rang(r,c1):
             return False
-        return self.position.placement[r][c] == 1
+        return self.position.placement[r][c1] == 1
 
 
     # From hoverR and hoverC, return a piece placement mask if applicable
-    def getHoverMask(self, r, c):
+    def getHoverMask(self, r, c1):
         b = self.position.board
-        if r == -1 or b[r][c] == 1:
+        if r == -1 or b[r][c1] == 1:
             return []
         
         piece = self.position.currentPiece
@@ -157,11 +255,11 @@ class AnalysisBoard:
 
         if piece == O_PIECE:
             # Bottom-left then top-left tile
-            if c == 9:
+            if c1 == 9:
                 return []
 
             print2d(b)
-            for i in [c,c-1]:
+            for i in [c1,c1-1]:
                 
                 if (rang(r+1,i) and b[r+1][i] == 1) or ((rang(r+1,i+1) and b[r+1][i+1]) == 1) or r == 19:
                     placements.append(stamp(O_PIECE, r-2, i-1))
@@ -172,12 +270,12 @@ class AnalysisBoard:
         elif piece == I_PIECE:
             # Vertical placement, then mid-left horizontal
             for i in range(0,4):
-                if (rang(r+i+1,c) and b[r+i+1][c] == 1) or r+i == 19:
-                    placements.append(stamp(I_PIECE,r+i-3,c-2,1))
+                if (rang(r+i+1,c1) and b[r+i+1][c1] == 1) or r+i == 19:
+                    placements.append(stamp(I_PIECE,r+i-3,c1-2,1))
                     break
 
             for i in [1,2,0,3]:
-                cs = c - i # cs is start col of longbar
+                cs = c1 - i # cs is start col of longbar
                 if cs >=7 or cs < 0:
                     continue
                 valid = False
@@ -196,11 +294,11 @@ class AnalysisBoard:
 
             for i in range(-2,1):
                 for rot in range(len(TETRONIMO_SHAPES[piece])):
-                    p = stamp(piece,r+i+1,c-2,rot)
+                    p = stamp(piece,r+i+1,c1-2,rot)
                     if type(p) != np.ndarray:
                         continue
                     if intersection(p, b):
-                        placements.append(stamp(piece,r+i,c-2,rot))
+                        placements.append(stamp(piece,r+i,c1-2,rot))
 
         
 

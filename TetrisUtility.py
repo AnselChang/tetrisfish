@@ -31,8 +31,8 @@ def empty(rows = 20, cols = 10):
     return np.array([[0 for _ in range(cols)] for _ in range(rows)])
 
 # if in range of tetris board
-def rang(r,c, rmax = 20, cmax = 10):
-    return r >= 0 and r < rmax and c >= 0 and c < cmax
+def rang(r,c1, rmax = 20, cmax = 10):
+    return r >= 0 and r < rmax and c1 >= 0 and c1 < cmax
 
 # generate 20x10 mask of 2x4 piece translated by row and col
 def stamp(piece, row,col, rot = 0):
@@ -43,11 +43,11 @@ def stamp(piece, row,col, rot = 0):
     pieceShape = TETRONIMO_SHAPES[piece][rot]
     
     for r in range(4):
-        for c in range(4):
-            if pieceShape[r][c] == 1:
-                if not rang(row+r,col+c):
+        for c1 in range(4):
+            if pieceShape[r][c1] == 1:
+                if not rang(row+r,col+c1):
                     return None
-                mask[row + r][col + c] = 1
+                mask[row + r][col + c1] = 1
 
     return mask
 
