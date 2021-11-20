@@ -6,6 +6,7 @@ from TetrisUtility import print2d
 class Position:
 
     def __init__(self, board, currentPiece, nextPiece, placement = None, evaluation = None):
+        print("created")
         self.board = board
         self.currentPiece = currentPiece
         self.nextPiece = nextPiece
@@ -26,5 +27,5 @@ class Position:
     def print(self):
         print("Current: ", TETRONIMO_NAMES[self.currentPiece])
         print("Next: ", TETRONIMO_NAMES[self.nextPiece])            
-        print2d(self.board)
         print2d(self.placement)
+        print()

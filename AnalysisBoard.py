@@ -246,8 +246,8 @@ class AnalysisBoard:
         self.xoffset = 22
         self.yoffset = -6
 
-        self.currentBox = PieceBoard(CURRENT, images[CURRENT], 445, 14)
-        self.nextBox = PieceBoard(NEXT, images[NEXT], 445, 170)
+        #self.currentBox = PieceBoard(CURRENT, images[CURRENT], 445, 14)
+        self.nextBox = PieceBoard(NEXT, images[NEXT], 445, 14) # originally y = 170
 
         self.positionDatabase = positionDatabase
         self.positionNum = 0 # the index of the position in the rendered positionDatabase
@@ -273,8 +273,16 @@ class AnalysisBoard:
         self.ph = [-1,-1]
 
         # Change current and nextbox pieces
-        self.currentBox.updatePiece(self.position.currentPiece)
+        #self.currentBox.updatePiece(self.position.currentPiece)
         self.nextBox.updatePiece(self.position.nextPiece)
+
+    def printHypo(self):
+        print("__________")
+        pos = self.positionDatabase[self.positionNum]
+        pos.print()
+        while (pos.next != None):
+            pos.print()
+            pos = pos.next
 
     # return whether there exists a previous hypothetical position
     def hasHypoLeft(self):
@@ -283,7 +291,20 @@ class AnalysisBoard:
     # return whether there exists a next hypothetical position
     def hasHypoRight(self):
         return self.position.next != None
-        
+
+    def hypoLeft(self):
+        self.position = self.position.prev
+        self.init()
+
+         # Immediately be able to hover the next piece
+
+    def hypoRight(self):
+        self.position = self.position.next
+        self.init()
+
+        if self.position.next == None:
+            # Immediately be able to hover the next piece
+            self.isAdjustCurrent = True
 
     # Toggle hover piece
     def toggle(self):
@@ -296,8 +317,20 @@ class AnalysisBoard:
         # assert hover piece is not empty
         assert(self.hover.any())
 
+         # if this is the original position, create an "intermediate" second position that stores the hypothetical placement
+        # and not overwrite the original position's placement
+        if self.position.prev == None:
+            print("new")
+            self.position.next = Position(self.position.board.copy(), self.position.currentPiece, self.position.nextPiece)
+            self.position.next.prev = self.position
+            self.position = self.position.next
+
+        # Store the current "hypothetical" placement into the position
+        self.position.placement = self.hover.copy()
+
         # Calculate resulting position after piece placement and line claer
         newBoard = lineClear(self.position.board + self.hover)
+        
 
         # Create a new position after making move. Store a refererence to current position as previous node
         self.position.next = Position(newBoard, self.position.nextPiece, randomPiece())
@@ -305,8 +338,11 @@ class AnalysisBoard:
         self.position = self.position.next
         
         self.init()
-        
+
+        # Immediately be able to hover the next piece
         self.isAdjustCurrent = True
+
+        self.printHypo()
         
              
 
@@ -314,7 +350,7 @@ class AnalysisBoard:
     def update(self, mx, my, click):
         
         # Update mouse events for current and next boxes
-        self.currentBox.updateBoard(mx, my, click)
+       # self.currentBox.updateBoard(mx, my, click)
         self.nextBox.updateBoard(mx, my, click)
     
         x1 = 100
@@ -486,5 +522,5 @@ class AnalysisBoard:
         HT.blit("tetris", surf ,[self.x,self.y])
 
         self.nextBox.blit(screen)
-        self.currentBox.blit(screen)
+        #self.currentBox.blit(screen)
         

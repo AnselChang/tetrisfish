@@ -63,11 +63,11 @@ def analyze(positionDatabase):
     buttons.addImage(B_RIGHT, images[RIGHTARROW], 600, 500, 0.2, margin = 5, imagegrey = images[RIGHTARROW2])
 
     x = 450
-    y = 330
-    buttons.addImage(B_HYP_MAXLEFT, images[LEFTARROW_MAX], x, y, 0.08, margin = 3, imagegrey = images[LEFTARROW2_MAX])
-    buttons.addImage(B_HYP_LEFT, images[LEFTARROW], x+50, y, 0.08, margin = 3, imagegrey = images[LEFTARROW2])
-    buttons.addImage(B_HYP_RIGHT, images[RIGHTARROW], x+90, y, 0.08, margin = 3, imagegrey = images[RIGHTARROW2])
-    buttons.addImage(B_HYP_MAXRIGHT, images[RIGHTARROW_MAX], x+130, y, 0.08, margin = 3, imagegrey = images[RIGHTARROW2_MAX])
+    y = 174
+    buttons.addImage(B_HYP_MAXLEFT, images[LEFTARROW_MAX], x, y, 0.08, margin = 0, imagegrey = images[LEFTARROW2_MAX])
+    buttons.addImage(B_HYP_LEFT, images[LEFTARROW], x+50, y, 0.08, margin = 0, imagegrey = images[LEFTARROW2])
+    buttons.addImage(B_HYP_RIGHT, images[RIGHTARROW], x+90, y, 0.08, margin = 0, imagegrey = images[RIGHTARROW2])
+    buttons.addImage(B_HYP_MAXRIGHT, images[RIGHTARROW_MAX], x+130, y, 0.08, margin = 0, imagegrey = images[RIGHTARROW2_MAX])
     
 
     positionNum = 0
@@ -104,7 +104,17 @@ def analyze(positionDatabase):
             analysisBoard.updatePosition(1)
 
         # Hypothetical buttons
-        # stuff
+        if buttons.get(B_HYP_LEFT).clicked and analysisBoard.hasHypoLeft():
+            analysisBoard.hypoLeft()
+        elif buttons.get(B_HYP_RIGHT).clicked and analysisBoard.hasHypoRight():
+            analysisBoard.hypoRight()
+        elif buttons.get(B_HYP_MAXLEFT).clicked:
+            while analysisBoard.hasHypoLeft():
+                analysisBoard.hypoLeft()
+        elif buttons.get(B_HYP_MAXRIGHT).clicked:
+            while analysisBoard.hasHypoRight():
+                analysisBoard.hypoRight()
+            
         
             
         buttons.get(B_LEFT).grey = analysisBoard.positionNum == 0
