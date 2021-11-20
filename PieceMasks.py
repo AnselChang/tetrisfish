@@ -1,3 +1,4 @@
+import random
 import numpy as np
 import config as c
 
@@ -212,6 +213,14 @@ CURRENT = "current"
 NEXT = "next"
 LEFTARROW = "leftarrow"
 RIGHTARROW = "rightarrow"
+LEFTARROW2 = "leftarrowgrey"
+RIGHTARROW2 = "rightarrowgrey"
+LEFTARROW_MAX = "leftarrowfast"
+RIGHTARROW_MAX = "rightarrowfast"
+LEFTARROW2_MAX = "leftarrowfastgrey"
+RIGHTARROW2_MAX = "rightarrowfastgrey"
+
+
 PANEL = "panel"
 
 # Mino colors
@@ -221,7 +230,9 @@ WHITE_MINO_2 = 4
 RED_MINO = 2
 BLUE_MINO = 3
 minoColors = [WHITE_MINO, WHITE_MINO_2, RED_MINO, BLUE_MINO]
-IMAGE_NAMES = [WHITE_MINO, WHITE_MINO_2, RED_MINO, BLUE_MINO, BOARD, CURRENT, NEXT, PANEL, LEFTARROW, RIGHTARROW]
+IMAGE_NAMES = [WHITE_MINO, WHITE_MINO_2, RED_MINO, BLUE_MINO, BOARD, CURRENT, NEXT, PANEL]
+IMAGE_NAMES.extend( [LEFTARROW, RIGHTARROW, LEFTARROW2, RIGHTARROW2 ])
+IMAGE_NAMES.extend( [LEFTARROW_MAX, RIGHTARROW_MAX, LEFTARROW2_MAX, RIGHTARROW2_MAX] )
 
 
 def colorMinos(minos, piece, white2 = False):
@@ -256,4 +267,7 @@ def colorOfPiece(piece):
 # Convert 2d array of pieces to their colors
 def colorOfPieces(arr2d):
     return [[colorOfPiece(p) for p in row] for row in arr2d]
+
+def randomPiece():
+    return random.choice(TETRONIMOS)
 

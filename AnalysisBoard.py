@@ -6,6 +6,7 @@ import config as c
 from colors import *
 import math
 import HitboxTracker as HT
+from Position import Position
 
 MINO_SIZE = 28
 MINO_OFFSET = 4 # Pixel offset between each mino
@@ -164,7 +165,6 @@ class PieceBoard:
             col = 0
 
         # Set boolean value for whether mouse is hovering over next piece
-        print(row,col)
         self.hover = (TETRONIMO_SHAPES[self.piece][0][row][col] == 1)
 
         # display next box choices if clicked
@@ -250,17 +250,21 @@ class AnalysisBoard:
         self.nextBox = PieceBoard(NEXT, images[NEXT], 445, 170)
 
         self.positionDatabase = positionDatabase
-        self.positionNum = 0
+        self.positionNum = 0 # the index of the position in the rendered positionDatabase
         self.updatePosition(0)
-
 
     # Change the position by index amount delta
     def updatePosition(self, delta):
         
         self.positionNum += delta
         assert(self.positionNum >= 0 and self.positionNum < len(self.positionDatabase))
-        
+
         self.position = self.positionDatabase[self.positionNum]
+        
+        self.init()
+
+    def init(self):
+        
         self.hoverNum = 0
         self.isHoverPiece = False
         self.isAdjustCurrent = False
@@ -271,6 +275,14 @@ class AnalysisBoard:
         # Change current and nextbox pieces
         self.currentBox.updatePiece(self.position.currentPiece)
         self.nextBox.updatePiece(self.position.nextPiece)
+
+    # return whether there exists a previous hypothetical position
+    def hasHypoLeft(self):
+        return self.position.prev != None
+
+    # return whether there exists a next hypothetical position
+    def hasHypoRight(self):
+        return self.position.next != None
         
 
     # Toggle hover piece
@@ -278,6 +290,24 @@ class AnalysisBoard:
         if len(self.placements) > 0:
             self.hoverNum  += 1
             self.hover = self.placements[self.hoverNum % len(self.placements)]
+
+
+    def placeSelectedPiece(self):
+        # assert hover piece is not empty
+        assert(self.hover.any())
+
+        # Calculate resulting position after piece placement and line claer
+        newBoard = lineClear(self.position.board + self.hover)
+
+        # Create a new position after making move. Store a refererence to current position as previous node
+        self.position.next = Position(newBoard, self.position.nextPiece, randomPiece())
+        self.position.next.prev = self.position
+        self.position = self.position.next
+        
+        self.init()
+        
+        self.isAdjustCurrent = True
+        
              
 
     # Update mouse-related events - namely, hover
@@ -301,24 +331,30 @@ class AnalysisBoard:
             c1 = -1
 
         newAdjust = False
-            
+
+        # If true, we have placed the piece at some location. We enter a hypothetical situation and a new piece spawns
+        if click and self.isAdjustCurrent and np.count_nonzero(self.hover) > 1:
+            self.placeSelectedPiece()
+            newAdjust = True
 
         # If current piece clicked, enter placement selection mode
-        if click and self.touchingCurrent(r,c1) and not self.isAdjustCurrent:
+        elif click and self.touchingCurrent(r,c1) and not self.isAdjustCurrent:
             self.isAdjustCurrent = True
             newAdjust = True
-        elif click and (len(self.placements) == 0 and r != -1 or (self.hover == self.position.placement).all() or HT.none(mx,my)):
-            # Reset placement selection if clicking empty square that is not piece-placeable
-            self.isAdjustCurrent = False
-            self.isHoverPiece = False
-            newAdjust = True
+        elif click and (len(self.placements) == 0 and r != -1  or HT.none(mx,my)):
 
-        
+            # Only reset placement selection if there is a default piece placement already
+            if type(self.position.placement) == np.ndarray:
+                # Reset placement selection if clicking empty square that is not piece-placeable
+                self.isAdjustCurrent = False
+                self.isHoverPiece = False
+                newAdjust = True
+
+    
         # If mouse is now hovering on a different tile
         if [r,c1] != self.ph or newAdjust:
 
             self.ph = [r,c1]
-            print(self.ph)
 
 
             # Many piece placements are possible from hovering at a tile. We sort this list by relevance,
@@ -350,6 +386,8 @@ class AnalysisBoard:
 
     def touchingCurrent(self,r,c1):
         if not rang(r,c1):
+            return False
+        if type(self.position.placement) != np.ndarray:
             return False
         return self.position.placement[r][c1] == 1
 
@@ -413,8 +451,8 @@ class AnalysisBoard:
 
         
 
-        # Remove all placements that collide with board
-        placements = [p for p in placements if not intersection(p, b)]
+        # Remove all placements that collide with board, as well as null placements (that resulted from out-of-bounds)
+        placements = [p for p in placements if type(p) == np.ndarray if not intersection(p, b)]
 
         # Sort based on least holes
         if piece != I_PIECE and piece != O_PIECE:
@@ -430,7 +468,11 @@ class AnalysisBoard:
 
         # We add current piece to the board
         plainBoard = self.position.board.copy()
-        placement = colorMinos(self.position.placement, curr, white2 = True)
+
+        if type(self.position.placement) == np.ndarray:
+            placement = colorMinos(self.position.placement, curr, white2 = True)
+        else:
+            placement = empty()
 
         # If active selection mode, then display that. Otherwise, display original placed piece location
         board = self.position.board.copy()

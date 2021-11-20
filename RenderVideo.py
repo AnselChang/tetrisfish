@@ -115,21 +115,8 @@ def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minos
 
         # To find the starting position from the filled frame, we must manually perform line clear computation.
 
-        # This yields a list of all the rows that are not filled
-         # https://stackoverflow.com/questions/23726026/finding-which-rows-have-all-elements-as-zeros-in-a-matrix-with-numpy
-        nonFilledRows = np.where((1-prevMinosMain).any(axis=1))[0]
-        numFilled = 20 - len(nonFilledRows)
+        newBoard = lineClear(prevMinosMain)
 
-        print("numFilled:",numFilled)
-
-        # Nice numpy trick which stores all the non-filled rows in a list.
-        newBoard = prevMinosMain[nonFilledRows]
-
-        #  All you need to do now is insert rows at the top to complete line clear computation.
-        for i in range(numFilled):
-            newBoard = np.insert(newBoard, 0, np.array([0,0,0,0,0,0,0,0,0,0]),0 )
-        
-        assert(len(newBoard) == 20)
 
         # Finally, create a new position using the generated resultant board.
         # We don't know what the nextbox piece is yet, and must wait until start piece actually spawns

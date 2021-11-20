@@ -51,10 +51,24 @@ def analyze(positionDatabase):
 
     B_LEFT = "LeftArrow"
     B_RIGHT = "RightArrow"
+    B_HYP_LEFT = "LeftArrowHypothetical"
+    B_HYP_RIGHT = "RightArrowHypothetical"
+    B_HYP_MAXLEFT = "MaxLeftArrowHypothetical"
+    B_HYP_MAXRIGHT = "MaxRightArrowHypothetical"
+
     
     buttons = PygameButton.ButtonHandler()
-    buttons.addImage(B_LEFT, images[LEFTARROW], 500, 500, 0.2, margin = 5)
-    buttons.addImage(B_RIGHT, images[RIGHTARROW], 600, 500, 0.2, margin = 5)
+    # Position buttons
+    buttons.addImage(B_LEFT, images[LEFTARROW], 500, 500, 0.2, margin = 5, imagegrey = images[LEFTARROW2])
+    buttons.addImage(B_RIGHT, images[RIGHTARROW], 600, 500, 0.2, margin = 5, imagegrey = images[RIGHTARROW2])
+
+    x = 450
+    y = 330
+    buttons.addImage(B_HYP_MAXLEFT, images[LEFTARROW_MAX], x, y, 0.08, margin = 3, imagegrey = images[LEFTARROW2_MAX])
+    buttons.addImage(B_HYP_LEFT, images[LEFTARROW], x+50, y, 0.08, margin = 3, imagegrey = images[LEFTARROW2])
+    buttons.addImage(B_HYP_RIGHT, images[RIGHTARROW], x+90, y, 0.08, margin = 3, imagegrey = images[RIGHTARROW2])
+    buttons.addImage(B_HYP_MAXRIGHT, images[RIGHTARROW_MAX], x+130, y, 0.08, margin = 3, imagegrey = images[RIGHTARROW2_MAX])
+    
 
     positionNum = 0
     analysisBoard = AnalysisBoard.AnalysisBoard(positionDatabase)
@@ -80,13 +94,26 @@ def analyze(positionDatabase):
         c.realscreen.fill(MID_GREY)
         c.screen.fill(MID_GREY)
 
-        # Buttons
+        # Left/Right Buttons
         if buttons.get(B_LEFT).clicked and analysisBoard.positionNum > 0:
             print("left")
-            analysisBoard.updatePosition(1)
+            analysisBoard.updatePosition(-1)
+            
         elif buttons.get(B_RIGHT).clicked and analysisBoard.positionNum < len(positionDatabase) - 1:
             print("right")
-            analysisBoard.updatePosition(-1)
+            analysisBoard.updatePosition(1)
+
+        # Hypothetical buttons
+        # stuff
+        
+            
+        buttons.get(B_LEFT).grey = analysisBoard.positionNum == 0
+        buttons.get(B_RIGHT).grey = analysisBoard.positionNum == len(positionDatabase) - 1
+
+        buttons.get(B_HYP_LEFT).grey = not analysisBoard.hasHypoLeft()
+        buttons.get(B_HYP_MAXLEFT).grey = not analysisBoard.hasHypoLeft()
+        buttons.get(B_HYP_RIGHT).grey = not analysisBoard.hasHypoRight()
+        buttons.get(B_HYP_MAXRIGHT).grey = not analysisBoard.hasHypoRight()
 
         currPos = analysisBoard.position
         evalBar.tick(currPos.evaluation)
@@ -95,8 +122,8 @@ def analyze(positionDatabase):
         # --- [ DISPLAY ] ---
 
         # Now that we're about to display things, reset hitbox data so that new graphics components can be appended
-        HT.log()
-        print(HT.at(mx,my),mx,my)
+        #HT.log()
+        #print(HT.at(mx,my),mx,my)
         HT.reset()
         
         # Tetris board

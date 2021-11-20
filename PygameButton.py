@@ -2,6 +2,7 @@ import pygame
 from abc import ABC, abstractmethod
 from TetrisUtility import *
 import HitboxTracker as HT
+from colors import *
 
 font = None
 
@@ -18,8 +19,8 @@ class ButtonHandler:
     def addText(self, ID, text,x,y,width,height,buttonColor,textColor, margin = 0):
         self.buttons.append( TextButton(ID, text, x, y, width, height, buttonColor, textColor, margin) )
 
-    def addImage(self, ID, image, x, y, scale, margin = 0):
-        self.buttons.append( ImageButton(ID, image, x, y, scale, margin) )
+    def addImage(self, ID, image, x, y, scale, margin = 0, imagegrey = None):
+        self.buttons.append( ImageButton(ID, image, x, y, scale, margin, imagegrey) )
 
     def updatePressed(self, mx, my, click):
         
@@ -89,20 +90,26 @@ class TextButton(Button):
 # Image button stores image as a button, inherits Button
 class ImageButton(Button):
 
-    def __init__(self, ID, image, x, y, scale, margin):
+    def __init__(self, ID, image, x, y, scale, margin, imagegrey = None):
 
         bscale = 1.14
         self.image = pygame.transform.scale(image, [image.get_width() * scale, image.get_height() * scale])
         self.bigimage = pygame.transform.scale(image, [self.image.get_width() * bscale, self.image.get_height() * bscale])
+        self.greyimage = pygame.transform.scale(imagegrey, [imagegrey.get_width() * scale, imagegrey.get_height() * scale])
 
         self.dx = self.bigimage.get_width() - self.image.get_width()
         self.dy = self.bigimage.get_height() - self.image.get_height()
+
+        self.grey = False
         
         super().__init__(ID, x, y, self.image.get_width(), self.image.get_height(), margin)
 
     def get(self):
 
-        if self.pressed:
-            return self.bigimage, [self.x - self.dx / 2, self.y - self.dy / 2]
+        if self.grey:
+            return self.greyimage, [self.x, self.y]
         else:
-            return self.image, [self.x, self.y]
+            if self.pressed:
+                return self.bigimage, [self.x - self.dx / 2, self.y - self.dy / 2]
+            else:
+                return self.image, [self.x, self.y]

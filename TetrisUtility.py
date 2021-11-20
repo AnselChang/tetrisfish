@@ -141,3 +141,22 @@ def getNextBox(array):
         return None
     else:
         return bestPiece
+
+# Return a new array that computes line clears of given one
+#  https://stackoverflow.com/questions/23726026/finding-which-rows-have-all-elements-as-zeros-in-a-matrix-with-numpy
+def lineClear(array):
+    
+    # This yields a list of all the rows that are not filled
+    nonFilledRows = np.where((1-array).any(axis=1))[0]
+
+    # Nice numpy trick which stores all the non-filled rows in a list.
+    newBoard = array[nonFilledRows]
+    numFilled = 20 - len(nonFilledRows)
+
+    #  All you need to do now is insert rows at the top to complete line clear computation.
+    for i in range(numFilled):
+        newBoard = np.insert(newBoard, 0, np.array([0,0,0,0,0,0,0,0,0,0]),0 )
+    
+    assert(len(newBoard) == 20)
+
+    return newBoard
