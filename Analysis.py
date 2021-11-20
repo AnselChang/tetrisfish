@@ -130,8 +130,8 @@ def analyze(positionDatabase):
         # --- [ DISPLAY ] ---
 
         # Now that we're about to display things, reset hitbox data so that new graphics components can be appended
-        HT.log()
-        print(HT.at(mx,my),mx,my)
+        #HT.log()
+        #print(HT.at(mx,my),mx,my)
         HT.reset()
         
         # Tetris board
@@ -146,6 +146,12 @@ def analyze(positionDatabase):
         # Text for position number
         text = c.font.render("Position: {}".format(analysisBoard.positionNum + 1), False, BLACK)
         c.screen.blit(text, [600,600])
+
+        # Draw timestamp
+        frameNum = analysisBoard.positionDatabase[analysisBoard.positionNum].frame
+        if frameNum != None:
+            text = c.fontbig.render(c.timestamp(frameNum), True, BLACK)
+            c.screen.blit(text, [550,400] )
 
         
         for event in pygame.event.get():

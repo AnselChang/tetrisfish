@@ -262,7 +262,9 @@ def callibrate():
     vcap = c.getVideo()
     c.VIDEO_WIDTH = int(vcap.get(cv2.CAP_PROP_FRAME_WIDTH))
     c.VIDEO_HEIGHT = int(vcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    totalFrames = int(vcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    c.totalFrames = int(vcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    c.fps = vcap.get(cv2.CAP_PROP_FPS)
+    print("fps: ", c.fps)
 
     print(c.VIDEO_WIDTH, c.VIDEO_HEIGHT)
 
@@ -306,7 +308,7 @@ def callibrate():
     LEFT_FRAME = 0
     RIGHT_FRAME = 1
     vidFrame[LEFT_FRAME] = 0
-    vidFrame[RIGHT_FRAME] = totalFrames - 1
+    vidFrame[RIGHT_FRAME] = c.totalFrames - 1
     currentEnd = LEFT_FRAME
 
     previousFrame = -1
@@ -345,7 +347,7 @@ def callibrate():
             
             b.isAlt = not b.isAlt
 
-        if b.isAlt or buttons.get(B_RIGHT).clicked and vidFrame[currentEnd] < totalFrames - 1:
+        if b.isAlt or buttons.get(B_RIGHT).clicked and vidFrame[currentEnd] < c.totalFrames - 1:
             
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] + 1)
                 
@@ -411,11 +413,11 @@ def callibrate():
         c.SCALAR = zoomSlider.tick(c.screen, c.SCALAR, startPress, isPressed, mx, my)
         
         # Draw video bounds sliders
-        vidFrame[RIGHT_FRAME] = rightVideoSlider.tick(c.screen, vidFrame[RIGHT_FRAME] / (totalFrames-1), startPress, isPressed, mx, my,True)
-        vidFrame[RIGHT_FRAME] = clamp(int(vidFrame[RIGHT_FRAME] * totalFrames),0,totalFrames)
+        vidFrame[RIGHT_FRAME] = rightVideoSlider.tick(c.screen, vidFrame[RIGHT_FRAME] / (c.totalFrames-1), startPress, isPressed, mx, my,True)
+        vidFrame[RIGHT_FRAME] = clamp(int(vidFrame[RIGHT_FRAME] * c.totalFrames),0,c.totalFrames)
         
-        vidFrame[LEFT_FRAME]= leftVideoSlider.tick(c.screen, vidFrame[LEFT_FRAME] / (totalFrames-1), startPress and not rightVideoSlider.active, isPressed, mx, my,True)
-        vidFrame[LEFT_FRAME] = clamp(int(vidFrame[LEFT_FRAME] * totalFrames),0,totalFrames)
+        vidFrame[LEFT_FRAME]= leftVideoSlider.tick(c.screen, vidFrame[LEFT_FRAME] / (c.totalFrames-1), startPress and not rightVideoSlider.active, isPressed, mx, my,True)
+        vidFrame[LEFT_FRAME] = clamp(int(vidFrame[LEFT_FRAME] * c.totalFrames),0,c.totalFrames)
         
         # Update frame from video sliders
         if rightVideoSlider.active:
@@ -426,6 +428,10 @@ def callibrate():
         frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
 
         print(vidFrame)
+
+        # Draw timestamp
+        text = c.fontbig.render(c.timestamp(vidFrame[currentEnd]), True, WHITE)
+        c.screen.blit(text, [840,42] )
         
 
         # Draw error message

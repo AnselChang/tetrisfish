@@ -476,11 +476,17 @@ class AnalysisBoard:
 
             for i in range(-2,1):
                 for rot in range(len(TETRONIMO_SHAPES[piece])):
-                    p = stamp(piece,r+i+1,c1-2,rot)
-                    if type(p) != np.ndarray:
+
+                    # If stamping current location gives None, it means it's definitely out of bounds
+                    if type(stamp(piece,r+i,c1-2, rot)) != np.ndarray:
                         continue
-                    if intersection(p, b):
-                        placements.append(stamp(piece,r+i,c1-2,rot))
+                    
+                    p = stamp(piece,r+i+1,c1-2,rot)
+
+                    # Now that we know placement is in the screen, if placement below this is out of bounds,
+                    # or if placement below this collides, then we know there is something below the placement
+                    if type(p) != np.ndarray or intersection(p, b):
+                       placements.append(stamp(piece,r+i,c1-2,rot))
 
         
 
@@ -516,7 +522,6 @@ class AnalysisBoard:
             board += placement
         
         surf = drawGeneralBoard(board, images[BOARD], 0.647, 0.995, self.xoffset, self.yoffset, hover = self.hover)
-        print("tetris blit")
         HT.blit("tetris", surf ,[self.x,self.y])
 
         self.nextBox.blit(screen)

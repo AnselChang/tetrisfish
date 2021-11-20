@@ -1,4 +1,5 @@
 import pygame
+import datetime
 import cv2
 import numpy as np
 from TetrisUtility import scaleImage
@@ -9,7 +10,9 @@ font = pygame.font.SysFont('Comic Sans MS', 30)
 font2 = pygame.font.SysFont('Comic Sans MS', 18)
 fontbig = pygame.font.SysFont('Comic Sans MS', 45)
 
-filename = "/Users/anselchang/Documents/test.mp4"
+filename = None
+fps = 30
+totalFrames = 2
 
 VIDEO_X = 0
 VIDEO_Y = 0
@@ -29,6 +32,10 @@ SCREEN_HEIGHT = SCREEN_WIDTH * 2856 / 4806
 # https://stackoverflow.com/questions/34910086/pygame-how-do-i-resize-a-surface-and-keep-all-objects-within-proportionate-to-t
 realscreen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.HWSURFACE |  pygame.DOUBLEBUF |  pygame.RESIZABLE)
 screen = realscreen.copy()
+
+# Get timestamp at frame
+def timestamp(frame):
+    return str(datetime.timedelta(seconds = round(frame / fps)))
 
 # Display screen and handle events, keeping ratio when resizing window
 # Returns true if exited

@@ -44,15 +44,12 @@ position of the previous piece.
 This function returns [updated isLineclear, boolean whether it's a start frame, frames moved ahead]
 """
 # Given a 2d board, parse the board and update the position database
-def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount):
+def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount):
 
 
      # --- Commence Calculations ---!
 
     if isFirst:
-        print("first")
-
-        print2d(minosMain)
 
         currentP = getCurrentPiece(minosMain)
         nextP = getNextBox(minosNext)
@@ -61,11 +58,11 @@ def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minos
             # if first frame does not have piece in spawn position, we won't be using this position.
             # Insert dummy position, first real position will be when the next piece spawns
 
-            positionDatabase.append( Position (minosMain, None, nextP))
+            positionDatabase.append( Position (minosMain, None, nextP, frame = frameCount))
             
         else:
             # If first frame has current piece in correct spawn position, extract it and store in position
-            positionDatabase.append( Position( removeTopPiece(minosMain, currentP), currentP, nextP ))
+            positionDatabase.append( Position( removeTopPiece(minosMain, currentP), currentP, nextP, frame = frameCount ))
 
         return [False,True, 0, finalCount] # not line clear
         
@@ -78,11 +75,12 @@ def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minos
        # Update final placement of previous position. The difference between the original board and the
         # board after placement yields a mask of the placed piece
         positionDatabase[-1].placement = prevMinosMain - positionDatabase[-1].board
+        positionDatabase[-1].frame = frameCount
         positionDatabase[-1].print()
 
         # The starting board for the current piece is simply the frame before this one.  It is unecessary
         # to find the exact placement the current piece as we can simply use previous next box.
-        positionDatabase.append(Position(prevMinosMain,  positionDatabase[-1].nextPiece, getNextBox(minosNext)))
+        positionDatabase.append(Position(prevMinosMain,  positionDatabase[-1].nextPiece, getNextBox(minosNext), frame = frameCount))
 
         return [False,True, 0, finalCount] # not line clear
 
@@ -120,7 +118,7 @@ def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minos
 
         # Finally, create a new position using the generated resultant board.
         # We don't know what the nextbox piece is yet, and must wait until start piece actually spawns
-        positionDatabase.append(Position(newBoard,  getNextBox(minosNext), None))
+        positionDatabase.append(Position(newBoard,  getNextBox(minosNext), None, frame = frameCount))
 
         
         # We calculate the count after those filledrows are cleared so that we can find the next start frame.
@@ -129,7 +127,6 @@ def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minos
         # https://stackoverflow.com/questions/23726026/finding-which-rows-have-all-elements-as-zeros-in-a-matrix-with-numpy
         # note that (1-a) is to invert the 0s and 1s, because original code finds for number of rows of all 0s
         filledRows = np.where(~(1-prevMinosMain).any(axis=1))[0]
-        print(filledRows)
         assert(len(filledRows) > 0) # this assert fails if there are too many skipped frames and the frame before line clear doesn't have locked piece yet
 
         
@@ -142,7 +139,6 @@ def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minos
         return [1, True, 0, finalCount]
 
     elif isLineClear == 1 and count < finalCount+4:
-        print(isLineClear, count, finalCount+4)
         # Now that count has dipped below finalCount + 4, we keep waiting until the new piece appears, where count == finalCount+4 would be true
         # We are setting isLineClear to 2 here
         return [2, False, 0, finalCount]
@@ -154,12 +150,11 @@ def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minos
         # Since we created this position previously during line clear, we didn't know the next box then. Now that
         # we are at a new frame, set the next box of the position.
         positionDatabase[-1].nextPiece = getNextBox(minosNext)
+        positionDatabase[-1].frame = frameCount
         
         return [False, True, 0, finalCount] # we reset the isLineClear state
 
     else:
-        if isLineClear == 1 or isLineClear == 2:
-            print(isLineClear, count, finalCount+4)
         # Some uninteresting frame, so just move on to the next frame and don't change isLineClear
         return [isLineClear, False, 0, finalCount]
 
@@ -234,7 +229,7 @@ def render(firstFrame, lastFrame, bounds, nextBounds):
 
         # Possibly update positionDatabase given the current frame.
         print("Framecount:", frameCount)
-        params = [frameCount == firstFrame, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount]
+        params = [frameCount, frameCount == firstFrame, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount]
         isLineClear, updateDisplay, frameDelta, finalCount = parseBoard(*params) # lots of params!
         frameCount += frameDelta
 

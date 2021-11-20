@@ -3,6 +3,7 @@ from PieceMasks import *
 import math
 import time
 import cProfile
+import os
 
 
 from TetrisUtility import *
@@ -11,6 +12,8 @@ from RenderVideo import render
 from Analysis import analyze
 
 import config as c
+
+import easygui
 
         
 testing = False
@@ -91,7 +94,14 @@ def main():
         positionDatabase.append(Position(testboard+testplacement, I_PIECE, L_PIECE, placement = testplacement2, evaluation = 0.7))
 
     else:
-    
+        while True:
+            c.filename = input("Enter a full filepath for the video: ").strip()
+            if os.path.isfile(c.filename):
+                break
+            else:
+                print("Invalid filepath.")
+                
+        print(c.filename)
         output = callibrate()
         
         if output == None:
