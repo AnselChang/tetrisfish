@@ -17,6 +17,12 @@ class Position:
         # RANDOM FOR NOW. AWAITING STACKRABBIT API
         self.evaluation =  random.uniform(0, 1)
 
+        # Position is actually a Linked list. PositionDatabase stores a list of first nodes.
+        # Each first node by default has no previous or next node.
+        # However, nodes can be added for the use of HYPOTHETICAL SCENARIOS
+        self.previousNode = None
+        self.nextNode = None
+
     def print(self):
         print("Current: ", TETRONIMO_NAMES[self.currentPiece])
         print("Next: ", TETRONIMO_NAMES[self.nextPiece])            

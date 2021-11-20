@@ -1,6 +1,7 @@
 import pygame
 from abc import ABC, abstractmethod
 from TetrisUtility import *
+import HitboxTracker as HT
 
 font = None
 
@@ -29,7 +30,7 @@ class ButtonHandler:
 
         for button in self.buttons:
             
-            screen.blit(*(button.get()))
+            HT.blit(button.ID, *(button.get()))
 
     def get(self, buttonID):
         

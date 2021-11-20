@@ -5,6 +5,7 @@ from PieceMasks import *
 import config as c
 from colors import *
 import math
+import HitboxTracker as HT
 
 MINO_SIZE = 28
 MINO_OFFSET = 4 # Pixel offset between each mino
@@ -112,56 +113,92 @@ def getHoles(array):
     return countA + countB
 
 
-class AnalysisBoard:
 
-    def __init__(self, position):
+# Handle display of the current/next box and panel
+class PieceBoard:
 
-        self.x = 80
-        self.y = 6
-        self.xoffset = 22
-        self.yoffset = -6
+    def __init__(self, ID, image, offsetx, offsety):
 
-        self.nextx = 445
-        self.nexty = 14
-        
-        self.updatePosition(position)
-        
+        self.ID = ID
+        self.offsetx = offsetx
+        self.offsety = offsety
+        self.image = image
 
-    def updatePosition(self, position):
-        self.position = position
-        self.hoverNum = 0
-        self.isHoverPiece = False
-        self.isAdjustCurrent = False
-        self.placements = []
-        self.hover = empty()
-        self.ph = [-1,-1]
-        self.nextHover = False
-        self.showNextPanel = False
-        self.panelHover = empty(rows = len(panelArray), cols = len(panelArray[0]))
+        self.IMAGE_SCALE = 0.85
 
+
+    # To be called before any function is run
+    def updatePiece(self, piece):
+
+        self.piece = piece
+
+        # Shift half-mino to the left for 3-wide pieces to fit into nextbox
         offset = MINO_SIZE + MINO_OFFSET
-        xoffset = 0 if (position.nextPiece == O_PIECE or position.nextPiece == I_PIECE) else (0 - offset/2)
-        yoffset = offset/2 if position.nextPiece == I_PIECE else 0
-        self.xNextOffset = 30 + xoffset
-        self.yNextOffset = -7 + yoffset
-        self.panelPercent = 0
+        xoffset = 0 if (piece == O_PIECE or piece == I_PIECE) else (0 - offset/2)
+        yoffset = offset/2 if piece == I_PIECE else 0
+        self.xPieceOffset = 30 + xoffset
+        self.yPieceOffset = 25 + yoffset
 
+        self.hover = False
+        self.showPanel = False
+        self.panelHover = EMPTY_PANEL
+
+        self.panelPercent = 0
         self.prevPanelR = -1
         self.prevPanelC = -1
+    
 
-        self.NEXT_SCALE = 0.85
+    # Update box hover given mouse coords
+    def updateBoard(self, mx, my, click):
+        x1 = self.offsetx + 5
+        y1 = self.offsety + 6
 
-    # Toggle hover piece
-    def toggle(self):
-        if len(self.placements) > 0:
-            self.hoverNum  += 1
-            self.hover = self.placements[self.hoverNum % len(self.placements)]
+        x = mx - x1 - self.xPieceOffset
+        y = my - y1 - self.yPieceOffset
+        length = 120
+        
+        col = int( x / length * 4)
+        row = int( y / length * 4)
+        if (row < 0 or row > 3 or col < 0 or col > 3):
+            row = 0
+            col = 0
+
+        # Set boolean value for whether mouse is hovering over next piece
+        print(row,col)
+        self.hover = (TETRONIMO_SHAPES[self.piece][0][row][col] == 1)
+
+        # display next box choices if clicked
+        if self.hover and click:
+            self.showPanel = not self.showPanel
+            if not self.showPanel:
+                self.panelHover = EMPTY_PANEL
+
+        if click and HT.none(mx,my):
+            self.showPanel = False
+            self.panelHover = EMPTY_PANEL
+            
+
+        amount = 0.005
+
+        # Update panel animation
+        if self.showPanel:
+            self.panelPercent += math.sqrt(max(0,(1 - self.panelPercent) * amount))
+
+            # Update panel hover
+            self.updatePanelHover(mx, my)
+            
+        else:
+            self.panelPercent -= math.sqrt(max(0,self.panelPercent * amount))
 
     def updatePanelHover(self, mx, my):
-        x = mx - 474
-        y = my -145
+        x = mx - self.offsetx - 30
+        y = my - self.offsety - self.image.get_height()*self.IMAGE_SCALE - 27
         width = 125
-        height = 158
+        height = 155
+
+        # Weird thing because int(-0.1) = 0, when we want < 0
+        if y/height < 0 or x/height < 0:
+            y -= 50
         
         row = int(len(panelArray) * y/height)
         col = int(len(panelArray[0]) * x/width)
@@ -183,47 +220,72 @@ class AnalysisBoard:
         self.prevPanelC = col
 
 
-    # Update next box
-    def updateNext(self, mx, my, click):
-        x1 = 450
-        y1 = 20
+    # Blit surface from current/next box to screen
+    def blit(self, screen):
 
-        x = mx - x1 - self.xNextOffset
-        y = my - y1 - self.yNextOffset
-        length = 120
+        minos = colorMinos(TETRONIMO_SHAPES[self.piece][0][1:], self.piece)
+        board = drawGeneralBoard(minos, self.image, self.IMAGE_SCALE, 1, self.xPieceOffset, self.yPieceOffset, hover = self.hover)
+        HT.blit(self.ID, board, [self.offsetx, self.offsety])
+
+        if self.panelPercent > 0.01:
+
+            # Draw pieces onto panel
+            surf = drawGeneralBoard(panelColors,images[PANEL], self.IMAGE_SCALE, 1, 28, 11, small = True, percent = self.panelPercent, hover = self.panelHover)
+
+            # Blit panel onto screen
+            HT.blit("panel", surf, [self.offsetx,self.offsety + self.image.get_height()*self.IMAGE_SCALE - 2])
+
+
+
+class AnalysisBoard:
+
+    def __init__(self, positionDatabase):
+
+        self.x = 80
+        self.y = 6
+        self.xoffset = 22
+        self.yoffset = -6
+
+        self.currentBox = PieceBoard(CURRENT, images[CURRENT], 445, 14)
+        self.nextBox = PieceBoard(NEXT, images[NEXT], 445, 170)
+
+        self.positionDatabase = positionDatabase
+        self.positionNum = 0
+        self.updatePosition(0)
+
+
+    # Change the position by index amount delta
+    def updatePosition(self, delta):
         
-        col = int( x / length * 4)
-        row = int( y / length * 4)
-        if (row < 0 or row > 3 or col < 0 or col > 3):
-            row = 0
-            col = 0
+        self.positionNum += delta
+        assert(self.positionNum >= 0 and self.positionNum < len(self.positionDatabase))
+        
+        self.position = self.positionDatabase[self.positionNum]
+        self.hoverNum = 0
+        self.isHoverPiece = False
+        self.isAdjustCurrent = False
+        self.placements = []
+        self.hover = empty()
+        self.ph = [-1,-1]
 
-        # Set boolean value for whether mouse is hovering over next piece
-        self.nextHover = TETRONIMO_SHAPES[self.position.nextPiece][0][row][col] == 1
+        # Change current and nextbox pieces
+        self.currentBox.updatePiece(self.position.currentPiece)
+        self.nextBox.updatePiece(self.position.nextPiece)
+        
 
-        # display next box choices if clicked
-        if self.nextHover and click:
-            self.showNextPanel = not self.showNextPanel
-            if not self.showNextPanel:
-                self.panelHover = empty(rows = len(panelArray), cols = len(panelArray[0]))
-
-        amount = 0.1
-
-        # Update panel animation
-        if self.showNextPanel:
-            self.panelPercent += (1 - self.panelPercent) * amount
-
-            # Update panel hover
-            self.updatePanelHover(mx, my)
-            
-        else:
-            self.panelPercent -= self.panelPercent * amount
-                    
+    # Toggle hover piece
+    def toggle(self):
+        if len(self.placements) > 0:
+            self.hoverNum  += 1
+            self.hover = self.placements[self.hoverNum % len(self.placements)]
+             
 
     # Update mouse-related events - namely, hover
     def update(self, mx, my, click):
-
-        self.updateNext(mx, my, click)
+        
+        # Update mouse events for current and next boxes
+        self.currentBox.updateBoard(mx, my, click)
+        self.nextBox.updateBoard(mx, my, click)
     
         x1 = 100
         y1 = 28
@@ -245,7 +307,7 @@ class AnalysisBoard:
         if click and self.touchingCurrent(r,c1) and not self.isAdjustCurrent:
             self.isAdjustCurrent = True
             newAdjust = True
-        elif click and (len(self.placements) == 0 and r != -1 or (self.hover == self.position.placement).all()):
+        elif click and (len(self.placements) == 0 and r != -1 or (self.hover == self.position.placement).all() or HT.none(mx,my)):
             # Reset placement selection if clicking empty square that is not piece-placeable
             self.isAdjustCurrent = False
             self.isHoverPiece = False
@@ -359,27 +421,6 @@ class AnalysisBoard:
             placements.sort(reverse = True, key = lambda p: (getHoles(p+b)))
 
         return placements
-
-    # Return surface with nextbox
-    def getNextBox(self):
-
-        nextPiece = self.position.nextPiece
-
-        minos = colorMinos(TETRONIMO_SHAPES[nextPiece][0][1:], nextPiece)
-
-        # Shift half-mino to the left for 3-wide pieces to fit into nextbox
-        xoffset = 0 if (nextPiece == O_PIECE or nextPiece == I_PIECE) else (0 - MINO_OFFSET/2)
-        yoffset = MINO_OFFSET/2 if nextPiece == I_PIECE else 0
-        return drawGeneralBoard(minos, images[NEXT], self.NEXT_SCALE, 1, self.xNextOffset, self.yNextOffset, hover = self.nextHover)
-
-    # Next piece selection panel
-    def drawNextPanel(self, screen):
-
-        # Draw pieces onto panel
-        surf = drawGeneralBoard(panelColors,images[PANEL], self.NEXT_SCALE, 1, 28, 11, small = True, percent = self.panelPercent, hover = self.panelHover)
-
-        # Blit panel onto screen
-        screen.blit(surf, [self.nextx,self.nexty + images[NEXT].get_height()*self.NEXT_SCALE - 5])
         
     
     # Draw tetris board to screen
@@ -400,10 +441,8 @@ class AnalysisBoard:
             board += placement
         
         surf = drawGeneralBoard(board, images[BOARD], 0.647, 0.995, self.xoffset, self.yoffset, hover = self.hover)
-        screen.blit(surf ,[self.x,self.y])
+        HT.blit("tetris", surf ,[self.x,self.y])
 
-        if self.showNextPanel or self.panelPercent > 0.01:
-            self.drawNextPanel(screen)
-
-        # Next box
-        screen.blit(self.getNextBox(), [self.nextx, self.nexty])
+        self.nextBox.blit(screen)
+        self.currentBox.blit(screen)
+        

@@ -5,7 +5,7 @@ from Position import Position
 import PygameButton
 from colors import *
 from PieceMasks import *
-
+import HitboxTracker as HT
 
 class EvalBar:
 
@@ -49,20 +49,22 @@ def analyze(positionDatabase):
 
     evalBar = EvalBar()
 
-    B_LEFT = 0
-    B_RIGHT = 1
+    B_LEFT = "LeftArrow"
+    B_RIGHT = "RightArrow"
     
     buttons = PygameButton.ButtonHandler()
     buttons.addImage(B_LEFT, images[LEFTARROW], 500, 500, 0.2, margin = 5)
     buttons.addImage(B_RIGHT, images[RIGHTARROW], 600, 500, 0.2, margin = 5)
 
     positionNum = 0
-    analysisBoard = AnalysisBoard.AnalysisBoard(positionDatabase[positionNum])
+    analysisBoard = AnalysisBoard.AnalysisBoard(positionDatabase)
 
     wasPressed = False
 
 
     while True:
+
+        # --- [ CALCULATIONS ] ---
 
         # Mouse position
         mx,my = c.getScaledPos(*pygame.mouse.get_pos())
@@ -79,30 +81,35 @@ def analyze(positionDatabase):
         c.screen.fill(MID_GREY)
 
         # Buttons
-        buttons.display(c.screen)
-        if buttons.get(B_LEFT).clicked:
+        if buttons.get(B_LEFT).clicked and analysisBoard.positionNum > 0:
             print("left")
-            positionNum = max(positionNum-1, 0)
-            analysisBoard.updatePosition(positionDatabase[positionNum])
-        elif buttons.get(B_RIGHT).clicked:
+            analysisBoard.updatePosition(1)
+        elif buttons.get(B_RIGHT).clicked and analysisBoard.positionNum < len(positionDatabase) - 1:
             print("right")
-            positionNum = min(positionNum+1, len(positionDatabase)-1)
-            analysisBoard.updatePosition(positionDatabase[positionNum])
+            analysisBoard.updatePosition(-1)
 
-        currPos = positionDatabase[positionNum]
+        currPos = analysisBoard.position
         evalBar.tick(currPos.evaluation)
-       
+
+
+        # --- [ DISPLAY ] ---
+
+        # Now that we're about to display things, reset hitbox data so that new graphics components can be appended
+        HT.log()
+        print(HT.at(mx,my),mx,my)
+        HT.reset()
         
         # Tetris board
         analysisBoard.draw(c.screen)
-        
+
+        # Buttons
+        buttons.display(c.screen)
 
         # Eval bar
-        c.screen.blit(evalBar.drawEval(), [20,20])
+        HT.blit("eval", evalBar.drawEval(), [20,20])
 
-        
-
-        text = c.font.render("Position: {}".format(positionNum + 1), False, BLACK)
+        # Text for position number
+        text = c.font.render("Position: {}".format(analysisBoard.positionNum + 1), False, BLACK)
         c.screen.blit(text, [600,600])
 
         
