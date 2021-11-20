@@ -43,10 +43,7 @@ def init(imagesParam):
     
     # Cache "small" variants of minos
     for minoColor in minoColors:
-        img = images[minoColor]
-        newWidth = int(img.get_width() *PANEL_MINO_SCALE)
-        newHeight = int(img.get_height() *PANEL_MINO_SCALE)
-        smallMinoImages[minoColor] = pygame.transform.scale(img, [newWidth, newHeight])
+        smallMinoImages[minoColor] = scaleImage(images[minoColor], PANEL_MINO_SCALE)
 
 
 # Return surface with tetris board. 0 = empty, 1/-1 =  white, 2/-2 = red, 3/-3 = blue, negative = transparent
@@ -519,6 +516,7 @@ class AnalysisBoard:
             board += placement
         
         surf = drawGeneralBoard(board, images[BOARD], 0.647, 0.995, self.xoffset, self.yoffset, hover = self.hover)
+        print("tetris blit")
         HT.blit("tetris", surf ,[self.x,self.y])
 
         self.nextBox.blit(screen)

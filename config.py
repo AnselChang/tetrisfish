@@ -1,28 +1,29 @@
 import pygame
 import cv2
 import numpy as np
+from TetrisUtility import scaleImage
 
 pygame.init()
 pygame.font.init()
 font = pygame.font.SysFont('Comic Sans MS', 30)
-font2 = pygame.font.SysFont('Comic Sans MS', 20)
+font2 = pygame.font.SysFont('Comic Sans MS', 18)
 fontbig = pygame.font.SysFont('Comic Sans MS', 45)
 
 filename = "/Users/anselchang/Documents/test.mp4"
 
-VIDEO_X = 50
-VIDEO_Y = 50
+VIDEO_X = 0
+VIDEO_Y = 0
 VIDEO_WIDTH = None
 VIDEO_HEIGHT = None
 
 # Scale constant for tetris footage
-SCALAR = 0.4
+SCALAR = 1
 
-COLOR_CALLIBRATION = 50
+COLOR_CALLIBRATION = 30
 
 info = pygame.display.Info()
 SCREEN_WIDTH = info.current_w*0.8
-SCREEN_HEIGHT = info.current_h*0.8
+SCREEN_HEIGHT = SCREEN_WIDTH * 2856 / 4806 
 
 # Global screen surface variables
 # https://stackoverflow.com/questions/34910086/pygame-how-do-i-resize-a-surface-and-keep-all-objects-within-proportionate-to-t
@@ -48,10 +49,16 @@ def getVideo():
 
 # Draw video frame
 def displayTetrisImage(frame):
+
+    X_MAX = 740
+    Y_MAX = 648
+    
     frame = frame.transpose(1,0,2)
     surf = pygame.surfarray.make_surface(frame)
-    surf = pygame.transform.scale(surf, [surf.get_width()*SCALAR, surf.get_height()*SCALAR] )
-    screen.blit(surf, (VIDEO_X, VIDEO_Y))
+    surf = scaleImage(surf, SCALAR)
+    boundedSurf = pygame.Surface([X_MAX,Y_MAX])
+    boundedSurf.blit(surf,[0,0])
+    screen.blit(boundedSurf, (VIDEO_X, VIDEO_Y))
     return surf
 
         

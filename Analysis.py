@@ -6,6 +6,7 @@ import PygameButton
 from colors import *
 from PieceMasks import *
 import HitboxTracker as HT
+from TetrisUtility import loadImages
 
 class EvalBar:
 
@@ -41,10 +42,7 @@ def analyze(positionDatabase):
 
 
     # Load all images.
-    imageName = "Images/{}.png"
-    images = {}
-    for name in IMAGE_NAMES:
-        images[name] = pygame.image.load(imageName.format(name))
+    images = loadImages("Images/Analysis/{}.png", IMAGE_NAMES)
     AnalysisBoard.init(images)
 
     evalBar = EvalBar()
@@ -59,15 +57,15 @@ def analyze(positionDatabase):
     
     buttons = PygameButton.ButtonHandler()
     # Position buttons
-    buttons.addImage(B_LEFT, images[LEFTARROW], 500, 500, 0.2, margin = 5, imagegrey = images[LEFTARROW2])
-    buttons.addImage(B_RIGHT, images[RIGHTARROW], 600, 500, 0.2, margin = 5, imagegrey = images[RIGHTARROW2])
+    buttons.addImage(B_LEFT, images[LEFTARROW], 500, 500, 0.2, margin = 5, alt = images[LEFTARROW2])
+    buttons.addImage(B_RIGHT, images[RIGHTARROW], 600, 500, 0.2, margin = 5, alt = images[RIGHTARROW2])
 
     x = 450
     y = 174
-    buttons.addImage(B_HYP_MAXLEFT, images[LEFTARROW_MAX], x, y, 0.08, margin = 0, imagegrey = images[LEFTARROW2_MAX])
-    buttons.addImage(B_HYP_LEFT, images[LEFTARROW], x+50, y, 0.08, margin = 0, imagegrey = images[LEFTARROW2])
-    buttons.addImage(B_HYP_RIGHT, images[RIGHTARROW], x+90, y, 0.08, margin = 0, imagegrey = images[RIGHTARROW2])
-    buttons.addImage(B_HYP_MAXRIGHT, images[RIGHTARROW_MAX], x+130, y, 0.08, margin = 0, imagegrey = images[RIGHTARROW2_MAX])
+    buttons.addImage(B_HYP_MAXLEFT, images[LEFTARROW_MAX], x, y, 0.08, margin = 0, alt = images[LEFTARROW2_MAX])
+    buttons.addImage(B_HYP_LEFT, images[LEFTARROW], x+50, y, 0.08, margin = 0, alt = images[LEFTARROW2])
+    buttons.addImage(B_HYP_RIGHT, images[RIGHTARROW], x+90, y, 0.08, margin = 0, alt = images[RIGHTARROW2])
+    buttons.addImage(B_HYP_MAXRIGHT, images[RIGHTARROW_MAX], x+130, y, 0.08, margin = 0, alt = images[RIGHTARROW2_MAX])
     
 
     positionNum = 0
@@ -117,13 +115,13 @@ def analyze(positionDatabase):
             
         
             
-        buttons.get(B_LEFT).grey = analysisBoard.positionNum == 0
-        buttons.get(B_RIGHT).grey = analysisBoard.positionNum == len(positionDatabase) - 1
+        buttons.get(B_LEFT).isAlt = analysisBoard.positionNum == 0
+        buttons.get(B_RIGHT).isAlt = analysisBoard.positionNum == len(positionDatabase) - 1
 
-        buttons.get(B_HYP_LEFT).grey = not analysisBoard.hasHypoLeft()
-        buttons.get(B_HYP_MAXLEFT).grey = not analysisBoard.hasHypoLeft()
-        buttons.get(B_HYP_RIGHT).grey = not analysisBoard.hasHypoRight()
-        buttons.get(B_HYP_MAXRIGHT).grey = not analysisBoard.hasHypoRight()
+        buttons.get(B_HYP_LEFT).isAlt = not analysisBoard.hasHypoLeft()
+        buttons.get(B_HYP_MAXLEFT).isAlt = not analysisBoard.hasHypoLeft()
+        buttons.get(B_HYP_RIGHT).isAlt = not analysisBoard.hasHypoRight()
+        buttons.get(B_HYP_MAXRIGHT).isAlt = not analysisBoard.hasHypoRight()
 
         currPos = analysisBoard.position
         evalBar.tick(currPos.evaluation)
@@ -132,8 +130,8 @@ def analyze(positionDatabase):
         # --- [ DISPLAY ] ---
 
         # Now that we're about to display things, reset hitbox data so that new graphics components can be appended
-        #HT.log()
-        #print(HT.at(mx,my),mx,my)
+        HT.log()
+        print(HT.at(mx,my),mx,my)
         HT.reset()
         
         # Tetris board

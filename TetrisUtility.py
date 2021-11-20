@@ -1,6 +1,7 @@
 import numpy as np
-from PieceMasks import *
+import pygame
 import math
+import PieceMasks as PM
 
 # Returns true if two binary 2d numpy arrays intersect
 def intersection(arr1, arr2):
@@ -40,7 +41,7 @@ def stamp(piece, row,col, rot = 0):
     # generate 20x10 array of 0s
     mask = empty()
 
-    pieceShape = TETRONIMO_SHAPES[piece][rot]
+    pieceShape = PM.TETRONIMO_SHAPES[piece][rot]
     
     for r in range(4):
         for c1 in range(4):
@@ -63,7 +64,7 @@ def getCurrentPiece(pieces):
     detectedPiece = None
 
     i = 0 # iterate over TETRONIMOS
-    for pieceShape in TETRONIMO_SHAPES:
+    for pieceShape in PM.TETRONIMO_SHAPES:
         # row 0 to 1, column 3 to 7
 
         isPiece = True
@@ -75,7 +76,7 @@ def getCurrentPiece(pieces):
 
         if isPiece:
             if detectedPiece == None:
-                detectedPiece = TETRONIMOS[i]
+                detectedPiece = PM.TETRONIMOS[i]
             else:
                 # multiple piece shapes fit the board. Likely a topout situation.
                 return -1
@@ -97,7 +98,7 @@ def removeTopPiece(piecesOriginal,pieceType):
     for row in range(2):
         for col in range(3,7):
             
-            if TETRONIMO_SHAPES[pieceType][0][row+1][col-3] == 1:
+            if PM.TETRONIMO_SHAPES[pieceType][0][row+1][col-3] == 1:
                 
                 assert(pieces[row][col] == 1)
                 pieces[row][col] = 0
@@ -127,11 +128,11 @@ def getNextBox(array):
     bestCount = math.inf # optimize for lowest
 
     i = 0
-    for pieceMask in TETRONIMO_MASKS:
+    for pieceMask in PM.TETRONIMO_MASKS:
 
         count = arraySimilarity(array,pieceMask)
         if count < bestCount:
-            bestPiece = TETRONIMOS[i]
+            bestPiece = PM.TETRONIMOS[i]
             bestCount = count
             
         i += 1
@@ -160,3 +161,13 @@ def lineClear(array):
     assert(len(newBoard) == 20)
 
     return newBoard
+
+def loadImages(fileFormat, nameList):
+    images = {}
+    for name in nameList:
+        images[name] = pygame.image.load(fileFormat.format(name))
+        assert(images[name] != None)
+    return images
+
+def scaleImage(img, scale):
+    return pygame.transform.smoothscale(img, [int(img.get_width() * scale), int(img.get_height() * scale)])

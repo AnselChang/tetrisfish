@@ -13,7 +13,7 @@ from Analysis import analyze
 import config as c
 
         
-testing = True
+testing = False
 def main():
 
     if testing:
@@ -97,15 +97,15 @@ def main():
         if output == None:
             return # exit if pygame screen closed
         
-        currentFrame, bounds, nextBounds = output
+        firstFrame, lastFrame, bounds, nextBounds = output
         print(bounds.x1,bounds.y1,bounds.x2,bounds.y2)
         print(nextBounds.x1,nextBounds.y1,nextBounds.x2,nextBounds.y2)
-        print(currentFrame)
+        print(firstFrame, lastFrame)
 
         print("Successfully callibrated video.")
         
         
-        positionDatabase = render(currentFrame, bounds, nextBounds)
+        positionDatabase = render(firstFrame, lastFrame, bounds, nextBounds)
         print("Num positions: ", len(positionDatabase))
         
         

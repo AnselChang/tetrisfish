@@ -19,8 +19,8 @@ class ButtonHandler:
     def addText(self, ID, text,x,y,width,height,buttonColor,textColor, margin = 0):
         self.buttons.append( TextButton(ID, text, x, y, width, height, buttonColor, textColor, margin) )
 
-    def addImage(self, ID, image, x, y, scale, margin = 0, imagegrey = None):
-        self.buttons.append( ImageButton(ID, image, x, y, scale, margin, imagegrey) )
+    def addImage(self, ID, image, x, y, scale, margin = 0, alt = None, img2 = None, alt2 = None):
+        self.buttons.append( ImageButton(ID, image, x, y, scale, margin, alt = alt, img2 = img2, alt2 = alt2) )
 
     def updatePressed(self, mx, my, click):
         
@@ -90,26 +90,49 @@ class TextButton(Button):
 # Image button stores image as a button, inherits Button
 class ImageButton(Button):
 
-    def __init__(self, ID, image, x, y, scale, margin, imagegrey = None):
+    # default image is img
+    # If mouse hovered, go to img2 (usually darken). If img2 does not exist, then image gets bigger
+    # alt/alt2 are secondary image states
+    def __init__(self, ID, img, x, y, scale, margin, alt = None, img2 = None, alt2 = None):
 
         bscale = 1.14
-        self.image = pygame.transform.scale(image, [image.get_width() * scale, image.get_height() * scale])
-        self.bigimage = pygame.transform.scale(image, [self.image.get_width() * bscale, self.image.get_height() * bscale])
-        self.greyimage = pygame.transform.scale(imagegrey, [imagegrey.get_width() * scale, imagegrey.get_height() * scale])
+        self.img = scaleImage(img, scale)
+        self.bigimage = scaleImage(img, scale * bscale)
 
-        self.dx = self.bigimage.get_width() - self.image.get_width()
-        self.dy = self.bigimage.get_height() - self.image.get_height()
+        if alt != None:
+            self.alt = scaleImage(alt, scale)
+        else:
+            self.alt = None
 
-        self.grey = False
+        if alt2 != None:
+            self.alt2 = scaleImage(alt2, scale)
+        else:
+            self.alt2 = None
+
+        if img2 != None:
+            self.img2 = scaleImage(img2, scale)
+        else:
+            self.img2 = None
+
+        self.dx = self.bigimage.get_width() - self.img.get_width()
+        self.dy = self.bigimage.get_height() - self.img.get_height()
+
+        self.isAlt = False
         
-        super().__init__(ID, x, y, self.image.get_width(), self.image.get_height(), margin)
+        super().__init__(ID, x, y, self.img.get_width(), self.img.get_height(), margin)
 
     def get(self):
 
-        if self.grey:
-            return self.greyimage, [self.x, self.y]
+        if self.isAlt:
+            if self.pressed and self.alt2 != None:
+                return self.alt2, [self.x, self.y]
+            else:
+                return self.alt, [self.x, self.y]
         else:
             if self.pressed:
-                return self.bigimage, [self.x - self.dx / 2, self.y - self.dy / 2]
+                if self.img2 == None:
+                    return self.bigimage, [self.x - self.dx / 2, self.y - self.dy / 2]
+                else:
+                    return self.img2, [self.x, self.y]
             else:
-                return self.image, [self.x, self.y]
+                return self.img, [self.x, self.y]

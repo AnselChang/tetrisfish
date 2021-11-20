@@ -1,13 +1,48 @@
 import pygame, sys
+import math, time
+import cv2
 from TetrisUtility import *
 from PieceMasks import *
 import config as c
 import PygameButton
 from colors import *
-import math
-import cv2
+
 
 PygameButton.init(c.font)
+
+
+C_BACKDROP = "Background"
+C_BOARD = "calliboard"
+C_BOARD2 = "calliboard2"
+C_NEXT = "nextbox"
+C_NEXT2 = "nextbox2"
+C_PLAY = "play"
+C_PLAY2 = "play2"
+C_PAUSE = "pause"
+C_PAUSE2 = "pause2"
+C_PREVF = "prevframe"
+C_PREVF2 = "prevframe2"
+C_NEXTF = "nextframe"
+C_NEXTF2 = "nextframe2"
+C_RENDER = "render"
+C_RENDER2 = "render2"
+C_SLIDER = "slider"
+C_SLIDER2 = "slider2"
+
+C_LVIDEO = "leftvideo"
+C_LVIDEO2 = "leftvideo2"
+C_RVIDEO = "rightvideo"
+C_RVIDEO2 = "rightvideo2"
+
+CALLIBRATION_IMAGES = [C_BACKDROP, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2]
+CALLIBRATION_IMAGES.extend( [C_PREVF, C_PREVF2, C_NEXTF, C_NEXTF2, C_RENDER, C_RENDER2, C_SLIDER, C_SLIDER2] )
+CALLIBRATION_IMAGES.extend([ C_LVIDEO, C_LVIDEO2, C_RVIDEO, C_RVIDEO2 ])
+images = loadImages("Images/Callibration/{}.png", CALLIBRATION_IMAGES)
+
+# Image stuff
+background = pygame.transform.scale(images[C_BACKDROP], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
+ # Hydrant-to-Primer scaling factor
+hydrantScale = background.get_width() / images[C_BACKDROP].get_width()
 
 
 class Bounds:
@@ -176,20 +211,23 @@ class Bounds:
 # Slider object during callibration. Move with mousex
 class Slider:
 
-    def __init__(self,leftx, y, width, height, sliderWidth):
+    def __init__(self,leftx, y, sliderWidth, startValue, img1, img2):
         self.leftx = leftx
-        self.x = self.leftx + (c.COLOR_CALLIBRATION/255) * sliderWidth
+        self.x = self.leftx + startValue * sliderWidth
         self.y = y
-        self.width = width
-        self.height = height
+        self.width = img1.get_width()
+        self.height = img1.get_height()
         self.sliderWidth = sliderWidth
-        self.SH = 10
+        self.img1 = img1
+        self.img2 = img2
 
+        self.SH = 10
         self.active = False
         
     # return float 0-1 indicating position on slider rect
     def tick(self, screen, value, startPress, isPressed, mx, my, animate = False):
-        if startPress and self.isHovering(mx,my):
+        self.hover = self.isHovering(mx,my)
+        if startPress and self.hover:
             self.active = True
             
         if isPressed and self.active:
@@ -209,14 +247,15 @@ class Slider:
         return (self.x - self.leftx) / self.sliderWidth
 
     def isHovering(self,mx,my):
-        return mx >= self.x and mx <= self.x+self.width and my  >= self.y-self.height/2 and my <= self.y+self.height/2
+        return mx >= self.x and mx <= self.x+self.width and my  >= self.y and my <= self.y+self.height
 
     def draw(self,screen):
-        
-        pygame.draw.rect(screen, YELLOW, [self.leftx + self.width/2, self.y-self.SH/2, self.sliderWidth,self.SH])
-        pygame.draw.rect(screen, LIGHT_BLUE, [self.x, self.y-self.height/2, self.width, self.height])
+        if self.hover:
+            screen.blit(self.img2, [self.x, self.y])
+        else:
+            screen.blit(self.img1, [self.x, self.y])
 
-    
+
 # Initiates user-callibrated tetris field. Returns currentFrame, bounds, nextBounds for rendering
 def callibrate():
 
@@ -227,6 +266,7 @@ def callibrate():
 
     print(c.VIDEO_WIDTH, c.VIDEO_HEIGHT)
 
+
     B_CALLIBRATE = 0
     B_NEXTBOX = 1
     B_PLAY = 2
@@ -234,33 +274,42 @@ def callibrate():
     B_RENDER = 4
     B_LEFT = 5
     B_RIGHT = 6
-    B_RESET = 7
 
     buttons = PygameButton.ButtonHandler()
-    buttons.addText(B_CALLIBRATE, "Callibrate Dimensions", c.SCREEN_WIDTH-350, 100, 300, 50, GREEN, WHITE)
-    buttons.addText(B_NEXTBOX, "Callibrate Next box", c.SCREEN_WIDTH-350, 200, 300, 50, GREEN, WHITE)
+    buttons.addImage(B_CALLIBRATE, images[C_BOARD], 776, 109, hydrantScale, img2 = images[C_BOARD2])
+    buttons.addImage(B_NEXTBOX, images[C_NEXT], 776, 217, hydrantScale, img2 = images[C_NEXT2])
     
-    buttons.addText(B_PLAY, "Play", c.SCREEN_WIDTH-350, 300, 140, 50, GREEN, WHITE)
-    buttons.addText(B_RESET, "Reset", c.SCREEN_WIDTH-180, 300, 140, 50, LIGHT_RED, WHITE)
+    buttons.addImage(B_PLAY, images[C_PLAY], 48,655, hydrantScale, img2 = images[C_PLAY2], alt = images[C_PAUSE], alt2 = images[C_PAUSE2])
+
+    buttons.addImage(B_LEFT, images[C_PREVF], 15, 655, hydrantScale, img2 = images[C_PREVF2])
+    buttons.addImage(B_RIGHT, images[C_NEXTF], 73, 655, hydrantScale, img2 = images[C_NEXTF2])
     
-    buttons.addText(B_LEFT, "Previous", c.SCREEN_WIDTH-350, 400, 140, 50, ORANGE, WHITE)
-    buttons.addText(B_RIGHT, "Next", c.SCREEN_WIDTH-180, 400, 140, 50, ORANGE, WHITE)
-    
-    buttons.addText(B_RENDER, "Render", c.SCREEN_WIDTH-350, 500, 300, 50, LIGHT_BLUE, WHITE)
+    buttons.addImage(B_RENDER, images[C_RENDER], 776, 577, hydrantScale, img2 = images[C_RENDER2])
+
     
     # Slider stuff
-    SW = 270
-    RX = c.SCREEN_WIDTH - 335
-    RY = 80
-    RWIDTH = 15
-    RHEIGHT = 30
+    SW = 320 # slider width
+    LEFT_X = 770
+    SLIDER_SCALE = 0.47
+    sliderImage = scaleImage(images[C_SLIDER], SLIDER_SCALE)
+    sliderImage2 = scaleImage(images[C_SLIDER2], SLIDER_SCALE)
     
-    colorSlider = Slider(RX-RWIDTH/2,RY-RHEIGHT/2,RWIDTH,RHEIGHT, SW)
-    videoSlider = Slider(320,27,RWIDTH,RHEIGHT,200)
-    zoomSlider = Slider(550, 27, RWIDTH, RHEIGHT, 200)
+    colorSlider = Slider(LEFT_X, 345, SW, c.COLOR_CALLIBRATION/255, sliderImage, sliderImage2)
+    zoomSlider = Slider(LEFT_X, 465, SW, c.SCALAR, sliderImage, sliderImage2)
 
-    prevSliderFrame = 0
-    currentSliderFrame = 0
+    SW2 = 608
+    LEFT_X2 = 110
+    leftVideoSlider = Slider(LEFT_X2,655, SW2, 0, scaleImage(images[C_LVIDEO],hydrantScale), scaleImage(images[C_LVIDEO2],hydrantScale))
+    rightVideoSlider = Slider(LEFT_X2,655, SW2, 1, scaleImage(images[C_RVIDEO],hydrantScale), scaleImage(images[C_RVIDEO2],hydrantScale))
+
+    vidFrame = [0]*2
+    LEFT_FRAME = 0
+    RIGHT_FRAME = 1
+    vidFrame[LEFT_FRAME] = 0
+    vidFrame[RIGHT_FRAME] = totalFrames - 1
+    currentEnd = LEFT_FRAME
+
+    previousFrame = -1
 
     bounds = None
     nextBounds = None
@@ -269,21 +318,18 @@ def callibrate():
     minosNext = None # 2d array for lookahead. 8x4
 
     # seconds to display render error message
-    ERROR_TIME = 3
+    ERROR_TIME = 2
 
     # for detecting press and release of mouse
     isPressed = False
     wasPressed = False
 
-    isPlay = False
-
-    allVideoFrames = []
-    frameCount = 0
-
     errorMsg = None
     
     # Get new frame from opencv
-    frame, frameCount = c.goToFrame(vcap, 0)
+    frame = c.goToFrame(vcap, 0)[0]
+
+    b = buttons.get(B_PLAY)
     
     while True:
 
@@ -294,45 +340,24 @@ def callibrate():
         startPress = isPressed and not wasPressed
         buttons.updatePressed(mx,my,click)
 
-        # Get new frame from opencv
 
-        if buttons.get(B_RESET).clicked:
-            b = buttons.get(B_PLAY)
+        if buttons.get(B_PLAY).clicked:
             
-            b.text = "Play"
-            b.buttonColor = BRIGHT_GREEN
-            isPlay = False
-            frame, frameCount = c.goToFrame(vcap, 0)
+            b.isAlt = not b.isAlt
 
-        elif buttons.get(B_PLAY).clicked:
-                
-            b = buttons.get(B_PLAY)
-
-            if isPlay:
-                b.text = "Play"
-                b.buttonColor = GREEN
-            else:
-                b.text = "Pause"
-                b.buttonColor = RED
-                
-            isPlay = not isPlay
+        if b.isAlt or buttons.get(B_RIGHT).clicked and vidFrame[currentEnd] < totalFrames - 1:
             
-
-        if isPlay or buttons.get(B_RIGHT).clicked:
-            
-            frame, frameCount = c.goToFrame(vcap, frameCount + 1)
+            frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] + 1)
                 
-        elif buttons.get(B_LEFT).clicked and frameCount > 0:
+        elif buttons.get(B_LEFT).clicked and vidFrame[currentEnd] > 0:
             # load previous frame
-            frame, frameCount = c.goToFrame(vcap, frameCount - 1)
+            frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] - 1)
          
 
-        c.screen.fill(BACKGROUND)
-        c.realscreen.fill(BACKGROUND)
+        c.realscreen.fill([38,38,38])
 
-        # draw title
-        text = c.fontbig.render("Step 1: Callibration", False, BLACK)
-        c.screen.blit(text, (10,10))
+        # draw backgound
+        c.screen.blit(background,[0,0])
             
         surf = c.displayTetrisImage(frame)
         
@@ -349,7 +374,7 @@ def callibrate():
         elif buttons.get(B_RENDER).clicked:
 
             # If not callibrated, do not allow render
-            if bounds == None or nextBounds == None or getNextBox(minosNext) == None :
+            if bounds == None or nextBounds == None or getNextBox(minosNext) == None:
                 errorMsg = time.time()  # display error message by logging time to display for 3 seconds
             
             else:
@@ -361,7 +386,7 @@ def callibrate():
                 vcap.release()
 
                 # Exit callibration, initiate rendering with returned parameters
-                return frameCount, bounds, nextBounds
+                return vidFrame[LEFT_FRAME], vidFrame[RIGHT_FRAME], bounds, nextBounds
 
         elif click:
             if bounds != None:
@@ -379,26 +404,35 @@ def callibrate():
             minosNext = nextBounds.displayBounds(c.screen, nparray = frame)
 
         # Draw buttons
-        pygame.draw.rect(c.screen,BACKGROUND,[c.SCREEN_WIDTH-375,0,375,c.SCREEN_HEIGHT])
         buttons.display(c.screen)
 
         # Draw sliders
-        text = c.font.render("Color Detection", False, BLACK)
-        c.screen.blit(text, [c.SCREEN_WIDTH - 270, 15])
         c.COLOR_CALLIBRATION = 150*colorSlider.tick(c.screen, c.COLOR_CALLIBRATION/150, startPress, isPressed, mx, my)
-        
-        currentSliderFrame = videoSlider.tick(c.screen, frameCount / totalFrames, startPress, isPressed, mx, my,True)
-        if prevSliderFrame != currentSliderFrame and videoSlider.isHovering(mx,my):
-            frame, frameCount = c.goToFrame(vcap, int(currentSliderFrame * totalFrames))
-        prevSliderFrame = currentSliderFrame
-        
         c.SCALAR = zoomSlider.tick(c.screen, c.SCALAR, startPress, isPressed, mx, my)
+        
+        # Draw video bounds sliders
+        vidFrame[RIGHT_FRAME] = rightVideoSlider.tick(c.screen, vidFrame[RIGHT_FRAME] / (totalFrames-1), startPress, isPressed, mx, my,True)
+        vidFrame[RIGHT_FRAME] = clamp(int(vidFrame[RIGHT_FRAME] * totalFrames),0,totalFrames)
+        
+        vidFrame[LEFT_FRAME]= leftVideoSlider.tick(c.screen, vidFrame[LEFT_FRAME] / (totalFrames-1), startPress and not rightVideoSlider.active, isPressed, mx, my,True)
+        vidFrame[LEFT_FRAME] = clamp(int(vidFrame[LEFT_FRAME] * totalFrames),0,totalFrames)
+        
+        # Update frame from video sliders
+        if rightVideoSlider.active:
+            currentEnd = RIGHT_FRAME
+        elif leftVideoSlider.active:
+            currentEnd = LEFT_FRAME
+            
+        frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
+
+        print(vidFrame)
+        
 
         # Draw error message
         if errorMsg != None:
             if time.time() - errorMsg < ERROR_TIME:
-                text = font2.render("You must finish callibrating and go to the first frame to be rendered.", False, RED)
-                c.screen.blit(text, [c.SCREEN_WIDTH - 440, 560] )
+                text = c.font2.render("You must finish callibrating and go to the first frame to be rendered.", True, RED)
+                c.screen.blit(text, [c.SCREEN_WIDTH - 400, 560] )
             else:
                 errorMsg = None
 

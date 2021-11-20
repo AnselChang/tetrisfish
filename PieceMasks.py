@@ -219,8 +219,6 @@ LEFTARROW_MAX = "leftarrowfast"
 RIGHTARROW_MAX = "rightarrowfast"
 LEFTARROW2_MAX = "leftarrowfastgrey"
 RIGHTARROW2_MAX = "rightarrowfastgrey"
-
-
 PANEL = "panel"
 
 # Mino colors

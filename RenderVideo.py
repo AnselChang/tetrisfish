@@ -165,7 +165,7 @@ def parseBoard(isFirst, positionDatabase, count, prevCount, prevMinosMain, minos
 
 
 # Update: render everything through numpy (no conversion to lists at all)
-def render(firstFrame, bounds, nextBounds):
+def render(firstFrame, lastFrame, bounds, nextBounds):
     print("Beginning render...")
 
     vcap = c.getVideo()
@@ -193,7 +193,7 @@ def render(firstFrame, bounds, nextBounds):
 
     first = True
 
-    while True:
+    while frameCount  <= lastFrame:
 
         # read frame sequentially
         ret, frame = vcap.read()
