@@ -32,6 +32,7 @@ SCREEN_HEIGHT = SCREEN_WIDTH * 2856 / 4806
 # https://stackoverflow.com/questions/34910086/pygame-how-do-i-resize-a-surface-and-keep-all-objects-within-proportionate-to-t
 realscreen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.HWSURFACE |  pygame.DOUBLEBUF |  pygame.RESIZABLE)
 screen = realscreen.copy()
+pygame.display.set_caption('TETRISFISH by Ansel, powered by StackRabbit')
 
 # Get timestamp at frame
 def timestamp(frame):

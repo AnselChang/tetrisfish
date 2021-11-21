@@ -33,10 +33,15 @@ C_LVIDEO = "leftvideo"
 C_LVIDEO2 = "leftvideo2"
 C_RVIDEO = "rightvideo"
 C_RVIDEO2 = "rightvideo2"
+C_LVIDEORED = "leftvideored"
+C_LVIDEORED2 = "leftvideored2"
+C_RVIDEORED = "rightvideored"
+C_RVIDEORED2 = "rightvideored2"
 
 CALLIBRATION_IMAGES = [C_BACKDROP, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2]
 CALLIBRATION_IMAGES.extend( [C_PREVF, C_PREVF2, C_NEXTF, C_NEXTF2, C_RENDER, C_RENDER2, C_SLIDER, C_SLIDER2] )
 CALLIBRATION_IMAGES.extend([ C_LVIDEO, C_LVIDEO2, C_RVIDEO, C_RVIDEO2 ])
+CALLIBRATION_IMAGES.extend([ C_LVIDEORED, C_LVIDEORED2, C_RVIDEORED, C_RVIDEORED2 ])
 images = loadImages("Images/Callibration/{}.png", CALLIBRATION_IMAGES)
 
 # Image stuff
@@ -211,18 +216,31 @@ class Bounds:
 # Slider object during callibration. Move with mousex
 class Slider:
 
-    def __init__(self,leftx, y, sliderWidth, startValue, img1, img2):
+    def __init__(self,leftx, y, sliderWidth, startValue, img1, img2, imgr1 = None, imgr2 = None):
         self.leftx = leftx
         self.x = self.leftx + startValue * sliderWidth
         self.y = y
-        self.width = img1.get_width()
-        self.height = img1.get_height()
         self.sliderWidth = sliderWidth
         self.img1 = img1
         self.img2 = img2
+        self.imgr1 = imgr1
+        self.imgr2 = imgr2
 
         self.SH = 10
         self.active = False
+
+        self.alternate = False
+
+        if self.imgr1 != None:
+            self.width = self.imgr1.get_width()
+            self.height = self.imgr1.get_height()
+        else:
+            self.width = self.img1.get_width()
+            self.height = self.img1.get_height()
+
+    def setAlt(self, boolean):
+        self.alternate = boolean
+
         
     # return float 0-1 indicating position on slider rect
     def tick(self, screen, value, startPress, isPressed, mx, my, animate = False):
@@ -251,9 +269,15 @@ class Slider:
 
     def draw(self,screen):
         if self.hover:
-            screen.blit(self.img2, [self.x, self.y])
+            if self.alternate:
+                screen.blit(self.imgr2, [self.x, self.y])
+            else:
+                screen.blit(self.img2, [self.x, self.y])
         else:
-            screen.blit(self.img1, [self.x, self.y])
+            if self.alternate:
+                screen.blit(self.imgr1, [self.x, self.y])
+            else:
+                screen.blit(self.img1, [self.x, self.y])
 
 
 # Initiates user-callibrated tetris field. Returns currentFrame, bounds, nextBounds for rendering
@@ -301,8 +325,10 @@ def callibrate():
 
     SW2 = 608
     LEFT_X2 = 110
-    leftVideoSlider = Slider(LEFT_X2,655, SW2, 0, scaleImage(images[C_LVIDEO],hydrantScale), scaleImage(images[C_LVIDEO2],hydrantScale))
-    rightVideoSlider = Slider(LEFT_X2,655, SW2, 1, scaleImage(images[C_RVIDEO],hydrantScale), scaleImage(images[C_RVIDEO2],hydrantScale))
+    leftVideoSlider = Slider(LEFT_X2,655, SW2, 0, scaleImage(images[C_LVIDEO],hydrantScale), scaleImage(images[C_LVIDEO2],hydrantScale),
+                                                                                                        scaleImage(images[C_LVIDEORED], hydrantScale), scaleImage(images[C_LVIDEORED2], hydrantScale) )
+    rightVideoSlider = Slider(LEFT_X2,655, SW2, 1, scaleImage(images[C_RVIDEO],hydrantScale), scaleImage(images[C_RVIDEO2],hydrantScale),
+                              scaleImage(images[C_RVIDEORED], hydrantScale), scaleImage(images[C_RVIDEORED2], hydrantScale) )
 
     vidFrame = [0]*2
     LEFT_FRAME = 0
@@ -421,9 +447,13 @@ def callibrate():
         
         # Update frame from video sliders
         if rightVideoSlider.active:
+            rightVideoSlider.setAlt(True)
+            leftVideoSlider.setAlt(False)
             currentEnd = RIGHT_FRAME
         elif leftVideoSlider.active:
             currentEnd = LEFT_FRAME
+            rightVideoSlider.setAlt(False)
+            leftVideoSlider.setAlt(True)
             
         frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
 

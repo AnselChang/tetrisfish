@@ -16,7 +16,7 @@ import config as c
 import easygui
 
         
-testing = False
+testing = True
 def main():
 
     if testing:

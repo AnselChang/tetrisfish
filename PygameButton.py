@@ -58,8 +58,13 @@ class Button(ABC):
 
     # mouse (mx,my), click is true if mouse released on that frame
     def updatePressed(self, mx, my, click):
-        self.pressed = ( mx - self.margin > self.x and mx + self.margin < self.x+self.width and my - self.margin> self.y and my + self.margin < self.y+self.height )
+        if HT.at(mx,my) == self.ID:
+            self.pressed = ( mx - self.margin > self.x and mx + self.margin < self.x+self.width and my - self.margin> self.y and my + self.margin < self.y+self.height )
+        else:
+            self.pressed = False
+
         self.clicked = self.pressed and click
+            
 
     @abstractmethod
     def get(self):

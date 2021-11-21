@@ -133,12 +133,12 @@ def analyze(positionDatabase):
         #HT.log()
         #print(HT.at(mx,my),mx,my)
         HT.reset()
-        
-        # Tetris board
-        analysisBoard.draw(c.screen)
 
         # Buttons
         buttons.display(c.screen)
+        
+        # Tetris board
+        analysisBoard.draw(c.screen)
 
         # Eval bar
         HT.blit("eval", evalBar.drawEval(), [20,20])
