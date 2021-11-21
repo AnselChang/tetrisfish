@@ -31,6 +31,9 @@ def clamp(n,smallest,largest):
 def empty(rows = 20, cols = 10):
     return np.array([[0 for _ in range(cols)] for _ in range(rows)])
 
+def isEmpty(arr):
+    return not np.any(arr)
+
 # if in range of tetris board
 def rang(r,c1, rmax = 20, cmax = 10):
     return r >= 0 and r < rmax and c1 >= 0 and c1 < cmax

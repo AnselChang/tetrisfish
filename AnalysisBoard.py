@@ -125,10 +125,7 @@ class PieceBoard:
         self.IMAGE_SCALE = 0.85
 
 
-    # To be called before any function is run
-    def updatePiece(self, piece):
-
-        self.piece = piece
+    def updatePieceOffset(self,piece):
 
         # Shift half-mino to the left for 3-wide pieces to fit into nextbox
         offset = MINO_SIZE + MINO_OFFSET
@@ -136,6 +133,13 @@ class PieceBoard:
         yoffset = offset/2 if piece == I_PIECE else 0
         self.xPieceOffset = 30 + xoffset
         self.yPieceOffset = 25 + yoffset
+
+    # To be called before any function is run
+    def updatePiece(self, piece):
+
+        self.piece = piece
+
+        self.updatePieceOffset(piece)
 
         self.hover = False
         self.showPanel = False
@@ -148,6 +152,9 @@ class PieceBoard:
 
     # Update box hover given mouse coords
     def updateBoard(self, mx, my, click):
+
+        returnValue  = None
+        
         x1 = self.offsetx + 5
         y1 = self.offsety + 6
 
@@ -182,12 +189,14 @@ class PieceBoard:
             self.panelPercent += math.sqrt(max(0,(1 - self.panelPercent) * amount))
 
             # Update panel hover
-            self.updatePanelHover(mx, my)
+            returnValue = self.updatePanelHover(mx, my, click)
             
         else:
             self.panelPercent -= math.sqrt(max(0,self.panelPercent * amount))
 
-    def updatePanelHover(self, mx, my):
+        return returnValue
+
+    def updatePanelHover(self, mx, my, click):
         x = mx - self.offsetx - 30
         y = my - self.offsety - self.image.get_height()*self.IMAGE_SCALE - 27
         width = 125
@@ -215,6 +224,16 @@ class PieceBoard:
 
         self.prevPanelR = row
         self.prevPanelC = col
+
+        # New piece from dropdown selected.
+        if click and not isEmpty(self.panelHover) and panelArray[row][col] != self.piece:
+            print("new piece from dropdown selected")
+            self.piece = panelArray[row][col]
+            self.showPanel = False
+            self.updatePieceOffset(self.piece)
+            return self.piece
+        else:
+            return None
 
 
     # Blit surface from current/next box to screen
@@ -309,6 +328,12 @@ class AnalysisBoard:
             self.hoverNum  += 1
             self.hover = self.placements[self.hoverNum % len(self.placements)]
 
+    # Create a duplicate version of the original position, so that the new version is modifiable (to retain original position data)
+    def startHypothetical(self):
+        print("new hypothetical")
+        self.position.next = Position(self.position.board.copy(), self.position.currentPiece, self.position.nextPiece)
+        self.position.next.prev = self.position
+        self.position = self.position.next
 
     def placeSelectedPiece(self):
         # assert hover piece is not empty
@@ -317,10 +342,8 @@ class AnalysisBoard:
          # if this is the original position, create an "intermediate" second position that stores the hypothetical placement
         # and not overwrite the original position's placement
         if self.position.prev == None:
-            print("new")
-            self.position.next = Position(self.position.board.copy(), self.position.currentPiece, self.position.nextPiece)
-            self.position.next.prev = self.position
-            self.position = self.position.next
+            self.startHypothetical()
+            self.isAdjustCurrent = False
 
         # Store the current "hypothetical" placement into the position
         self.position.placement = self.hover.copy()
@@ -348,8 +371,25 @@ class AnalysisBoard:
         
         # Update mouse events for current and next boxes
        # self.currentBox.updateBoard(mx, my, click)
-        self.nextBox.updateBoard(mx, my, click)
-    
+        # new Piece is a piece if the next box was changed this frame, or None otherwise
+        newPiece = self.nextBox.updateBoard(mx, my, click)
+
+        if newPiece != None:
+            print("updating new piece")
+            
+            if self.position.prev == None:
+                self.startHypothetical()
+                self.position.placement = self.position.prev.placement
+
+            # Update nextbox
+            self.position.nextPiece = newPiece
+
+            # If there were saved hypothetical positions afterwards, delete these as they are now outdated
+            self.position.next = None
+
+            
+            
+        
         x1 = 100
         y1 = 28
         width = 320
