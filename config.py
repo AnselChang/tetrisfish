@@ -6,9 +6,9 @@ from TetrisUtility import scaleImage
 
 pygame.init()
 pygame.font.init()
-font = pygame.font.SysFont('Comic Sans MS', 30)
-font2 = pygame.font.SysFont('Comic Sans MS', 18)
-fontbig = pygame.font.SysFont('Comic Sans MS', 45)
+font = pygame.font.SysFont('Comic Sans MS', 60)
+font2 = pygame.font.SysFont('Comic Sans MS', 36)
+fontbig = pygame.font.SysFont('Comic Sans MS', 90)
 
 filename = None
 fps = 30
@@ -25,13 +25,23 @@ SCALAR = 1
 COLOR_CALLIBRATION = 30
 
 info = pygame.display.Info()
-SCREEN_WIDTH = info.current_w*0.8
-SCREEN_HEIGHT = SCREEN_WIDTH * 2856 / 4806 
+REAL_WIDTH = info.current_w*0.8
+REAL_HEIGHT = REAL_WIDTH * 2856 / 4806
+# scaled width and height, arbitrary values that maintain aspect ratio and are high enough to have decent resolution
+#SCREEN_WIDTH = 4806
+#SCREEN_HEIGHT = 2856
+SCREEN_WIDTH = 1280*2
+SCREEN_HEIGHT = 720*2
+
+print(SCREEN_WIDTH, SCREEN_HEIGHT)
+print("Scaled is ", REAL_WIDTH / SCREEN_WIDTH, " times actual")
 
 # Global screen surface variables
 # https://stackoverflow.com/questions/34910086/pygame-how-do-i-resize-a-surface-and-keep-all-objects-within-proportionate-to-t
-realscreen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.HWSURFACE |  pygame.DOUBLEBUF |  pygame.RESIZABLE)
-screen = realscreen.copy()
+realscreen = pygame.display.set_mode((REAL_WIDTH, REAL_HEIGHT), pygame.HWSURFACE |  pygame.DOUBLEBUF |  pygame.RESIZABLE)
+#screen = realscreen.copy()
+#screen = pygame.Surface([1152, 685])
+screen = pygame.Surface([SCREEN_WIDTH, SCREEN_HEIGHT])
 pygame.display.set_caption('TETRISFISH by Ansel, powered by StackRabbit')
 
 # Get timestamp at frame
@@ -45,7 +55,8 @@ def handleWindowResize():
     # Resize window, keep aspect ratio
     rs = realscreen.get_rect()
     ratio = (screen.get_rect().h / screen.get_rect().w)
-    realscreen.blit(pygame.transform.scale(screen, [rs.w, rs.w * ratio]), (0, 0))
+    realscreen.blit(pygame.transform.smoothscale(screen, [rs.w, rs.w * ratio]), (0, 0))
+    #realscreen.blit(screen, [0,0])
 
  # Open video from opencv
 def getVideo():

@@ -45,10 +45,11 @@ CALLIBRATION_IMAGES.extend([ C_LVIDEORED, C_LVIDEORED2, C_RVIDEORED, C_RVIDEORED
 images = loadImages("Images/Callibration/{}.png", CALLIBRATION_IMAGES)
 
 # Image stuff
+#background = images[C_BACKDROP]
 background = pygame.transform.scale(images[C_BACKDROP], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
  # Hydrant-to-Primer scaling factor
 hydrantScale = background.get_width() / images[C_BACKDROP].get_width()
-
+#hydrantScale = 1
 
 class Bounds:
 
@@ -361,6 +362,14 @@ def callibrate():
     
     while True:
 
+        c.realscreen.fill([38,38,38])
+
+        # draw backgound
+        c.screen.blit(background,[0,0])
+        #c.screen.blit(pygame.transform.smoothscale(background,[c.SCREEN_WIDTH, c.SCREEN_HEIGHT]), [0,0])
+        
+        surf = c.displayTetrisImage(frame)
+
         # get mouse position
         mx,my =c.getScaledPos(*pygame.mouse.get_pos())
         isPressed =  pygame.mouse.get_pressed()[0]
@@ -380,14 +389,7 @@ def callibrate():
         elif buttons.get(B_LEFT).clicked and vidFrame[currentEnd] > 0:
             # load previous frame
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] - 1)
-         
 
-        c.realscreen.fill([38,38,38])
-
-        # draw backgound
-        c.screen.blit(background,[0,0])
-            
-        surf = c.displayTetrisImage(frame)
         
         if buttons.get(B_CALLIBRATE).clicked:
             bounds = Bounds(False,c.VIDEO_X,c.VIDEO_Y, c.VIDEO_X+surf.get_width(), c.VIDEO_Y+surf.get_height())
@@ -457,7 +459,6 @@ def callibrate():
             
         frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
 
-        print(vidFrame)
 
         # Draw timestamp
         text = c.fontbig.render(c.timestamp(vidFrame[currentEnd]), True, WHITE)

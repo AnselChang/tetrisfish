@@ -8,8 +8,8 @@ import math
 import HitboxTracker as HT
 from Position import Position
 
-MINO_SIZE = 28
-MINO_OFFSET = 4 # Pixel offset between each mino
+MINO_SIZE = 56
+MINO_OFFSET = 8 # Pixel offset between each mino
 PANEL_MINO_SCALE = 0.5
 
 images = None
@@ -61,7 +61,7 @@ def drawGeneralBoard(board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MARGIN, hov
 
     b_width = image.get_width() * B_SCALE
     b_height = image.get_height() * B_SCALE*hscale
-    b = pygame.transform.scale(image, [b_width , b_height])
+    b = pygame.transform.smoothscale(image, [b_width , b_height])
     
     surf = pygame.Surface([b_width,int(b_height*percent)])
     
@@ -122,7 +122,7 @@ class PieceBoard:
         self.offsety = offsety
         self.image = image
 
-        self.IMAGE_SCALE = 0.85
+        self.IMAGE_SCALE = 1.7
 
 
     def updatePieceOffset(self,piece):
@@ -131,8 +131,8 @@ class PieceBoard:
         offset = MINO_SIZE + MINO_OFFSET
         xoffset = 0 if (piece == O_PIECE or piece == I_PIECE) else (0 - offset/2)
         yoffset = offset/2 if piece == I_PIECE else 0
-        self.xPieceOffset = 30 + xoffset
-        self.yPieceOffset = 25 + yoffset
+        self.xPieceOffset = 60 + xoffset
+        self.yPieceOffset = 50 + yoffset
 
     # To be called before any function is run
     def updatePiece(self, piece):
@@ -154,17 +154,19 @@ class PieceBoard:
     def updateBoard(self, mx, my, click):
 
         returnValue  = None
+
         
-        x1 = self.offsetx + 5
-        y1 = self.offsety + 6
+        x1 = self.offsetx + 0
+        y1 = self.offsety + 63
 
         x = mx - x1 - self.xPieceOffset
         y = my - y1 - self.yPieceOffset
-        length = 120
+
+        length = 250
         
         col = int( x / length * 4)
-        row = int( y / length * 4)
-        if (row < 0 or row > 3 or col < 0 or col > 3):
+        row = int( y / length * 4+1)
+        if (row < 1 or row > 2 or col < 0 or col > 3):
             row = 0
             col = 0
 
@@ -182,7 +184,7 @@ class PieceBoard:
             self.panelHover = EMPTY_PANEL
             
 
-        amount = 0.005
+        amount = 0.02
 
         # Update panel animation
         if self.showPanel:
@@ -197,10 +199,10 @@ class PieceBoard:
         return returnValue
 
     def updatePanelHover(self, mx, my, click):
-        x = mx - self.offsetx - 30
-        y = my - self.offsety - self.image.get_height()*self.IMAGE_SCALE - 27
-        width = 125
-        height = 155
+        x = mx - self.offsetx - 58
+        y = my - self.offsety - self.image.get_height()*self.IMAGE_SCALE - 53
+        width = 248
+        height = 319
 
         # Weird thing because int(-0.1) = 0, when we want < 0
         if y/height < 0 or x/height < 0:
@@ -237,7 +239,7 @@ class PieceBoard:
 
 
     # Blit surface from current/next box to screen
-    def blit(self, screen):
+    def blit(self):
 
         minos = colorMinos(TETRONIMO_SHAPES[self.piece][0][1:], self.piece)
         board = drawGeneralBoard(minos, self.image, self.IMAGE_SCALE, 1, self.xPieceOffset, self.yPieceOffset, hover = self.hover)
@@ -246,24 +248,25 @@ class PieceBoard:
         if self.panelPercent > 0.01:
 
             # Draw pieces onto panel
-            surf = drawGeneralBoard(panelColors,images[PANEL], self.IMAGE_SCALE, 1, 28, 11, small = True, percent = self.panelPercent, hover = self.panelHover)
+            surf = drawGeneralBoard(panelColors,images[PANEL], self.IMAGE_SCALE, 1, 56, 22, small = True, percent = self.panelPercent, hover = self.panelHover)
 
             # Blit panel onto screen
             HT.blit("panel", surf, [self.offsetx,self.offsety + self.image.get_height()*self.IMAGE_SCALE - 2])
 
 
+# ---------------------------------------------------------
 
 class AnalysisBoard:
 
     def __init__(self, positionDatabase):
 
-        self.x = 80
-        self.y = 6
-        self.xoffset = 22
-        self.yoffset = -6
+        self.x = 160
+        self.y = 20
+        self.xoffset = 45
+        self.yoffset = -12
 
         #self.currentBox = PieceBoard(CURRENT, images[CURRENT], 445, 14)
-        self.nextBox = PieceBoard(NEXT, images[NEXT], 445, 14) # originally y = 170
+        self.nextBox = PieceBoard(NEXT, images[NEXT], 890, 25) # originally y = 170
 
         self.positionDatabase = positionDatabase
         self.positionNum = 0 # the index of the position in the rendered positionDatabase
@@ -387,13 +390,11 @@ class AnalysisBoard:
             # If there were saved hypothetical positions afterwards, delete these as they are now outdated
             self.position.next = None
 
-            
-            
-        
-        x1 = 100
-        y1 = 28
-        width = 320
-        height = 642
+                    
+        x1 = 198
+        y1 = 62
+        width = 842-x1
+        height = 1355-y1
 
         # Calculate row and col where mouse is hovering. Truncate to nearest cell
         if mx >= x1 and mx < x1 + width and my >= y1 and my <= y1 + height:
@@ -541,7 +542,7 @@ class AnalysisBoard:
         
     
     # Draw tetris board to screen
-    def draw(self, screen):
+    def draw(self):
 
         curr = self.position.currentPiece
 
@@ -561,9 +562,8 @@ class AnalysisBoard:
         else:
             board += placement
         
-        surf = drawGeneralBoard(board, images[BOARD], 0.647, 0.995, self.xoffset, self.yoffset, hover = self.hover)
+        surf = drawGeneralBoard(board, images[BOARD], 1.294, 0.995, self.xoffset, self.yoffset, hover = self.hover)
         HT.blit("tetris", surf ,[self.x,self.y])
 
-        self.nextBox.blit(screen)
-        #self.currentBox.blit(screen)
+        self.nextBox.blit()
         

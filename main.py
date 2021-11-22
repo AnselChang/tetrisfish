@@ -11,10 +11,6 @@ from Callibration import callibrate
 from RenderVideo import render
 from Analysis import analyze
 
-import config as c
-
-import easygui
-
         
 testing = True
 def main():
@@ -89,19 +85,32 @@ def main():
         ])
 
         from Position import Position
+        import config
         
         positionDatabase = [Position(testboard, S_PIECE, S_PIECE, placement = testplacement, evaluation = 0.2)]
         positionDatabase.append(Position(testboard+testplacement, I_PIECE, L_PIECE, placement = testplacement2, evaluation = 0.7))
 
     else:
-        while True:
-            c.filename = input("Enter a full filepath for the video: ").strip()
-            if os.path.isfile(c.filename):
-                break
-            else:
-                print("Invalid filepath.")
+
+        # Testing, set to false if want to use same hardcoded filepath
+        askFilePath = False
+        filename = "/Users/anselchang/Downloads/ruinspb.mp4"
+
+        if askFilePath:
+        
+            while True:
+                filename = input("Enter a full filepath for the video: ").strip()
+                if os.path.isfile(filename):
+                    break
+                else:
+                    print("Invalid filepath.")
                 
-        print(c.filename)
+        print(filename)
+
+        # Start pygame window and set filename
+        import config as c
+        c.filename = filename
+        
         output = callibrate()
         
         if output == None:

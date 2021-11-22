@@ -24,8 +24,8 @@ class EvalBar:
     def drawEval(self):
 
         
-        width = 50
-        height = 660
+        width = 100
+        height = 1365
         surf = pygame.Surface([width, height])
         surf.fill(DARK_GREY)
         
@@ -57,15 +57,15 @@ def analyze(positionDatabase):
     
     buttons = PygameButton.ButtonHandler()
     # Position buttons
-    buttons.addImage(B_LEFT, images[LEFTARROW], 500, 500, 0.2, margin = 5, alt = images[LEFTARROW2])
-    buttons.addImage(B_RIGHT, images[RIGHTARROW], 600, 500, 0.2, margin = 5, alt = images[RIGHTARROW2])
+    buttons.addImage(B_LEFT, images[LEFTARROW], 1000, 1000, 0.4, margin = 5, alt = images[LEFTARROW2])
+    buttons.addImage(B_RIGHT, images[RIGHTARROW], 1200, 1000, 0.4, margin = 5, alt = images[RIGHTARROW2])
 
-    x = 450
-    y = 174
-    buttons.addImage(B_HYP_MAXLEFT, images[LEFTARROW_MAX], x, y, 0.08, margin = 0, alt = images[LEFTARROW2_MAX])
-    buttons.addImage(B_HYP_LEFT, images[LEFTARROW], x+50, y, 0.08, margin = 0, alt = images[LEFTARROW2])
-    buttons.addImage(B_HYP_RIGHT, images[RIGHTARROW], x+90, y, 0.08, margin = 0, alt = images[RIGHTARROW2])
-    buttons.addImage(B_HYP_MAXRIGHT, images[RIGHTARROW_MAX], x+130, y, 0.08, margin = 0, alt = images[RIGHTARROW2_MAX])
+    x = 910
+    y = 360
+    buttons.addImage(B_HYP_MAXLEFT, images[LEFTARROW_MAX], x, y, 0.16, margin = 0, alt = images[LEFTARROW2_MAX])
+    buttons.addImage(B_HYP_LEFT, images[LEFTARROW], x+100, y, 0.16, margin = 0, alt = images[LEFTARROW2])
+    buttons.addImage(B_HYP_RIGHT, images[RIGHTARROW], x+180, y, 0.16, margin = 0, alt = images[RIGHTARROW2])
+    buttons.addImage(B_HYP_MAXRIGHT, images[RIGHTARROW_MAX], x+260, y, 0.16, margin = 0, alt = images[RIGHTARROW2_MAX])
     
 
     positionNum = 0
@@ -138,14 +138,14 @@ def analyze(positionDatabase):
         buttons.display(c.screen)
         
         # Tetris board
-        analysisBoard.draw(c.screen)
+        analysisBoard.draw()
 
         # Eval bar
         HT.blit("eval", evalBar.drawEval(), [20,20])
 
         # Text for position number
-        text = c.font.render("Position: {}".format(analysisBoard.positionNum + 1), False, BLACK)
-        c.screen.blit(text, [600,600])
+        text = c.fontbig.render("Position: {}".format(analysisBoard.positionNum + 1), False, BLACK)
+        c.screen.blit(text, [1200,1200])
 
         # Draw timestamp
         frameNum = analysisBoard.positionDatabase[analysisBoard.positionNum].frame
