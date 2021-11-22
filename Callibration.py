@@ -46,7 +46,7 @@ images = loadImages("Images/Callibration/{}.png", CALLIBRATION_IMAGES)
 
 # Image stuff
 #background = images[C_BACKDROP]
-background = pygame.transform.scale(images[C_BACKDROP], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
+background = pygame.transform.smoothscale(images[C_BACKDROP], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
  # Hydrant-to-Primer scaling factor
 hydrantScale = background.get_width() / images[C_BACKDROP].get_width()
 #hydrantScale = 1
@@ -62,6 +62,8 @@ class Bounds:
         self.y2 = y2
         self.callibration = 1 # 1 = setting top-left point, 2 = setting bottom-right point, 0 = already set
         self.r = 2 if isNextBox else 4
+
+        self.notSet = True
 
         self.xrlist = None
         self.yrlist = None
@@ -93,7 +95,15 @@ class Bounds:
         # initialize lookup tables for bounds
         self.updateConversions()
 
-    def updateMouse(self,mx,my):
+    def mouseOutOfBounds(self, mx, my):
+        return mx < 0 or mx > c.X_MAX or my < 0 or my > c.Y_MAX
+
+    def updateMouse(self,mx,my, click):
+
+        self.doNotDisplay = self.notSet and self.mouseOutOfBounds(mx, my)
+
+        if self.doNotDisplay:
+            return
         
         if self.callibration == 1:
             self.x1 = mx
@@ -105,16 +115,22 @@ class Bounds:
             self.updateConversions()
         
 
-    def click(self):
+    def click(self, mx, my):
+
+        if self.mouseOutOfBounds(mx ,my):
+            return
+        
         if self.callibration == 1:
             self.callibration = 2
             
         elif self.callibration == 2:
             self.callibration = 0
+            self.notSet = False
 
     # Finalize callibration
     def set(self):
         self.callibration = 0
+        self.notSet = False
 
 
     def _getPosition(self):
@@ -192,6 +208,9 @@ class Bounds:
 
     # Draw the markings for detected minos.
     def displayBounds(self, surface, nparray = None, minos = None):
+
+        if self.doNotDisplay:
+            return None
 
         if type(minos) != np.ndarray:
             minos = self.getMinos(nparray)
@@ -303,32 +322,33 @@ def callibrate():
     B_RIGHT = 6
 
     buttons = PygameButton.ButtonHandler()
-    buttons.addImage(B_CALLIBRATE, images[C_BOARD], 776, 109, hydrantScale, img2 = images[C_BOARD2])
-    buttons.addImage(B_NEXTBOX, images[C_NEXT], 776, 217, hydrantScale, img2 = images[C_NEXT2])
+    buttons.addImage(B_CALLIBRATE, images[C_BOARD], 1724, 220, hydrantScale, img2 = images[C_BOARD2])
+    buttons.addImage(B_NEXTBOX, images[C_NEXT], 1724, 450, hydrantScale, img2 = images[C_NEXT2])
     
-    buttons.addImage(B_PLAY, images[C_PLAY], 48,655, hydrantScale, img2 = images[C_PLAY2], alt = images[C_PAUSE], alt2 = images[C_PAUSE2])
+    buttons.addImage(B_PLAY, images[C_PLAY], 94,1377, hydrantScale, img2 = images[C_PLAY2], alt = images[C_PAUSE], alt2 = images[C_PAUSE2])
 
-    buttons.addImage(B_LEFT, images[C_PREVF], 15, 655, hydrantScale, img2 = images[C_PREVF2])
-    buttons.addImage(B_RIGHT, images[C_NEXTF], 73, 655, hydrantScale, img2 = images[C_NEXTF2])
+    buttons.addImage(B_LEFT, images[C_PREVF], 25, 1377, hydrantScale, img2 = images[C_PREVF2])
+    buttons.addImage(B_RIGHT, images[C_NEXTF], 147, 1377, hydrantScale, img2 = images[C_NEXTF2])
     
-    buttons.addImage(B_RENDER, images[C_RENDER], 776, 577, hydrantScale, img2 = images[C_RENDER2])
+    buttons.addImage(B_RENDER, images[C_RENDER], 1724, 1203, hydrantScale, img2 = images[C_RENDER2])
 
     
     # Slider stuff
-    SW = 320 # slider width
-    LEFT_X = 770
-    SLIDER_SCALE = 0.47
+    SW = 680 # slider width
+    LEFT_X = 1720
+    SLIDER_SCALE = 1
     sliderImage = scaleImage(images[C_SLIDER], SLIDER_SCALE)
     sliderImage2 = scaleImage(images[C_SLIDER2], SLIDER_SCALE)
     
-    colorSlider = Slider(LEFT_X, 345, SW, c.COLOR_CALLIBRATION/255, sliderImage, sliderImage2)
-    zoomSlider = Slider(LEFT_X, 465, SW, c.SCALAR, sliderImage, sliderImage2)
+    colorSlider = Slider(LEFT_X, 725, SW, c.COLOR_CALLIBRATION/255, sliderImage, sliderImage2)
+    zoomSlider = Slider(LEFT_X, 970, SW, c.SCALAR - 0.5, sliderImage, sliderImage2)
 
-    SW2 = 608
-    LEFT_X2 = 110
-    leftVideoSlider = Slider(LEFT_X2,655, SW2, 0, scaleImage(images[C_LVIDEO],hydrantScale), scaleImage(images[C_LVIDEO2],hydrantScale),
+    SW2 = 1346
+    LEFT_X2 = 240
+    Y = 1377
+    leftVideoSlider = Slider(LEFT_X2, Y, SW2, 0, scaleImage(images[C_LVIDEO],hydrantScale), scaleImage(images[C_LVIDEO2],hydrantScale),
                                                                                                         scaleImage(images[C_LVIDEORED], hydrantScale), scaleImage(images[C_LVIDEORED2], hydrantScale) )
-    rightVideoSlider = Slider(LEFT_X2,655, SW2, 1, scaleImage(images[C_RVIDEO],hydrantScale), scaleImage(images[C_RVIDEO2],hydrantScale),
+    rightVideoSlider = Slider(LEFT_X2, Y, SW2, 1, scaleImage(images[C_RVIDEO],hydrantScale), scaleImage(images[C_RVIDEO2],hydrantScale),
                               scaleImage(images[C_RVIDEORED], hydrantScale), scaleImage(images[C_RVIDEORED2], hydrantScale) )
 
     vidFrame = [0]*2
@@ -392,19 +412,19 @@ def callibrate():
 
         
         if buttons.get(B_CALLIBRATE).clicked:
-            bounds = Bounds(False,c.VIDEO_X,c.VIDEO_Y, c.VIDEO_X+surf.get_width(), c.VIDEO_Y+surf.get_height())
+            bounds = Bounds(False,0,0, c.X_MAX, c.Y_MAX)
             if nextBounds != None:
                 nextBounds.set()
 
         elif buttons.get(B_NEXTBOX).clicked:
-            nextBounds = Bounds(True,c.VIDEO_X+surf.get_width()/2, c.VIDEO_Y+surf.get_height()/2,c.VIDEO_X+surf.get_width()/2+50, c.VIDEO_Y+surf.get_height()/2+50)
+            nextBounds = Bounds(True,0,0, c.X_MAX, c.Y_MAX)
             if bounds != None:
                 bounds.set()
 
         elif buttons.get(B_RENDER).clicked:
 
             # If not callibrated, do not allow render
-            if bounds == None or nextBounds == None or getNextBox(minosNext) == None:
+            if bounds == None or nextBounds == None or bounds.notSet or nextBounds.notSet or getNextBox(minosNext) == None:
                 errorMsg = time.time()  # display error message by logging time to display for 3 seconds
             
             else:
@@ -420,25 +440,29 @@ def callibrate():
 
         elif click:
             if bounds != None:
-                bounds.click()
+                bounds.click(mx, my)
             if nextBounds != None:
-                nextBounds.click()
+                nextBounds.click(mx, my)
             
         
         if bounds != None:
-            bounds.updateMouse(mx,my)
-            minosMain = bounds.displayBounds(c.screen, nparray = frame)
+            bounds.updateMouse(mx,my, click)
+            x = bounds.displayBounds(c.screen, nparray = frame)
+            if isArray(x):
+                minosMain = x
 
         if nextBounds != None:
-            nextBounds.updateMouse(mx,my)
-            minosNext = nextBounds.displayBounds(c.screen, nparray = frame)
+            nextBounds.updateMouse(mx,my, click)
+            x = nextBounds.displayBounds(c.screen, nparray = frame)
+            if isArray(x):
+                minosNext = x
 
         # Draw buttons
         buttons.display(c.screen)
 
         # Draw sliders
         c.COLOR_CALLIBRATION = 150*colorSlider.tick(c.screen, c.COLOR_CALLIBRATION/150, startPress, isPressed, mx, my)
-        c.SCALAR = zoomSlider.tick(c.screen, c.SCALAR, startPress, isPressed, mx, my)
+        c.SCALAR = 0.5 + zoomSlider.tick(c.screen, c.SCALAR-0.5, startPress, isPressed, mx, my)
         
         # Draw video bounds sliders
         vidFrame[RIGHT_FRAME] = rightVideoSlider.tick(c.screen, vidFrame[RIGHT_FRAME] / (c.totalFrames-1), startPress, isPressed, mx, my,True)
@@ -462,14 +486,14 @@ def callibrate():
 
         # Draw timestamp
         text = c.fontbig.render(c.timestamp(vidFrame[currentEnd]), True, WHITE)
-        c.screen.blit(text, [840,42] )
+        c.screen.blit(text, [1830,88] )
         
 
         # Draw error message
         if errorMsg != None:
             if time.time() - errorMsg < ERROR_TIME:
                 text = c.font2.render("You must finish callibrating and go to the first frame to be rendered.", True, RED)
-                c.screen.blit(text, [c.SCREEN_WIDTH - 400, 560] )
+                c.screen.blit(text, [1700,1150] )
             else:
                 errorMsg = None
 

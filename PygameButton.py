@@ -14,32 +14,32 @@ def init(fontParam):
 class ButtonHandler:
 
     def __init__(self):
-        self.buttons = []
+
+        # Use a hashtable for constant-time lookups
+        self.buttons = {}
 
     def addText(self, ID, text,x,y,width,height,buttonColor,textColor, margin = 0):
-        self.buttons.append( TextButton(ID, text, x, y, width, height, buttonColor, textColor, margin) )
+        self.buttons[ID] = TextButton(ID, text, x, y, width, height, buttonColor, textColor, margin)
 
     def addImage(self, ID, image, x, y, scale, margin = 0, alt = None, img2 = None, alt2 = None):
-        self.buttons.append( ImageButton(ID, image, x, y, scale, margin, alt = alt, img2 = img2, alt2 = alt2) )
+        self.buttons[ID] = ImageButton(ID, image, x, y, scale, margin, alt = alt, img2 = img2, alt2 = alt2)
 
     def updatePressed(self, mx, my, click):
         
-        for button in self.buttons:
-            button.updatePressed(mx,my, click)
+        for ID in self.buttons:
+            self.buttons[ID].updatePressed(mx,my, click)
 
     def display(self,screen):
 
-        for button in self.buttons:
+        for ID in self.buttons:
             
-            HT.blit(button.ID, *(button.get()))
+            HT.blit(ID, *(self.buttons[ID].get()))
 
     def get(self, buttonID):
-        
-        for button in self.buttons:
-            if button.ID == buttonID:
-                return button
 
-        assert(False)
+        # constant-time lookup
+        return self.buttons[buttonID]
+        
 
 
 # Abtract class button for gui

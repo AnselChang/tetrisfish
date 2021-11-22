@@ -94,11 +94,9 @@ def analyze(positionDatabase):
 
         # Left/Right Buttons
         if buttons.get(B_LEFT).clicked and analysisBoard.positionNum > 0:
-            print("left")
             analysisBoard.updatePosition(-1)
             
         elif buttons.get(B_RIGHT).clicked and analysisBoard.positionNum < len(positionDatabase) - 1:
-            print("right")
             analysisBoard.updatePosition(1)
 
         # Hypothetical buttons

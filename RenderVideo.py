@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from colors import *
 from TetrisUtility import *
+import time
 
 def drawProgressBar(screen,percent):
     CENTER_Y = 25
@@ -50,7 +51,7 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
      # --- Commence Calculations ---!
 
     if isFirst:
-
+        print("Framecount:", frameCount)
         currentP = getCurrentPiece(minosMain)
         nextP = getNextBox(minosNext)
             
@@ -71,12 +72,12 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
         instead, there is an increase of 4 filled squares, this means there was no line clear
         at all, and the frame with the filled square increase is the initial frame of the next piece.
         The frame before this one will yield the final position of the previous piece. """
+        print("Framecount:", frameCount)
 
        # Update final placement of previous position. The difference between the original board and the
         # board after placement yields a mask of the placed piece
         positionDatabase[-1].placement = prevMinosMain - positionDatabase[-1].board
         positionDatabase[-1].frame = frameCount
-        positionDatabase[-1].print()
 
         # The starting board for the current piece is simply the frame before this one.  It is unecessary
         # to find the exact placement the current piece as we can simply use previous next box.
@@ -86,6 +87,7 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
 
     elif not isLineClear and count < prevCount-1:
         # Condition for if line clear detected.
+        print("Framecount:", frameCount)
         
         # There is ONE ANNOYING POSSIBILITY for rotation on the first frame to lower mino count.
         # The solution is to look for the next DISTINCT frame and see if decrease continues. This will
@@ -103,13 +105,11 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
         
         # Now, minos is the 2d array for the next frame. If next frame does not have less filled cells, it's a false positive
         if np.count_nonzero(minos) >= count:
-            print("false positive")
             return [False, False, frames, finalCount]
         
         # Update final placement of previous position. The difference between the original board and the
         # board after placement yields a mask of the placed piece
         positionDatabase[-1].placement = prevMinosMain - positionDatabase[-1].board
-        positionDatabase[-1].print()
 
         # To find the starting position from the filled frame, we must manually perform line clear computation.
 
@@ -188,6 +188,8 @@ def render(firstFrame, lastFrame, bounds, nextBounds):
 
     first = True
 
+    startTime = time.time()
+
     while frameCount  <= lastFrame:
 
         # read frame sequentially
@@ -228,7 +230,6 @@ def render(firstFrame, lastFrame, bounds, nextBounds):
             
 
         # Possibly update positionDatabase given the current frame.
-        print("Framecount:", frameCount)
         params = [frameCount, frameCount == firstFrame, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount]
         isLineClear, updateDisplay, frameDelta, finalCount = parseBoard(*params) # lots of params!
         frameCount += frameDelta
@@ -241,12 +242,12 @@ def render(firstFrame, lastFrame, bounds, nextBounds):
         #pygame.event.get()
                 
 
+    print("Render done. Render time: {} seconds".format(round(time.time() - startTime,2)))
 
     # End of loop signifying no more frames to read
     if len(positionDatabase) > 1:
         if positionDatabase[0].currentPiece == None:
             # Dummy first position
-            print("Dummy first position")
             del positionDatabase[0]
         positionDatabase.pop() # last position must be popped because it has incomplete final placement data
         return positionDatabase

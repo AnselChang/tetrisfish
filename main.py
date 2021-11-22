@@ -12,7 +12,7 @@ from RenderVideo import render
 from Analysis import analyze
 
         
-testing = True
+testing = False
 def main():
 
     if testing:
@@ -93,7 +93,7 @@ def main():
     else:
 
         # Testing, set to false if want to use same hardcoded filepath
-        askFilePath = False
+        askFilePath = True
         filename = "/Users/anselchang/Downloads/ruinspb.mp4"
 
         if askFilePath:

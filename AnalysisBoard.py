@@ -229,7 +229,6 @@ class PieceBoard:
 
         # New piece from dropdown selected.
         if click and not isEmpty(self.panelHover) and panelArray[row][col] != self.piece:
-            print("new piece from dropdown selected")
             self.piece = panelArray[row][col]
             self.showPanel = False
             self.updatePieceOffset(self.piece)

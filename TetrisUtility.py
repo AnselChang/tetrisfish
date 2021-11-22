@@ -34,6 +34,9 @@ def empty(rows = 20, cols = 10):
 def isEmpty(arr):
     return not np.any(arr)
 
+def isArray(arr):
+    return type(arr) == np.ndarray
+
 # if in range of tetris board
 def rang(r,c1, rmax = 20, cmax = 10):
     return r >= 0 and r < rmax and c1 >= 0 and c1 < cmax

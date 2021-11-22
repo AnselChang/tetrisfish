@@ -19,10 +19,14 @@ VIDEO_Y = 0
 VIDEO_WIDTH = None
 VIDEO_HEIGHT = None
 
+# Location of the bottom-right corner of the video boundary
+X_MAX = 1642
+Y_MAX = 1360
+
 # Scale constant for tetris footage
 SCALAR = 1
 
-COLOR_CALLIBRATION = 30
+COLOR_CALLIBRATION = 15
 
 info = pygame.display.Info()
 REAL_WIDTH = info.current_w*0.8
@@ -33,8 +37,8 @@ REAL_HEIGHT = REAL_WIDTH * 2856 / 4806
 SCREEN_WIDTH = 1280*2
 SCREEN_HEIGHT = 720*2
 
-print(SCREEN_WIDTH, SCREEN_HEIGHT)
-print("Scaled is ", REAL_WIDTH / SCREEN_WIDTH, " times actual")
+#print(SCREEN_WIDTH, SCREEN_HEIGHT)
+#print("Scaled is ", REAL_WIDTH / SCREEN_WIDTH, " times actual")
 
 # Global screen surface variables
 # https://stackoverflow.com/questions/34910086/pygame-how-do-i-resize-a-surface-and-keep-all-objects-within-proportionate-to-t
@@ -42,7 +46,7 @@ realscreen = pygame.display.set_mode((REAL_WIDTH, REAL_HEIGHT), pygame.HWSURFACE
 #screen = realscreen.copy()
 #screen = pygame.Surface([1152, 685])
 screen = pygame.Surface([SCREEN_WIDTH, SCREEN_HEIGHT])
-pygame.display.set_caption('TETRISFISH by Ansel, powered by StackRabbit')
+pygame.display.set_caption('tetrisfish by Ansel, powered by StackRabbit')
 
 # Get timestamp at frame
 def timestamp(frame):
@@ -69,9 +73,6 @@ def getVideo():
 # Draw video frame
 def displayTetrisImage(frame):
 
-    X_MAX = 740
-    Y_MAX = 648
-    
     frame = frame.transpose(1,0,2)
     surf = pygame.surfarray.make_surface(frame)
     surf = scaleImage(surf, SCALAR)
