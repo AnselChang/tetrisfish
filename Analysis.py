@@ -8,6 +8,7 @@ from PieceMasks import *
 import HitboxTracker as HT
 from TetrisUtility import loadImages
 import EvalGraph
+import AnalysisConstants as AC
 
 class EvalBar:
 
@@ -41,10 +42,6 @@ def analyze(positionDatabase):
 
     print("START ANALYSIS")
 
-    # Generate evaluation array of every position
-    #evals = [position.evaluation for position in positionDatabase]
-    #EvalGraph.init(evals)
-
 
     # Load all images.
     images = loadImages("Images/Analysis/{}.png", IMAGE_NAMES)
@@ -75,6 +72,22 @@ def analyze(positionDatabase):
 
     positionNum = 0
     analysisBoard = AnalysisBoard.AnalysisBoard(positionDatabase)
+
+    # Setup graph
+    evals = [position.evaluation for position in positionDatabase]
+    # for TESTING ONLY
+    
+    levels = [position.level for position in positionDatabase]
+    TESTLEVELS = [18]*300 + [19] * 200 + [29] * 100
+    testEvals = [max(0, min(1, np.random.normal(loc = 0.5, scale = 0.2))) for i in range(len(TESTLEVELS))]
+
+    # CALCULATE BRILLANCIES/BLUNDERS/ETC HERE. For now, test code
+    testFeedback = [AC.NONE] * len(TESTLEVELS)
+    for i in range(100):
+        testFeedback[random.randint(0,len(TESTLEVELS))] = random.choice(list(AC.feedbackColors))
+    print(testFeedback)
+    
+    graph = EvalGraph.FullGraph(testEvals, TESTLEVELS, testFeedback, 1000, 1000, 1200, 200, True, 4)
 
     wasPressed = False
 
@@ -143,12 +156,15 @@ def analyze(positionDatabase):
         # Tetris board
         analysisBoard.draw()
 
+        # Evaluation Graph
+        graph.display(mx, my)
+
         # Eval bar
         HT.blit("eval", evalBar.drawEval(), [20,20])
 
         # Text for position number
         text = c.fontbig.render("Position: {}".format(analysisBoard.positionNum + 1), False, BLACK)
-        c.screen.blit(text, [1200,1200])
+        c.screen.blit(text, [1200,700])
 
         # Draw timestamp
         frameNum = analysisBoard.positionDatabase[analysisBoard.positionNum].frame

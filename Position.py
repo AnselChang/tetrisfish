@@ -12,6 +12,8 @@ class Position:
         self.nextPiece = nextPiece
         self.placement = placement # the final placement for the current piece. 2d binary array (mask)
 
+        self.level = 18
+
         self.frame = None
 
         # Number from 0 to 1
