@@ -1,5 +1,6 @@
 import pygame, sys, random
 import numpy as np
+from scipy import interpolate
 import math
 #import config as c
 
@@ -39,76 +40,43 @@ class DetailedGraph:
 
 class FullGraph:
 
-    def __init__(self, fullEvals, N, dist):
+    # width is the number of pixels graph should span
+    # resolution is how averaged the values should be
+    def __init__(self, fullEvals, showDots, width, resolution):
 
-        M = len(fullEvals)
+        self.showDots = showDots
+
+
+        # Scale the array to resolution
+        self.posIndices = [resolution*i for i in range(1+int(len(fullEvals) / resolution))] # the position index of each element in self.evals
         
-        # Generate an averaged eval array with a maximum length of N. This is to reduce the
-        # resolution of something like 900 positions into a condensed form when displaying
-        if M < N:
-            self.evals = fullEvals
-            self.posIndices = [i for i in range(M)]
-        else:
-            # the position index of each element in self.evals
-            self.posIndices = [int(i*M/N) for i in range(N)]
-            grouped = np.array_split(fullEvals, self.posIndices[1:])
-            self.evals = [sum(arr) / len(arr) for arr in grouped]
-
-        print(self.evals)
-        print(self.posIndices)
-
-        self.dist = dist
-        self.getCurve(self.dist)
+        grouped = np.array_split(fullEvals, self.posIndices[1:])
+        if len(grouped[-1]) == 0:
+            del self.posIndices[-1]
+            del grouped[-1]
+        self.posIndices[-1] = len(fullEvals) - 1
+        self.evals = [sum(arr) / len(arr) for arr in grouped]
         
+        self.dist = width / len(self.evals)
+        print("dist: ", self.dist)
 
-    # Given a list of points equally horizontally-spaced by X, interpolate between points to form smooth curve
-    # dist (EVEN INTEGER) represents the horizontal distance between each given point. Must interpolate here for curve
-    def getCurve(self, dist):
+        x = [i * self.dist for i in range(len(self.evals))]
+        f = interpolate.interp1d(x, self.evals, kind = 'cubic')
 
-        assert(dist > 0 and dist % 2 == 0)
-        
-
-        # The final list of points that will be displayed as lines through all the points
         self.points = []
-
-        for i in range(len(self.evals) - 1):
-
-            # At each iteration of the loop, find points for halfway before (i, evals[i]) to halfway before (i+1, evals[i+1])
-            if i == 0:
-                # we usually find curve based on previous parabola halfway point. At the beginning, we use dummy value
-                p1 = (0 - dist, self.evals[i])
-                
-            p2 = (i*dist, self.evals[i])
-            p3 = ((i +1)* dist, self.evals[i+1])
-            
-            a,b,c = getParabola(p1,p2,p3)
-            print(p1,p2,p3)
-            print(a,b,c)
-
-            startX = i * dist # the x location at where i is
-            print("startX:", startX)
-
-            if i == len(self.evals) - 2:
-                end = startX + dist + 1
-            else:
-                end = startX + dist//2 + 1
-            for x in range(startX - dist//2 + 1, end):
-                
-                # Generate a list of points from halfway before i (from i-1) to halfway after i (to i+1)
-                # For example, with dist = 4. i = 0: [-1,0,1,2], i = 1: [3,4,5,6], i = 2: [7,8,9,10]
-                y = parabola(x,a,b,c)
-                self.points.append([x, y])
-                print("x,y:", x,y)
-
-            # For the next iteration's parabola, we use the last point in this segment's parabola
-            p1 = [x,y]
+        currX = 0
+        while currX < (len(self.evals) - 1) * self.dist:
+           self.points.append([currX, f(currX)])
+           currX += 0.1
 
     def display(self,screen):
 
-        for i in range(len(self.evals)):
-            x = i * self.dist
-            y = self.evals[i]
-            pygame.draw.circle(screen, [255,0,0], [x,y], 5)
+        if self.showDots:
+
+            for i in range(len(self.evals)):
+                x = i * self.dist
+                y = self.evals[i]
+                pygame.draw.circle(screen, [255,0,0], [x,y], 5)
 
         pygame.draw.aalines(screen, [0,0,0], False, self.points)
         
@@ -127,8 +95,10 @@ if __name__ == "__main__":
     print()
     print("__________________")
     print()
-    y = [random.randint(0,400) for i in range(500)]
-    g = FullGraph(y,100,6)
+    y = [random.randint(0,50) for i in range(30)]
+    print(y)
+    
+    g = FullGraph(y, True, 500, 1)
     print(g.evals)
     for p in g.points:
         print(p)

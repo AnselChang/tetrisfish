@@ -7,6 +7,7 @@ from colors import *
 from PieceMasks import *
 import HitboxTracker as HT
 from TetrisUtility import loadImages
+import EvalGraph
 
 class EvalBar:
 
@@ -39,6 +40,10 @@ def analyze(positionDatabase):
     global realscreen
 
     print("START ANALYSIS")
+
+    # Generate evaluation array of every position
+    #evals = [position.evaluation for position in positionDatabase]
+    #EvalGraph.init(evals)
 
 
     # Load all images.
