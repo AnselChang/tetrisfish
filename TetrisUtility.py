@@ -10,7 +10,7 @@ def intersection(arr1, arr2):
 
 def lighten(color, amount, doThis = True):
     if doThis:
-        return [i * amount for i in color]
+        return [min(i * amount,255) for i in color]
     else:
         return color
 

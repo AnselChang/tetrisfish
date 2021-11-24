@@ -274,7 +274,7 @@ class AnalysisBoard:
     # Change the position by index amount delta
     def updatePosition(self, delta):
         
-        self.positionNum += delta
+        self.positionNum = delta
         assert(self.positionNum >= 0 and self.positionNum < len(self.positionDatabase))
 
         self.position = self.positionDatabase[self.positionNum]

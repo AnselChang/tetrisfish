@@ -51,6 +51,8 @@ def analyze(positionDatabase):
 
     B_LEFT = "LeftArrow"
     B_RIGHT = "RightArrow"
+    B_MAXLEFT = "LeftArrowFast"
+    B_MAXRIGHT = "RightArrowFast"
     B_HYP_LEFT = "LeftArrowHypothetical"
     B_HYP_RIGHT = "RightArrowHypothetical"
     B_HYP_MAXLEFT = "MaxLeftArrowHypothetical"
@@ -59,9 +61,16 @@ def analyze(positionDatabase):
     
     buttons = PygameButton.ButtonHandler()
     # Position buttons
-    buttons.addImage(B_LEFT, images[LEFTARROW], 1000, 1000, 0.4, margin = 5, alt = images[LEFTARROW2])
-    buttons.addImage(B_RIGHT, images[RIGHTARROW], 1200, 1000, 0.4, margin = 5, alt = images[RIGHTARROW2])
+    y = 800
+    buttons.addImage(B_LEFT, images[LEFTARROW], 950, y, 0.3, margin = 5, alt = images[LEFTARROW2])
+    buttons.addImage(B_RIGHT, images[RIGHTARROW], 1150, y, 0.3, margin = 5, alt = images[RIGHTARROW2])
 
+    # Fast-forward detailed display position buttons
+    y = 1010
+    buttons.addImage(B_MAXLEFT, images[LEFTARROW_MAX], 950, y, 0.3, margin = 5, alt = images[LEFTARROW2_MAX])
+    buttons.addImage(B_MAXRIGHT, images[RIGHTARROW_MAX], 2350, y, 0.3, margin = 5, alt = images[RIGHTARROW2_MAX])
+
+    # Hypothetical positon navigation buttons
     x = 910
     y = 360
     buttons.addImage(B_HYP_MAXLEFT, images[LEFTARROW_MAX], x, y, 0.16, margin = 0, alt = images[LEFTARROW2_MAX])
@@ -83,14 +92,18 @@ def analyze(positionDatabase):
 
     # CALCULATE BRILLANCIES/BLUNDERS/ETC HERE. For now, test code
     testFeedback = [AC.NONE] * len(TESTLEVELS)
-    for i in range(100):
-        testFeedback[random.randint(0,len(TESTLEVELS))] = random.choice(list(AC.feedbackColors))
-    print(testFeedback)
+    for i in range(300):
+        testFeedback[random.randint(0,len(TESTLEVELS)-1)] = random.choice(list(AC.feedbackColors))
+
+    smallSize = 60
+    bigResolution = 4
+    smallGraph = EvalGraph.Graph(True, testEvals, TESTLEVELS, testFeedback, 1150, 970, 1150, 200, 1, smallSize, bigRes = bigResolution)
+    bigGraph = EvalGraph.Graph(False, testEvals, TESTLEVELS, testFeedback, 950, 1220, 1500, 200, bigResolution, smallSize)
     
-    graph = EvalGraph.FullGraph(testEvals, TESTLEVELS, testFeedback, 1000, 1000, 1200, 200, True, 4)
 
     wasPressed = False
 
+    updatePosIndex = None
 
     while True:
 
@@ -100,6 +113,7 @@ def analyze(positionDatabase):
         mx,my = c.getScaledPos(*pygame.mouse.get_pos())
         pressed = pygame.mouse.get_pressed()[0]
         click = not pressed and wasPressed
+        startPressed = pressed and not wasPressed
         wasPressed = pressed
 
 
@@ -112,10 +126,10 @@ def analyze(positionDatabase):
 
         # Left/Right Buttons
         if buttons.get(B_LEFT).clicked and analysisBoard.positionNum > 0:
-            analysisBoard.updatePosition(-1)
+            analysisBoard.updatePosition(analysisBoard.positionNum-1)
             
         elif buttons.get(B_RIGHT).clicked and analysisBoard.positionNum < len(positionDatabase) - 1:
-            analysisBoard.updatePosition(1)
+            analysisBoard.updatePosition(analysisBoard.positionNum+1)
 
         # Hypothetical buttons
         if buttons.get(B_HYP_LEFT).clicked and analysisBoard.hasHypoLeft():
@@ -128,7 +142,12 @@ def analyze(positionDatabase):
         elif buttons.get(B_HYP_MAXRIGHT).clicked:
             while analysisBoard.hasHypoRight():
                 analysisBoard.hypoRight()
-            
+
+
+        # Update Graphs
+        updatePosIndex = smallGraph.update(mx,my, pressed, startPressed, click, bigInterval = bigGraph.intervalIndex)
+        bigGraph.update(mx, my, pressed, startPressed, click)
+        
         
             
         buttons.get(B_LEFT).isAlt = analysisBoard.positionNum == 0
@@ -157,13 +176,14 @@ def analyze(positionDatabase):
         analysisBoard.draw()
 
         # Evaluation Graph
-        graph.display(mx, my)
+        smallGraph.display(mx,my)
+        bigGraph.display(mx, my)
 
         # Eval bar
         HT.blit("eval", evalBar.drawEval(), [20,20])
 
         # Text for position number
-        text = c.fontbig.render("Position: {}".format(analysisBoard.positionNum + 1), False, BLACK)
+        text = c.fontbig.render("Position: {}".format(analysisBoard.positionNum + 1), True, BLACK)
         c.screen.blit(text, [1200,700])
 
         # Draw timestamp
