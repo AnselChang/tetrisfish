@@ -12,7 +12,7 @@ from RenderVideo import render
 from Analysis import analyze
 
         
-testing = False
+testing = True
 def main():
 
     if testing:

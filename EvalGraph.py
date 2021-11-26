@@ -1,4 +1,4 @@
-import pygame, sys, random
+import pygame, sys, random, math
 import numpy as np
 from scipy import interpolate
 import math
@@ -10,6 +10,13 @@ from TetrisUtility import lighten
 
 # return a,b,c -> f(x) = ax^2 + bx + c
 # https://www.desmos.com/calculator/8a7xmddbwl
+
+def abs_sqrt(x):
+    if x > 0:
+        return math.sqrt(x)
+    else:
+        return 0 - math.sqrt(0 - x)
+
 def getParabola(p1,p2,p3):
     
     A1 = p2[0]**2 - p1[0]**2
@@ -44,7 +51,6 @@ class Graph:
 
         self.HORI_PADDING = 0
         self.VERT_PADDING = 40
-        print(realheight,self.VERT_PADDING)
 
         assert(len(fullEvals) == len(levels) and len(fullEvals) == len(feedback))
 
@@ -54,6 +60,7 @@ class Graph:
         self.x = x
         self.y = y
         self.resolution = resolution
+        self.fullLength = len(fullEvals)
 
         self.intervalSize = intervalSize
         self.intervalIndex = 0
@@ -67,7 +74,6 @@ class Graph:
 
         # Scale the array to resolution
         self.posIndices = [resolution*i for i in range(1+int(len(fullEvals) / resolution))] # the position index of each element in self.evals
-        print(self.posIndices)
         self.grouped = np.array_split(fullEvals, self.posIndices[1:])
         groupedLevels = np.array_split(levels, self.posIndices[1:])
         groupedFeedback = np.array_split(feedback, self.posIndices[1:])
@@ -128,6 +134,9 @@ class Graph:
 
         self.levelBounds[current][1] = self.right + self.dist * self.intervalSize * self.resolution
 
+        self.currGraphX = self.intervalSize / 2 * self.dist
+        self.showHover = True
+
         # Calculate feedback points
         self.feedbackList = []
         for i in range(len(self.evals)):
@@ -145,67 +154,68 @@ class Graph:
         self.bigInterval = -1
 
     # absolutely fucking terrible code
-    def update(self, mx, my, pressed, startPressed, click, bigInterval = None):
+    def update(self, positionIndex, mx, my, pressed, startPressed, click):
 
-        if self.isDetailed and(len(self.evals) / self.bigRes - self.bigInterval == 7.5):
-            mx -= self.dist
 
-        returnValue = None
+        newPosition = None
 
         self.prevHovering = self.hovering
         self.hovering = mx - self.x > self.HORI_PADDING and mx - self.x < self.realwidth and my - self.y > self.VERT_PADDING and my - self.y < self.realheight
 
-        self.dontUpdateBlit = (not self.active and not self.hovering and not self.prevHovering and self.bigInterval == bigInterval)
-        self.bigInterval = bigInterval
-
-        self.index = round((mx - self.x - self.HORI_PADDING) / self.dist)
+        self.index = round((mx - self.x) / self.dist)
         if self.isDetailed:
-            self.index += bigInterval * self.bigRes
-            self.index = max(0,min(self.index, len(self.evals)-1))
-            
-        self.hoverX = min(self.right,self.HORI_PADDING + self.index * self.dist)
-
-
-
-
-        
-            
-        
+            self.index += positionIndex - self.intervalSize // 2
+            self.index = min(max(0,self.index), self.fullLength - 1)
+        #print(self.index)
+                    
         # Calculate index hovered
         if self.hovering:
 
-            if click and self.isDetailed:
-                print(self.index)
-                returnValue = int(self.index)
+            if click and self.isDetailed and self.showHover:
+                newPosition = self.index
             
             
-            # First frame of press
-            if not self.active and startPressed and (self.index >= self.intervalIndex and self.index < self.intervalIndex + self.intervalSize / self.resolution):
-                self.active  = True
-                self.dragLoc = self.index - self.intervalIndex
+        # First frame of press
+        if not self.active and startPressed and my >= self.y and my < self.y + self.realheight and self.index >= self.intervalIndex - self.intervalSize / self.resolution / 2 and self.index < self.intervalIndex + self.intervalSize / self.resolution / 2:
+            self.active  = True
+            self.dragLoc = self.index - self.intervalIndex
 
-            if pressed and self.prevMouseCoords != [mx,my]:
-                self.dragged = True
+        if pressed and self.prevMouseCoords != [mx,my]:
+            self.dragged = True
 
         # Update position of slider
-        if self.active or (True and click and not self.dragged and self.hovering):
+        newClick = click and not self.dragged and self.hovering
+        if self.active or newClick:
             if not self.isDetailed:
-                self.intervalIndex = min(max(self.index - self.dragLoc, 0 - self.intervalSize / self.resolution / 2), len(self.evals) - self.intervalSize / self.resolution / 2)
+
+                if newClick:
+                    self.dragLoc = 0
+                
+                self.intervalIndex = self.index - self.dragLoc
+                if self.intervalIndex >= (self.fullLength) // self.resolution:
+                    newPosition = self.fullLength - 1
+                else:
+                    newPosition = max(0,self.intervalIndex * self.resolution)
 
         if not pressed:
             self.active = False
             self.dragged = False
 
         self.prevMouseCoords = [mx,my]
+        #print(self.active)
 
-        return returnValue
+        if newPosition != None:
+            print("New position: ", newPosition)
+        return newPosition
                     
 
-    # more horrendously attrocious code
-    def display(self, mx, my):
+    # more horrendously atrocious code
+    def display(self, mx, my, positionIndex):
+
+        self.intervalIndex =positionIndex // self.resolution
 
         # If nothing has changed in the display, don't recalculate and simply blit to save time
-        if self.dontUpdateBlit:
+        if False and self.dontUpdateBlit:
             HT.blit("graph", self.surf, [self.x,self.y])
             return
         
@@ -238,20 +248,27 @@ class Graph:
         if self.hovering:
             pygame.draw.aalines(surf2, BLACK, False, self.points2) # thicken line
 
+
+        i = round((mx - self.x) / self.dist)
+        if self.isDetailed:
+            cx = self.index * self.dist
+        else:
+            cx = i * self.dist
             
         # Draw hover dot
-        if self.hovering:
-            pygame.draw.circle(surf2, DARK_GREY, [self.hoverX, self.f([self.hoverX])[0]], HOVER_RADIUS)
+        if self.hovering and self.showHover:
+            cx = min(cx,self.right)
+            pygame.draw.circle(surf2, DARK_GREY, [cx, self.f([cx])[0]], HOVER_RADIUS)
             
             hoverBox = pygame.Surface([self.dist, self.realheight])
             hoverBox.fill(BLACK)
             hoverBox.set_alpha(30)
-            surf2.blit(hoverBox, [self.hoverX - self.dist / 2, 0])
+            surf2.blit(hoverBox, [cx - self.dist / 2, 0])
 
         # Graph feedback dots. Only show blunders in overall graph
         for fb, x, y in self.feedbackList:
             if fb == AC.BLUNDER or self.isDetailed:
-                selected = (x == self.hoverX) and self.hovering
+                selected = (x == cx) and self.hovering
                 pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.8 if selected else 0.9), [x,y], FEEDBACK_RADIUS * (1.2 if selected else 1))
                 if selected:
                     pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.6), [x,y], FEEDBACK_RADIUS * 1.3, width = 4)
@@ -266,14 +283,29 @@ class Graph:
 
         # If full graph, draw selection slider
         if not self.isDetailed:
+
+            leftX = int((positionIndex - self.intervalSize/2 )  / self.resolution * self.dist)
+
+            
             slider = pygame.Surface([self.intervalSize / self.resolution * self.dist, self.realheight])
             slider.fill(BLACK)
             slider.set_alpha(50)
-            surf2.blit(slider, [self.HORI_PADDING + self.intervalIndex * self.dist, 0])
-            pygame.draw.rect(surf2, BLACK, [self.HORI_PADDING + self.intervalIndex * self.dist, 0, self.intervalSize / self.resolution * self.dist, self.realheight], width = 5)
+            surf2.blit(slider, [leftX, 0])
+            pygame.draw.rect(surf2, BLACK, [leftX,0,self.intervalSize / self.resolution * self.dist,self.realheight], width = 5)
+
+
+        SLIDE_SPEED = 0.3
+        finalGraphX = 0 - positionIndex * self.dist + self.intervalSize / 2 * self.dist
+        self.currGraphX += (finalGraphX - self.currGraphX) * SLIDE_SPEED
+        if abs(finalGraphX - self.currGraphX) < 5:
+            #self.currGraphX = finalGraphX
+            self.showHover = True
+        else:
+            self.showHover = False
+
+        # Blit movable surface to surface
         if self.isDetailed:
-            #print(self.bigInterval*self.bigRes, len(self.evals)-1 - self.intervalSize//2)
-            self.surf.blit(surf2,[0 - min((len(self.evals)-1 - self.intervalSize//2)*self.dist,self.bigInterval*self.bigRes*self.dist),0])
+            self.surf.blit(surf2,[self.currGraphX, 0])
         else:
             self.surf.blit(surf2,[0,0])
             

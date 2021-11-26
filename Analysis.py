@@ -105,6 +105,8 @@ def analyze(positionDatabase):
 
     updatePosIndex = None
 
+    displayPosNum = 0
+
     while True:
 
         # --- [ CALCULATIONS ] ---
@@ -124,13 +126,6 @@ def analyze(positionDatabase):
         c.realscreen.fill(MID_GREY)
         c.screen.fill(MID_GREY)
 
-        # Left/Right Buttons
-        if buttons.get(B_LEFT).clicked and analysisBoard.positionNum > 0:
-            analysisBoard.updatePosition(analysisBoard.positionNum-1)
-            
-        elif buttons.get(B_RIGHT).clicked and analysisBoard.positionNum < len(positionDatabase) - 1:
-            analysisBoard.updatePosition(analysisBoard.positionNum+1)
-
         # Hypothetical buttons
         if buttons.get(B_HYP_LEFT).clicked and analysisBoard.hasHypoLeft():
             analysisBoard.hypoLeft()
@@ -143,10 +138,28 @@ def analyze(positionDatabase):
             while analysisBoard.hasHypoRight():
                 analysisBoard.hypoRight()
 
+        # Left/Right Buttons
+        if buttons.get(B_LEFT).clicked and analysisBoard.positionNum > 0:
+            analysisBoard.updatePosition(analysisBoard.positionNum-1)
+            
+        elif buttons.get(B_RIGHT).clicked and analysisBoard.positionNum < len(positionDatabase) - 1:
+            analysisBoard.updatePosition(analysisBoard.positionNum+1)
+
+        # Max left/right button
+        if buttons.get(B_MAXLEFT).clicked and displayPosNum > 0:
+            displayPosNum = max(0, displayPosNum - bigGraph.intervalSize)
+            
+        elif buttons.get(B_MAXRIGHT).clicked and displayPosNum < len(smallGraph.evals) - 1:
+            displayPosNum = min(len(smallGraph.evals) - 1, displayPosNum + bigGraph.intervalSize)
+
 
         # Update Graphs
-        updatePosIndex = smallGraph.update(mx,my, pressed, startPressed, click, bigInterval = bigGraph.intervalIndex)
-        bigGraph.update(mx, my, pressed, startPressed, click)
+        o = smallGraph.update(displayPosNum, mx,my, pressed, startPressed, click)
+        if o != None:
+            displayPosNum = o
+        o = bigGraph.update(displayPosNum, mx, my, pressed, startPressed, click)
+        if o != None:
+            displayPosNum = o
         
         
             
@@ -176,8 +189,8 @@ def analyze(positionDatabase):
         analysisBoard.draw()
 
         # Evaluation Graph
-        smallGraph.display(mx,my)
-        bigGraph.display(mx, my)
+        smallGraph.display(mx,my, displayPosNum)
+        bigGraph.display(mx, my, displayPosNum)
 
         # Eval bar
         HT.blit("eval", evalBar.drawEval(), [20,20])
