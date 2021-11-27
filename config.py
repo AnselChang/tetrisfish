@@ -1,4 +1,8 @@
 import pygame
+
+if pygame.get_sdl_version() < (2, 0, 0):
+    raise Exception("This software requires SDL2. Pygame is probably outdated.")
+
 import datetime
 import cv2
 import numpy as np
@@ -71,14 +75,14 @@ def getVideo():
     return vcap
 
 # Draw video frame
-def displayTetrisImage(frame):
+def displayTetrisImage(frame, x = VIDEO_X, y = VIDEO_Y):
 
     frame = frame.transpose(1,0,2)
     surf = pygame.surfarray.make_surface(frame)
     surf = scaleImage(surf, SCALAR)
     boundedSurf = pygame.Surface([X_MAX,Y_MAX])
     boundedSurf.blit(surf,[0,0])
-    screen.blit(boundedSurf, (VIDEO_X, VIDEO_Y))
+    screen.blit(boundedSurf, (x, y))
     return surf
 
         

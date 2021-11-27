@@ -7,12 +7,16 @@ from colors import *
 from TetrisUtility import *
 import time
 
+lineClears = 0
+transition = 0
+level = 0
+
 def drawProgressBar(screen,percent):
-    CENTER_Y = 25
-    SMALL_R = 3
-    BIG_R = 10
-    LEFT_X = 250
-    WIDTH = 400
+    CENTER_Y = 30
+    SMALL_R = 5
+    BIG_R = 13
+    LEFT_X = 600
+    WIDTH = 600
     SIDE_BUMP = 10
 
     # small
@@ -47,8 +51,9 @@ This function returns [updated isLineclear, boolean whether it's a start frame, 
 # Given a 2d board, parse the board and update the position database
 def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount):
 
+    global lineClears, transition, level
 
-     # --- Commence Calculations ---!
+    # --- Commence Calculations ---!
 
     if isFirst:
         print("Framecount:", frameCount)
@@ -59,13 +64,13 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
             # if first frame does not have piece in spawn position, we won't be using this position.
             # Insert dummy position, first real position will be when the next piece spawns
 
-            positionDatabase.append( Position (minosMain, None, nextP, frame = frameCount))
+            positionDatabase.append( Position (minosMain, None, nextP, frame = frameCount, level = level))
             
         else:
             # If first frame has current piece in correct spawn position, extract it and store in position
-            positionDatabase.append( Position( removeTopPiece(minosMain, currentP), currentP, nextP, frame = frameCount ))
+            positionDatabase.append( Position( removeTopPiece(minosMain, currentP), currentP, nextP, frame = frameCount, level = level ))
 
-        return [False,True, 0, finalCount] # not line clear
+        return [False, 0, finalCount] # not line clear
         
     elif not isLineClear and count == prevCount + 4:
         """ If there was no drop in the number of filled squares to detect a line clear, and
@@ -81,9 +86,9 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
 
         # The starting board for the current piece is simply the frame before this one.  It is unecessary
         # to find the exact placement the current piece as we can simply use previous next box.
-        positionDatabase.append(Position(prevMinosMain,  positionDatabase[-1].nextPiece, getNextBox(minosNext), frame = frameCount))
+        positionDatabase.append(Position(prevMinosMain,  positionDatabase[-1].nextPiece, getNextBox(minosNext), frame = frameCount, level = level))
 
-        return [False,True, 0, finalCount] # not line clear
+        return [False, 0, finalCount] # not line clear
 
     elif not isLineClear and count < prevCount-1:
         # Condition for if line clear detected.
@@ -105,7 +110,7 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
         
         # Now, minos is the 2d array for the next frame. If next frame does not have less filled cells, it's a false positive
         if np.count_nonzero(minos) >= count:
-            return [False, False, frames, finalCount]
+            return [False, frames, finalCount]
         
         # Update final placement of previous position. The difference between the original board and the
         # board after placement yields a mask of the placed piece
@@ -118,7 +123,7 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
 
         # Finally, create a new position using the generated resultant board.
         # We don't know what the nextbox piece is yet, and must wait until start piece actually spawns
-        positionDatabase.append(Position(newBoard,  getNextBox(minosNext), None, frame = frameCount))
+        positionDatabase.append(Position(newBoard,  getNextBox(minosNext), None, frame = frameCount, level = level))
 
         
         # We calculate the count after those filledrows are cleared so that we can find the next start frame.
@@ -129,6 +134,13 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
         filledRows = np.where(~(1-prevMinosMain).any(axis=1))[0]
         assert(len(filledRows) > 0) # this assert fails if there are too many skipped frames and the frame before line clear doesn't have locked piece yet
 
+        # Update level and line clears
+        lineClears += len(filledRows)
+        if lineClears > transition:
+            lineClears -= transition
+            transition = 10
+            level += 1
+            positionDatabase[-1].level += 1
         
         # We subtract 10 to the number of filled cells for every filled row there is
         # prevCount is number of filled cells for the frame right before line clear (aka frame with full row(s))
@@ -136,12 +148,12 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
 
         # We need to skip past line clear and drop animation into next start frame. We wait until count drops BELOW finalCount+4
         # We are setting isLineClear to 1 here
-        return [1, True, 0, finalCount]
+        return [1, 0, finalCount]
 
     elif isLineClear == 1 and count < finalCount+4:
         # Now that count has dipped below finalCount + 4, we keep waiting until the new piece appears, where count == finalCount+4 would be true
         # We are setting isLineClear to 2 here
-        return [2, False, 0, finalCount]
+        return [2, 0, finalCount]
 
     elif isLineClear == 2 and count == finalCount + 4:
         
@@ -152,16 +164,24 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
         positionDatabase[-1].nextPiece = getNextBox(minosNext)
         positionDatabase[-1].frame = frameCount
         
-        return [False, True, 0, finalCount] # we reset the isLineClear state
+        return [False, 0, finalCount] # we reset the isLineClear state
 
     else:
         # Some uninteresting frame, so just move on to the next frame and don't change isLineClear
-        return [isLineClear, False, 0, finalCount]
+        return [isLineClear, 0, finalCount]
 
 
 # Update: render everything through numpy (no conversion to lists at all)
-def render(firstFrame, lastFrame, bounds, nextBounds):
+def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
     print("Beginning render...")
+
+    global lineClears, transition, level
+    lineClears = 0
+
+    levelToTransition = {9 : 100, 12 : 100, 15 : 100, 18 : 130, 19 : 140, 29 : 200}
+    level = levelP
+    transition = levelToTransition[level]
+    print("Transition: ", transition)
 
     vcap = c.getVideo()
 
@@ -186,7 +206,9 @@ def render(firstFrame, lastFrame, bounds, nextBounds):
     
     positionDatabase = [] # The generated list of all the positions in the video. To be returned
 
-    first = True
+    
+    maxX = 400 # display screen every 200 frames (to save time)
+    x = maxX
 
     startTime = time.time()
 
@@ -207,35 +229,38 @@ def render(firstFrame, lastFrame, bounds, nextBounds):
         count = np.count_nonzero(minosMain)
 
 
-        
-        if first:
-            first = False
+        # Possibly update positionDatabase given the current frame.
+        params = [frameCount, frameCount == firstFrame, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount]
+        isLineClear, frameDelta, finalCount = parseBoard(*params) # lots of params!
+        frameCount += frameDelta
+
+        if x == maxX:
+            x = 0
             
             # A start frame. We blit to pygame display on these frames. We don't do this on every frame to save computation time.
             c.screen.fill(BACKGROUND)
             c.realscreen.fill(BACKGROUND)
 
-            c.displayTetrisImage(frame)
-            #drawProgressBar(c.screen, frameCount / totalFrames)
+            videoShift = 90
+
+            c.displayTetrisImage(frame, 0, videoShift)
+            drawProgressBar(c.screen, frameCount / totalFrames)
 
              # draw title
-            text = c.fontbig.render("Step 2: Render", False, BLACK)
+            text = c.fontbig.render("Step 2: Render", True, BLACK)
             c.screen.blit(text, (10,10))
 
             # Draw bounds
-            bounds.displayBounds(c.screen, minos = minosMain)
-            nextBounds.displayBounds(c.screen, minos = minosNext)
+            bounds.displayBounds(c.screen, minos = minosMain, dy = videoShift)
+            nextBounds.displayBounds(c.screen, minos = minosNext, dy = videoShift)
 
+            pygame.event.get()
+            c.handleWindowResize()
             pygame.display.update()
             
 
-        # Possibly update positionDatabase given the current frame.
-        params = [frameCount, frameCount == firstFrame, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount]
-        isLineClear, updateDisplay, frameDelta, finalCount = parseBoard(*params) # lots of params!
-        frameCount += frameDelta
-
-
         # Increment frame counter (perhaps slightly too self-explanatory but well, you've read it already so...)
+        x += 1
         frameCount += 1
 
         # dummy call, won't be checking for quit event here

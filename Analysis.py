@@ -82,22 +82,22 @@ def analyze(positionDatabase):
     # for TESTING ONLY
     
     levels = [position.level for position in positionDatabase]
-    TESTLEVELS = [18]*500 + [19] * 500
-    testEvals = [max(0, min(1, np.random.normal(loc = 0.5, scale = 0.2))) for i in range(len(TESTLEVELS))]
+    #TESTLEVELS = [18]*500 + [19] * 500
+    testEvals = [max(0, min(1, np.random.normal(loc = 0.5, scale = 0.2))) for i in range(len(levels))]
 
     # CALCULATE BRILLANCIES/BLUNDERS/ETC HERE. For now, test code
-    testFeedback = [AC.NONE] * len(TESTLEVELS)
+    testFeedback = [AC.NONE] * len(levels)
     for i in range(30):
-        testFeedback[random.randint(0,len(TESTLEVELS)-1)] = random.choice(list(AC.feedbackColors))
+        testFeedback[random.randint(0,len(levels)-1)] = random.choice(list(AC.feedbackColors))
 
     smallSize = 70
     bigResolution = 4
     width = 1300
-    smallGraph = EvalGraph.Graph(True, testEvals, TESTLEVELS, testFeedback, 950, 970, width, 200, 1, smallSize, bigRes = bigResolution)
-    bigWidth = width if len(TESTLEVELS) >= 200 else (width // 2)
-    showBig = len(TESTLEVELS) >= 50
+    smallGraph = EvalGraph.Graph(True, testEvals, levels, testFeedback, 950, 970, width, 200, 1, smallSize, bigRes = bigResolution)
+    bigWidth = width if len(levels) >= 200 else (width // 2) # Cut the big graph in half if there are under 200 positions
+    showBig = len(levels) >= 50 # If there are under 50 positions, don't show the big graph at all
     if showBig:
-        bigGraph = EvalGraph.Graph(False, testEvals, TESTLEVELS, testFeedback, 950, 1220, bigWidth, 200, bigResolution, smallSize)
+        bigGraph = EvalGraph.Graph(False, testEvals, levels, testFeedback, 950, 1220, bigWidth, 200, bigResolution, smallSize)
     greysurface = pygame.Surface([width, 200])
     greysurface.blit(images[STRIPES],[0,0])
     
@@ -105,8 +105,6 @@ def analyze(positionDatabase):
     wasPressed = False
 
     updatePosIndex = None
-
-    displayPosNum = 0
 
     while True:
 
@@ -142,19 +140,23 @@ def analyze(positionDatabase):
         # Left/Right Buttons
         if buttons.get(B_LEFT).clicked and analysisBoard.positionNum > 0:
             analysisBoard.updatePosition(analysisBoard.positionNum-1)
+            positionNum -= 1
             
         elif buttons.get(B_RIGHT).clicked and analysisBoard.positionNum < len(positionDatabase) - 1:
             analysisBoard.updatePosition(analysisBoard.positionNum+1)
+            positionNum += 1
 
 
         # Update Graphs
-        o = smallGraph.update(displayPosNum, mx,my, pressed, startPressed, click)
+        o = smallGraph.update(positionNum, mx,my, pressed, startPressed, click)
         if o != None:
-            displayPosNum = o
+            positionNum = o
+            analysisBoard.updatePosition(positionNum)
         if showBig:
-            o = bigGraph.update(displayPosNum, mx, my, pressed, startPressed, click)
+            o = bigGraph.update(positionNum, mx, my, pressed, startPressed, click)
             if o != None:
-                displayPosNum = o
+                positionNum = o
+                analysisBoard.updatePosition(positionNum)
         
         
             
@@ -185,9 +187,9 @@ def analyze(positionDatabase):
 
         # Evaluation Graph
         c.screen.blit(greysurface, [950, 1220])
-        smallGraph.display(mx,my, displayPosNum)
+        smallGraph.display(mx,my, positionNum)
         if showBig:
-            bigGraph.display(mx, my, displayPosNum)
+            bigGraph.display(mx, my, positionNum)
         
 
         # Eval bar
@@ -201,7 +203,7 @@ def analyze(positionDatabase):
         frameNum = analysisBoard.positionDatabase[analysisBoard.positionNum].frame
         if frameNum != None:
             text = c.fontbig.render(c.timestamp(frameNum), True, BLACK)
-            c.screen.blit(text, [550,400] )
+            c.screen.blit(text, [1000,600] )
 
         
         for event in pygame.event.get():

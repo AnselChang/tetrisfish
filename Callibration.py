@@ -48,6 +48,18 @@ images = loadImages("Images/Callibration/{}.png", CALLIBRATION_IMAGES)
 
 START_LEVELS = [9, 12, 15, 18, 19 ,29]
 
+TIMELINE_10_HZ = "X....."
+TIMELINE_11_HZ = "X.....X....X...."
+TIMELINE_12_HZ = "X...."
+TIMELINE_13_HZ = "X....X..."
+TIMELINE_13_5_HZ = "X....X...X..."
+TIMELINE_14_HZ = "X....X...X...X..."
+TIMELINE_15_HZ = "X..."
+TIMELINE_20_HZ = "X.."
+TIMELINE_30_HZ = "X."
+
+timeline = [TIMELINE_10_HZ,TIMELINE_11_HZ,TIMELINE_12_HZ,TIMELINE_13_HZ,TIMELINE_13_5_HZ,TIMELINE_14_HZ,TIMELINE_15_HZ,TIMELINE_20_HZ,TIMELINE_30_HZ]
+timelineNum = [10,11,12,13,13.5,14,15,20,30]
 # 1 is none, 2 is hovered, 3 is clicked
 levelImages = {}
 
@@ -226,7 +238,7 @@ class Bounds:
         
 
     # Draw the markings for detected minos.
-    def displayBounds(self, surface, nparray = None, minos = None):
+    def displayBounds(self, surface, nparray = None, minos = None, dy = 0):
 
         if self.doNotDisplay:
             return None
@@ -235,7 +247,7 @@ class Bounds:
             minos = self.getMinos(nparray)
         
         # draw Red bounds
-        pygame.draw.rect(surface, self.color, [self.x1, self.y1, self.x2-self.x1, self.y2-self.y1], width = 2)
+        pygame.draw.rect(surface, self.color, [self.x1, self.y1 + dy, self.x2-self.x1, self.y2-self.y1], width = 2)
 
         #  Draw cell callibration markers. Start on the center of the first cell
 
@@ -248,7 +260,7 @@ class Bounds:
                 
                 x = int(self.xlist[j] * c.SCALAR + c.VIDEO_X)
                 y = int(self.ylist[i] * c.SCALAR + c.VIDEO_Y)
-                pygame.draw.circle(surface, BRIGHT_GREEN if exists else BRIGHT_RED, [x,y], (r+2) if exists else r, width = (0 if exists else 1))
+                pygame.draw.circle(surface, BRIGHT_GREEN if exists else BRIGHT_RED, [x,y + dy], (r+2) if exists else r, width = (0 if exists else 1))
 
         return minos
 
@@ -375,14 +387,16 @@ def callibrate():
     SLIDER_SCALE = 0.6
     sliderImage = scaleImage(images[C_SLIDERF], SLIDER_SCALE)
     sliderImage2 = scaleImage(images[C_SLIDER2F], SLIDER_SCALE)
+    sliderImage3 = scaleImage(images[C_SLIDER], SLIDER_SCALE)
+    sliderImage4 = scaleImage(images[C_SLIDER2], SLIDER_SCALE)
 
-    rect = pygame.Surface([50,75])
+    rect = pygame.Surface([30,75])
     rect2 = rect.copy()
     rect.fill(WHITE)
     rect2.fill([193,193,193])
     
-    colorSlider = Slider(LEFT_X+2, 875, SW+30, c.COLOR_CALLIBRATION/255, rect, rect2)
-    zoomSlider = Slider(LEFT_X, 1060, SW, c.SCALAR - 0.5, images[C_SLIDER], images[C_SLIDER2])
+    colorSlider = Slider(LEFT_X+2, 875, SW+50, c.COLOR_CALLIBRATION/255, rect, rect2)
+    zoomSlider = Slider(LEFT_X, 1104, SW, c.SCALAR - 0.5, sliderImage3, sliderImage4)
     hzNum = 0
     hzSlider = HzSlider(LEFT_X  + 12, 203, SW, hzNum, sliderImage, sliderImage2)
 
@@ -480,7 +494,8 @@ def callibrate():
                 vcap.release()
 
                 # Exit callibration, initiate rendering with returned parameters
-                return vidFrame[LEFT_FRAME], vidFrame[RIGHT_FRAME], bounds, nextBounds
+                print("Hz num: ", timelineNum[hzNum])
+                return vidFrame[LEFT_FRAME], vidFrame[RIGHT_FRAME], bounds, nextBounds, LEVEL, timeline[hzNum]
 
         elif click:
             if bounds != None:

@@ -1,9 +1,11 @@
 import numpy as np
+import pygame, sys
 from PieceMasks import *
 import math
 import time
 import cProfile
 import os
+from colors import *
 
 
 from TetrisUtility import *
@@ -12,8 +14,39 @@ from RenderVideo import render
 from Analysis import analyze
 
         
-testing = True
-askFilePath = False # Testing, set to false if want to use same hardcoded filepath
+testing = False
+#askFilePath = True # Testing, set to false if want to use same hardcoded filepath
+
+# Open a pygame window where you can drag a video into. Returns the filepath of the video.
+def dragFile():
+    spr_file_text = c.font.render("Drag a valid video file here!", True, WHITE)
+    rect = spr_file_text.get_rect()
+
+    spr_file_image = None
+    spr_file_image_rect = None
+
+    while True:
+        
+        c.realscreen.fill(BLACK)
+        c.screen.fill(BLACK)
+        
+        c.screen.blit(spr_file_text, [c.SCREEN_WIDTH // 2 - rect.width // 2,c.SCREEN_HEIGHT // 2 - rect.height // 2])
+        
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+                return None
+            elif ev.type == pygame.DROPFILE:
+                
+                return str(ev.file)
+            
+            elif ev.type == pygame.VIDEORESIZE:
+                c.realscreen = pygame.display.set_mode(ev.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+
+        c.handleWindowResize()
+        pygame.display.update()
+    
 
 def main():
 
@@ -94,21 +127,14 @@ def main():
 
     else:
 
-        filename = "/Users/anselchang/Downloads/ruinspb.mp4"
+        import config as c
 
-        if askFilePath:
-        
-            while True:
-                filename = input("Enter a full filepath for the video: ").strip()
-                if os.path.isfile(filename):
-                    break
-                else:
-                    print("Invalid filepath.")
+        filename = dragFile()
+        if filename == None:
+            return
                 
         print(filename)
-
-        # Start pygame window and set filename
-        import config as c
+        
         c.filename = filename
         
         output = callibrate()
@@ -116,16 +142,16 @@ def main():
         if output == None:
             return # exit if pygame screen closed
         
-        firstFrame, lastFrame, bounds, nextBounds = output
-        print(bounds.x1,bounds.y1,bounds.x2,bounds.y2)
-        print(nextBounds.x1,nextBounds.y1,nextBounds.x2,nextBounds.y2)
-        print(firstFrame, lastFrame)
+        firstFrame, lastFrame, bounds, nextBounds, level, hz = output
+        print("Level: {}, hz: {}".format(level,hz))
 
         print("Successfully callibrated video.")
         
         
-        positionDatabase = render(firstFrame, lastFrame, bounds, nextBounds)
+        positionDatabase = render(firstFrame, lastFrame, bounds, nextBounds, level, hz)
         print("Num positions: ", len(positionDatabase))
+        for position in positionDatabase:
+            print(position.level)
         
         
 
