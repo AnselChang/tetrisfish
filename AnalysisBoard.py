@@ -63,7 +63,7 @@ def drawGeneralBoard(board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MARGIN, hov
     b_height = image.get_height() * B_SCALE*hscale
     b = pygame.transform.smoothscale(image, [b_width , b_height])
     
-    surf = pygame.Surface([b_width,int(b_height*percent)])
+    surf = pygame.Surface([b_width,int(b_height*percent)]).convert_alpha()
     
     surf.blit(b, [0,0])
 
@@ -77,12 +77,11 @@ def drawGeneralBoard(board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MARGIN, hov
             if mino != EMPTY:
                 surf.blit(minoImages[mino], [x,y])
             if (type(hover) != np.ndarray and mino != EMPTY and hover == True) or (type(hover) == np.ndarray and hover[r][c] == 1):
-                s = pygame.Surface([int(MINO_SIZE*minoScale),int(MINO_SIZE*minoScale)])
-                if mino != EMPTY:    
-                    s.fill(BLACK)
+                s = pygame.Surface([int(MINO_SIZE*minoScale),int(MINO_SIZE*minoScale)]).convert_alpha()
+                if mino != EMPTY:
+                    s.fill([0,0,0,80])
                 else:
-                    s.fill([100,100,100])
-                s.set_alpha(90)
+                    s.fill([50,50,50])
                 surf.blit(s, [x, y])
                 
             x += offset

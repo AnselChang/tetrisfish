@@ -117,7 +117,7 @@ class Graph:
         self.levelBounds = {}
         prevLevel = -1
         current = -1
-        for i in range(len(levels)):
+        for i in range(len(self.levels)):
             
             # transition to new level (or start level)
             if self.levels[i] != prevLevel and self.levels[i] in self.levelColors:
@@ -215,7 +215,7 @@ class Graph:
         self.intervalIndex =positionIndex // self.resolution
 
         # If nothing has changed in the display, don't recalculate and simply blit to save time
-        if False and self.dontUpdateBlit:
+        if False:
             HT.blit("graph", self.surf, [self.x,self.y])
             return
         

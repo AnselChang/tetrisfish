@@ -65,11 +65,6 @@ def analyze(positionDatabase):
     buttons.addImage(B_LEFT, images[LEFTARROW], 950, y, 0.3, margin = 5, alt = images[LEFTARROW2])
     buttons.addImage(B_RIGHT, images[RIGHTARROW], 1150, y, 0.3, margin = 5, alt = images[RIGHTARROW2])
 
-    # Fast-forward detailed display position buttons
-    y = 1010
-    buttons.addImage(B_MAXLEFT, images[LEFTARROW_MAX], 950, y, 0.3, margin = 5, alt = images[LEFTARROW2_MAX])
-    buttons.addImage(B_MAXRIGHT, images[RIGHTARROW_MAX], 2350, y, 0.3, margin = 5, alt = images[RIGHTARROW2_MAX])
-
     # Hypothetical positon navigation buttons
     x = 910
     y = 360
@@ -87,18 +82,24 @@ def analyze(positionDatabase):
     # for TESTING ONLY
     
     levels = [position.level for position in positionDatabase]
-    TESTLEVELS = [18]*300 + [19] * 200 + [29] * 100
+    TESTLEVELS = [18]*500 + [19] * 500
     testEvals = [max(0, min(1, np.random.normal(loc = 0.5, scale = 0.2))) for i in range(len(TESTLEVELS))]
 
     # CALCULATE BRILLANCIES/BLUNDERS/ETC HERE. For now, test code
     testFeedback = [AC.NONE] * len(TESTLEVELS)
-    for i in range(300):
+    for i in range(30):
         testFeedback[random.randint(0,len(TESTLEVELS)-1)] = random.choice(list(AC.feedbackColors))
 
-    smallSize = 60
+    smallSize = 70
     bigResolution = 4
-    smallGraph = EvalGraph.Graph(True, testEvals, TESTLEVELS, testFeedback, 1150, 970, 1150, 200, 1, smallSize, bigRes = bigResolution)
-    bigGraph = EvalGraph.Graph(False, testEvals, TESTLEVELS, testFeedback, 950, 1220, 1500, 200, bigResolution, smallSize)
+    width = 1300
+    smallGraph = EvalGraph.Graph(True, testEvals, TESTLEVELS, testFeedback, 950, 970, width, 200, 1, smallSize, bigRes = bigResolution)
+    bigWidth = width if len(TESTLEVELS) >= 200 else (width // 2)
+    showBig = len(TESTLEVELS) >= 50
+    if showBig:
+        bigGraph = EvalGraph.Graph(False, testEvals, TESTLEVELS, testFeedback, 950, 1220, bigWidth, 200, bigResolution, smallSize)
+    greysurface = pygame.Surface([width, 200])
+    greysurface.blit(images[STRIPES],[0,0])
     
 
     wasPressed = False
@@ -145,21 +146,15 @@ def analyze(positionDatabase):
         elif buttons.get(B_RIGHT).clicked and analysisBoard.positionNum < len(positionDatabase) - 1:
             analysisBoard.updatePosition(analysisBoard.positionNum+1)
 
-        # Max left/right button
-        if buttons.get(B_MAXLEFT).clicked and displayPosNum > 0:
-            displayPosNum = max(0, displayPosNum - bigGraph.intervalSize)
-            
-        elif buttons.get(B_MAXRIGHT).clicked and displayPosNum < len(smallGraph.evals) - 1:
-            displayPosNum = min(len(smallGraph.evals) - 1, displayPosNum + bigGraph.intervalSize)
-
 
         # Update Graphs
         o = smallGraph.update(displayPosNum, mx,my, pressed, startPressed, click)
         if o != None:
             displayPosNum = o
-        o = bigGraph.update(displayPosNum, mx, my, pressed, startPressed, click)
-        if o != None:
-            displayPosNum = o
+        if showBig:
+            o = bigGraph.update(displayPosNum, mx, my, pressed, startPressed, click)
+            if o != None:
+                displayPosNum = o
         
         
             
@@ -189,8 +184,11 @@ def analyze(positionDatabase):
         analysisBoard.draw()
 
         # Evaluation Graph
+        c.screen.blit(greysurface, [950, 1220])
         smallGraph.display(mx,my, displayPosNum)
-        bigGraph.display(mx, my, displayPosNum)
+        if showBig:
+            bigGraph.display(mx, my, displayPosNum)
+        
 
         # Eval bar
         HT.blit("eval", evalBar.drawEval(), [20,20])

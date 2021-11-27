@@ -13,6 +13,8 @@ from Analysis import analyze
 
         
 testing = True
+askFilePath = False # Testing, set to false if want to use same hardcoded filepath
+
 def main():
 
     if testing:
@@ -92,8 +94,6 @@ def main():
 
     else:
 
-        # Testing, set to false if want to use same hardcoded filepath
-        askFilePath = True
         filename = "/Users/anselchang/Downloads/ruinspb.mp4"
 
         if askFilePath:

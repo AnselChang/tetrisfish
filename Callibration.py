@@ -28,6 +28,8 @@ C_RENDER = "render"
 C_RENDER2 = "render2"
 C_SLIDER = "slider"
 C_SLIDER2 = "slider2"
+C_SLIDERF = "sliderflipped"
+C_SLIDER2F = "slider2flipped"
 
 C_LVIDEO = "leftvideo"
 C_LVIDEO2 = "leftvideo2"
@@ -39,10 +41,27 @@ C_RVIDEORED = "rightvideored"
 C_RVIDEORED2 = "rightvideored2"
 
 CALLIBRATION_IMAGES = [C_BACKDROP, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2]
-CALLIBRATION_IMAGES.extend( [C_PREVF, C_PREVF2, C_NEXTF, C_NEXTF2, C_RENDER, C_RENDER2, C_SLIDER, C_SLIDER2] )
+CALLIBRATION_IMAGES.extend( [C_PREVF, C_PREVF2, C_NEXTF, C_NEXTF2, C_RENDER, C_RENDER2, C_SLIDER, C_SLIDER2, C_SLIDERF, C_SLIDER2F] )
 CALLIBRATION_IMAGES.extend([ C_LVIDEO, C_LVIDEO2, C_RVIDEO, C_RVIDEO2 ])
 CALLIBRATION_IMAGES.extend([ C_LVIDEORED, C_LVIDEORED2, C_RVIDEORED, C_RVIDEORED2 ])
 images = loadImages("Images/Callibration/{}.png", CALLIBRATION_IMAGES)
+
+START_LEVELS = [9, 12, 15, 18, 19 ,29]
+
+# 1 is none, 2 is hovered, 3 is clicked
+levelImages = {}
+
+def getLevel(level, hover):
+    return levelImages["Lv{}_{}".format(level, hover)]
+
+brighten = 40
+for level in START_LEVELS:
+    levelImages["Lv{}_2".format(level)] = pygame.image.load("Images/Callibration/LevelButtons/Lv{}_1.png".format(level)).convert_alpha()
+    levelImages["Lv{}_1".format(level)] = getLevel(level,2).copy()
+    levelImages["Lv{}_1".format(level)].fill((brighten, brighten, brighten), special_flags=pygame.BLEND_RGB_ADD)
+    levelImages["Lv{}_3".format(level)] = pygame.image.load("Images/Callibration/LevelButtons/Lv{}_3.png".format(level)).convert_alpha()
+    
+
 
 # Image stuff
 #background = images[C_BACKDROP]
@@ -288,7 +307,7 @@ class Slider:
         return mx >= self.x and mx <= self.x+self.width and my  >= self.y and my <= self.y+self.height
 
     def draw(self,screen):
-        if self.hover:
+        if self.hover or self.active:
             if self.alternate:
                 screen.blit(self.imgr2, [self.x, self.y])
             else:
@@ -298,6 +317,15 @@ class Slider:
                 screen.blit(self.imgr1, [self.x, self.y])
             else:
                 screen.blit(self.img1, [self.x, self.y])
+
+
+class HzSlider(Slider):
+    
+    def adjust(self,mx):
+        INTERVAL = 86
+        loc = clamp(round((mx - self.leftx) / INTERVAL), 0, 9)
+        self.x = self.leftx + loc * INTERVAL
+        return loc
 
 
 # Initiates user-callibrated tetris field. Returns currentFrame, bounds, nextBounds for rendering
@@ -322,29 +350,44 @@ def callibrate():
     B_RIGHT = 6
 
     buttons = PygameButton.ButtonHandler()
-    buttons.addImage(B_CALLIBRATE, images[C_BOARD], 1724, 220, hydrantScale, img2 = images[C_BOARD2])
-    buttons.addImage(B_NEXTBOX, images[C_NEXT], 1724, 450, hydrantScale, img2 = images[C_NEXT2])
+    buttons.addImage(B_CALLIBRATE, images[C_BOARD], 1724, 380, hydrantScale, img2 = images[C_BOARD2])
+    buttons.addImage(B_NEXTBOX, images[C_NEXT], 1724, 600, hydrantScale, img2 = images[C_NEXT2])
     
-    buttons.addImage(B_PLAY, images[C_PLAY], 94,1377, hydrantScale, img2 = images[C_PLAY2], alt = images[C_PAUSE], alt2 = images[C_PAUSE2])
+    buttons.addImage(B_PLAY, images[C_PLAY], 134,1377, hydrantScale, img2 = images[C_PLAY2], alt = images[C_PAUSE], alt2 = images[C_PAUSE2])
 
-    buttons.addImage(B_LEFT, images[C_PREVF], 25, 1377, hydrantScale, img2 = images[C_PREVF2])
-    buttons.addImage(B_RIGHT, images[C_NEXTF], 147, 1377, hydrantScale, img2 = images[C_NEXTF2])
+    buttons.addImage(B_LEFT, images[C_PREVF], 45, 1377, hydrantScale, img2 = images[C_PREVF2])
+    buttons.addImage(B_RIGHT, images[C_NEXTF], 207, 1377, hydrantScale, img2 = images[C_NEXTF2])
     
     buttons.addImage(B_RENDER, images[C_RENDER], 1724, 1203, hydrantScale, img2 = images[C_RENDER2])
 
+    x = 1725
+    y = 75
+    dx = 128
+    for level in START_LEVELS:
+        buttons.addImage("level{}".format(level), getLevel(level, 1), x, y, hydrantScale, img2 = getLevel(level, 2), alt = getLevel(level, 3), alt2 = getLevel(level, 3))
+        x += dx
+
+    LEVEL = 18
     
     # Slider stuff
     SW = 680 # slider width
     LEFT_X = 1720
-    SLIDER_SCALE = 1
-    sliderImage = scaleImage(images[C_SLIDER], SLIDER_SCALE)
-    sliderImage2 = scaleImage(images[C_SLIDER2], SLIDER_SCALE)
-    
-    colorSlider = Slider(LEFT_X, 725, SW, c.COLOR_CALLIBRATION/255, sliderImage, sliderImage2)
-    zoomSlider = Slider(LEFT_X, 970, SW, c.SCALAR - 0.5, sliderImage, sliderImage2)
+    SLIDER_SCALE = 0.6
+    sliderImage = scaleImage(images[C_SLIDERF], SLIDER_SCALE)
+    sliderImage2 = scaleImage(images[C_SLIDER2F], SLIDER_SCALE)
 
-    SW2 = 1346
-    LEFT_X2 = 240
+    rect = pygame.Surface([50,75])
+    rect2 = rect.copy()
+    rect.fill(WHITE)
+    rect2.fill([193,193,193])
+    
+    colorSlider = Slider(LEFT_X+2, 875, SW+30, c.COLOR_CALLIBRATION/255, rect, rect2)
+    zoomSlider = Slider(LEFT_X, 1060, SW, c.SCALAR - 0.5, images[C_SLIDER], images[C_SLIDER2])
+    hzNum = 0
+    hzSlider = HzSlider(LEFT_X  + 12, 203, SW, hzNum, sliderImage, sliderImage2)
+
+    SW2 = 1090
+    LEFT_X2 = 497
     Y = 1377
     leftVideoSlider = Slider(LEFT_X2, Y, SW2, 0, scaleImage(images[C_LVIDEO],hydrantScale), scaleImage(images[C_LVIDEO2],hydrantScale),
                                                                                                         scaleImage(images[C_LVIDEORED], hydrantScale), scaleImage(images[C_LVIDEORED2], hydrantScale) )
@@ -357,6 +400,8 @@ def callibrate():
     vidFrame[LEFT_FRAME] = 0
     vidFrame[RIGHT_FRAME] = c.totalFrames - 1
     currentEnd = LEFT_FRAME
+    rightVideoSlider.setAlt(False)
+    leftVideoSlider.setAlt(True)
 
     previousFrame = -1
 
@@ -397,9 +442,8 @@ def callibrate():
         startPress = isPressed and not wasPressed
         buttons.updatePressed(mx,my,click)
 
-
-        if buttons.get(B_PLAY).clicked:
-            
+        b = buttons.get(B_PLAY)
+        if b.clicked:
             b.isAlt = not b.isAlt
 
         if b.isAlt or buttons.get(B_RIGHT).clicked and vidFrame[currentEnd] < c.totalFrames - 1:
@@ -457,12 +501,25 @@ def callibrate():
             if isArray(x):
                 minosNext = x
 
+        # update button presses
+        for level in START_LEVELS:
+            b = buttons.get("level{}".format(level))
+            if b.clicked:
+                LEVEL = level
+            if level == LEVEL:
+                b.isAlt = True
+            else:
+                b.isAlt = False
+
+        
+
         # Draw buttons
         buttons.display(c.screen)
 
         # Draw sliders
         c.COLOR_CALLIBRATION = 150*colorSlider.tick(c.screen, c.COLOR_CALLIBRATION/150, startPress, isPressed, mx, my)
         c.SCALAR = 0.5 + zoomSlider.tick(c.screen, c.SCALAR-0.5, startPress, isPressed, mx, my)
+        hzNum = hzSlider.tick(c.screen, hzNum, startPress, isPressed, mx, my)
         
         # Draw video bounds sliders
         vidFrame[RIGHT_FRAME] = rightVideoSlider.tick(c.screen, vidFrame[RIGHT_FRAME] / (c.totalFrames-1), startPress, isPressed, mx, my,True)
@@ -485,8 +542,8 @@ def callibrate():
 
 
         # Draw timestamp
-        text = c.fontbig.render(c.timestamp(vidFrame[currentEnd]), True, WHITE)
-        c.screen.blit(text, [1830,88] )
+        text = c.font.render(c.timestamp(vidFrame[currentEnd]), True, WHITE)
+        c.screen.blit(text, [300, 1383] )
         
 
         # Draw error message

@@ -171,7 +171,7 @@ def lineClear(array):
 def loadImages(fileFormat, nameList):
     images = {}
     for name in nameList:
-        images[name] = pygame.image.load(fileFormat.format(name))
+        images[name] = pygame.image.load(fileFormat.format(name)).convert_alpha()
         assert(images[name] != None)
     return images
 
