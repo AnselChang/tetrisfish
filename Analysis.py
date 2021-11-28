@@ -43,9 +43,19 @@ def analyze(positionDatabase):
     print("START ANALYSIS")
 
 
+    IMAGE_NAMES = [BOARD, CURRENT, NEXT, PANEL]
+    IMAGE_NAMES.extend( [LEFTARROW, RIGHTARROW, LEFTARROW2, RIGHTARROW2, STRIPES ])
+    IMAGE_NAMES.extend( [LEFTARROW_MAX, RIGHTARROW_MAX, LEFTARROW2_MAX, RIGHTARROW2_MAX] )
+
     # Load all images.
     images = loadImages("Images/Analysis/{}.png", IMAGE_NAMES)
-    AnalysisBoard.init(images)
+
+    bigMinoImages = []
+    # Load mino images for all levels
+    for i in range(0,10):
+        bigMinoImages.append(loadImages("Images/Analysis/Minos/" + str(i) + "/{}.png", MINO_COLORS))
+    
+    AnalysisBoard.init(images, bigMinoImages)
 
     evalBar = EvalBar()
 
@@ -93,11 +103,15 @@ def analyze(positionDatabase):
     smallSize = 70
     bigResolution = 4
     width = 1300
-    smallGraph = EvalGraph.Graph(True, testEvals, levels, testFeedback, 950, 970, width, 200, 1, smallSize, bigRes = bigResolution)
-    bigWidth = width if len(levels) >= 200 else (width // 2) # Cut the big graph in half if there are under 200 positions
-    showBig = len(levels) >= 50 # If there are under 50 positions, don't show the big graph at all
-    if showBig:
-        bigGraph = EvalGraph.Graph(False, testEvals, levels, testFeedback, 950, 1220, bigWidth, 200, bigResolution, smallSize)
+
+    # Graph only accepts a minimum of 4 positions, otherwise interpolation doesn't work
+    showGraphs = (len(levels) >= 4)
+    if showGraphs:
+        smallGraph = EvalGraph.Graph(True, testEvals, levels, testFeedback, 950, 970, width, 200, 1, smallSize, bigRes = bigResolution)
+        bigWidth = width if len(levels) >= 200 else (width // 2) # Cut the big graph in half if there are under 200 positions
+        showBig = len(levels) >= 50 # If there are under 50 positions, don't show the big graph at all
+        if showBig:
+            bigGraph = EvalGraph.Graph(False, testEvals, levels, testFeedback, 950, 1220, bigWidth, 200, bigResolution, smallSize)
     greysurface = pygame.Surface([width, 200])
     greysurface.blit(images[STRIPES],[0,0])
     
@@ -148,15 +162,16 @@ def analyze(positionDatabase):
 
 
         # Update Graphs
-        o = smallGraph.update(positionNum, mx,my, pressed, startPressed, click)
-        if o != None:
-            positionNum = o
-            analysisBoard.updatePosition(positionNum)
-        if showBig:
-            o = bigGraph.update(positionNum, mx, my, pressed, startPressed, click)
+        if showGraphs:
+            o = smallGraph.update(positionNum, mx,my, pressed, startPressed, click)
             if o != None:
                 positionNum = o
                 analysisBoard.updatePosition(positionNum)
+            if showBig:
+                o = bigGraph.update(positionNum, mx, my, pressed, startPressed, click)
+                if o != None:
+                    positionNum = o
+                    analysisBoard.updatePosition(positionNum)
         
         
             
@@ -186,18 +201,25 @@ def analyze(positionDatabase):
         analysisBoard.draw()
 
         # Evaluation Graph
+        c.screen.blit(greysurface, [950, 970])
         c.screen.blit(greysurface, [950, 1220])
-        smallGraph.display(mx,my, positionNum)
-        if showBig:
-            bigGraph.display(mx, my, positionNum)
+        if showGraphs:
+            smallGraph.display(mx,my, positionNum)
+            if showBig:
+                bigGraph.display(mx, my, positionNum)
         
 
         # Eval bar
         HT.blit("eval", evalBar.drawEval(), [20,20])
 
+        # Text for level / lines / score
+        c.screen.blit(c.fontbig.render("Level: {}".format(analysisBoard.position.level), True, BLACK), [1300, 20])
+        c.screen.blit(c.fontbig.render("Lines: {}".format(analysisBoard.position.lines), True, BLACK), [1300, 120])
+        c.screen.blit(c.fontbig.render("Score: {}".format(analysisBoard.position.score), True, BLACK), [1300, 220])
+
         # Text for position number
         text = c.fontbig.render("Position: {}".format(analysisBoard.positionNum + 1), True, BLACK)
-        c.screen.blit(text, [1200,700])
+        c.screen.blit(text, [1300,700])
 
         # Draw timestamp
         frameNum = analysisBoard.positionDatabase[analysisBoard.positionNum].frame

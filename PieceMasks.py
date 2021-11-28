@@ -226,27 +226,16 @@ STRIPES = "stripes"
 EMPTY = 0
 WHITE_MINO = 1
 WHITE_MINO_2 = 4
-RED_MINO = 2
-BLUE_MINO = 3
-minoColors = [WHITE_MINO, WHITE_MINO_2, RED_MINO, BLUE_MINO]
-IMAGE_NAMES = [WHITE_MINO, WHITE_MINO_2, RED_MINO, BLUE_MINO, BOARD, CURRENT, NEXT, PANEL]
-IMAGE_NAMES.extend( [LEFTARROW, RIGHTARROW, LEFTARROW2, RIGHTARROW2, STRIPES ])
-IMAGE_NAMES.extend( [LEFTARROW_MAX, RIGHTARROW_MAX, LEFTARROW2_MAX, RIGHTARROW2_MAX] )
+FIRST_MINO = 3
+SECOND_MINO = 2
+MINO_COLORS = [WHITE_MINO, WHITE_MINO_2, FIRST_MINO, SECOND_MINO]
 
 
 def colorMinos(minos, piece, white2 = False):
 
-    num = 1
+    num = colorOfPiece(piece)
 
-    if piece == L_PIECE or piece == Z_PIECE:
-        # Red tetronimo
-        num = RED_MINO
-    
-    elif piece == J_PIECE or piece == S_PIECE:
-        #Blue tetronimo
-        num = BLUE_MINO
-
-    elif white2:
+    if num == WHITE_MINO and white2:
         num = WHITE_MINO_2
 
     return [[i*num for i in row] for row in minos]
@@ -254,10 +243,10 @@ def colorMinos(minos, piece, white2 = False):
 def colorOfPiece(piece):
 
     if piece == L_PIECE or piece == Z_PIECE:
-        return RED_MINO
+        return SECOND_MINO
     
     elif piece == J_PIECE or piece == S_PIECE:
-        return BLUE_MINO
+        return FIRST_MINO
     elif piece == NO_PIECE:
         return EMPTY
     else:

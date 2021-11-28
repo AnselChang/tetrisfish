@@ -118,12 +118,39 @@ def main():
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
         ])
+        testplacement3 = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+        ])
 
         from Position import Position
         import config
         
-        positionDatabase = [Position(testboard, S_PIECE, S_PIECE, placement = testplacement, evaluation = 0.2)]
-        positionDatabase.append(Position(testboard+testplacement, I_PIECE, L_PIECE, placement = testplacement2, evaluation = 0.7))
+        positionDatabase = [Position(testboard, S_PIECE, S_PIECE, placement = testplacement, evaluation = 0.2,
+                                     level = 20, lines = 0, currLines = 0, transition = 10, score = 0)]
+        positionDatabase.append(Position(testboard+testplacement, I_PIECE, I_PIECE, placement = testplacement2,
+                                         evaluation = 0.7, level = 22, lines = 0, currLines = 0, transition = 10, score = 0))
+        positionDatabase.append(Position(testboard+testplacement+testplacement2, I_PIECE, L_PIECE,
+                                         placement = testplacement3, evaluation = 0.6, level = 26, lines = 2, currLines = 9,
+                                         transition = 10, score = 1500))
 
     else:
 

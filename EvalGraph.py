@@ -98,6 +98,7 @@ class Graph:
         
         x = [self.HORI_PADDING + i * self.dist for i in range(len(self.evals))]
         self.right = x[-1]
+        print(self.evals)
         self.f = interpolate.interp1d(x, self.evals, kind = 'cubic')
 
         self.points = []

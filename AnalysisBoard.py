@@ -13,6 +13,7 @@ MINO_OFFSET = 8 # Pixel offset between each mino
 PANEL_MINO_SCALE = 0.5
 
 images = None
+bigMinoImages = None
 
 # To be displayed on panel. Each number represents tetronimo type in PieceMasks.py
 # NONE = 7, I = 0, L = 1, Z = 2, S = 3, J = 4, T = 5, O = 6
@@ -34,27 +35,31 @@ EMPTY_PANEL = empty(rows = len(panelArray), cols = len(panelArray[0]))
 
 # Cache a 2d array of panel colors as well
 panelColors = colorOfPieces(panelArray)
-smallMinoImages = {}
+smallMinoImages = []
 
 
-def init(imagesParam):
-    global images, smallMinoImages
+def init(imagesParam, bigMinoImgs):
+    global images, smallMinoImages, bigMinoImages
     images = imagesParam
+    bigMinoImages = bigMinoImgs
     
-    # Cache "small" variants of minos
-    for minoColor in minoColors:
-        smallMinoImages[minoColor] = scaleImage(images[minoColor], PANEL_MINO_SCALE)
-
+    # Cache "small" variants of minos. both bigMinoImages and smallMinoImages will be a list of dictionaries.
+    for i in range(0,10):
+        smallMinoImages.append({name : scaleImage(image, PANEL_MINO_SCALE) for (name, image) in bigMinoImages[i].items()})
 
 # Return surface with tetris board. 0 = empty, 1/-1 =  white, 2/-2 = red, 3/-3 = blue, negative = transparent
 # Used for: main tetris board, next box, next box piece selection panel
-def drawGeneralBoard(board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MARGIN, hover = None, small = False, percent = 1):
+def drawGeneralBoard(level, board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MARGIN, hover = None, small = False, percent = 1):
+
+    
+    # colors are same for all levels with same last digit
+    level = level % 10
 
     if small:
-        minoImages = smallMinoImages
+        minoImages = smallMinoImages[level]
         minoScale = PANEL_MINO_SCALE
     else:
-        minoImages = images
+        minoImages = bigMinoImages[level]
         minoScale = 1
 
     offset = int(minoScale * (MINO_SIZE + MINO_OFFSET))
@@ -237,16 +242,16 @@ class PieceBoard:
 
 
     # Blit surface from current/next box to screen
-    def blit(self):
+    def blit(self, level):
 
         minos = colorMinos(TETRONIMO_SHAPES[self.piece][0][1:], self.piece)
-        board = drawGeneralBoard(minos, self.image, self.IMAGE_SCALE, 1, self.xPieceOffset, self.yPieceOffset, hover = self.hover)
+        board = drawGeneralBoard(level, minos, self.image, self.IMAGE_SCALE, 1, self.xPieceOffset, self.yPieceOffset, hover = self.hover)
         HT.blit(self.ID, board, [self.offsetx, self.offsety])
 
         if self.panelPercent > 0.01:
 
             # Draw pieces onto panel
-            surf = drawGeneralBoard(panelColors,images[PANEL], self.IMAGE_SCALE, 1, 56, 22, small = True, percent = self.panelPercent, hover = self.panelHover)
+            surf = drawGeneralBoard(level, panelColors,images[PANEL], self.IMAGE_SCALE, 1, 56, 22, small = True, percent = self.panelPercent, hover = self.panelHover)
 
             # Blit panel onto screen
             HT.blit("panel", surf, [self.offsetx,self.offsety + self.image.get_height()*self.IMAGE_SCALE - 2])
@@ -332,7 +337,8 @@ class AnalysisBoard:
     # Create a duplicate version of the original position, so that the new version is modifiable (to retain original position data)
     def startHypothetical(self):
         print("new hypothetical")
-        self.position.next = Position(self.position.board.copy(), self.position.currentPiece, self.position.nextPiece)
+        self.position.next = Position(self.position.board.copy(), self.position.currentPiece, self.position.nextPiece, level = self.position.level,
+                                      lines = self.position.lines, currLines = self.position.currLines, transition = self.position.transition, score = self.position.score)
         self.position.next.prev = self.position
         self.position = self.position.next
 
@@ -350,11 +356,24 @@ class AnalysisBoard:
         self.position.placement = self.hover.copy()
 
         # Calculate resulting position after piece placement and line claer
-        newBoard = lineClear(self.position.board + self.hover)
-        
+        newBoard, addLines = lineClear(self.position.board + self.hover)
+
+        # Update lines and levels
+        totalLines = self.position.lines + addLines
+        currLines = self.position.currLines + addLines
+        transition = self.position.transition
+        level = self.position.level
+        score = self.position.score
+        if currLines >= transition:
+            currLines -= transition
+            transition = 10
+            level += 1
+        if addLines > 0:
+            score += getScore(level, addLines) # Increment score. cruicial this is done after level update, as in the original NES
 
         # Create a new position after making move. Store a refererence to current position as previous node
-        self.position.next = Position(newBoard, self.position.nextPiece, randomPiece())
+        self.position.next = Position(newBoard, self.position.nextPiece, randomPiece(), level = level, lines = totalLines,
+                                      currLines = currLines, transition = transition, score = score)
         self.position.next.prev = self.position
         self.position = self.position.next
         
@@ -376,7 +395,6 @@ class AnalysisBoard:
         newPiece = self.nextBox.updateBoard(mx, my, click)
 
         if newPiece != None:
-            print("updating new piece")
             
             if self.position.prev == None:
                 self.startHypothetical()
@@ -542,6 +560,7 @@ class AnalysisBoard:
     # Draw tetris board to screen
     def draw(self):
 
+
         curr = self.position.currentPiece
 
         # We add current piece to the board
@@ -560,8 +579,8 @@ class AnalysisBoard:
         else:
             board += placement
         
-        surf = drawGeneralBoard(board, images[BOARD], 1.294, 0.995, self.xoffset, self.yoffset, hover = self.hover)
+        surf = drawGeneralBoard(self.position.level, board, images[BOARD], 1.294, 0.995, self.xoffset, self.yoffset, hover = self.hover)
         HT.blit("tetris", surf ,[self.x,self.y])
 
-        self.nextBox.blit()
+        self.nextBox.blit(self.position.level)
         

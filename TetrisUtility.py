@@ -41,6 +41,13 @@ def isArray(arr):
 def rang(r,c1, rmax = 20, cmax = 10):
     return r >= 0 and r < rmax and c1 >= 0 and c1 < cmax
 
+# Calculate the score for scoring lines (1-4) on a specified level
+scoreRatio = {1 : 40, 2 : 100, 3 : 300, 4 : 1200}
+def getScore(level, lines):
+    assert (1 <= lines <= 4)
+    assert(level >= 0)
+    return scoreRatio[lines] * (level + 1)
+
 # generate 20x10 mask of 2x4 piece translated by row and col
 def stamp(piece, row,col, rot = 0):
     
@@ -166,7 +173,7 @@ def lineClear(array):
     
     assert(len(newBoard) == 20)
 
-    return newBoard
+    return newBoard, numFilled
 
 def loadImages(fileFormat, nameList):
     images = {}

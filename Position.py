@@ -5,7 +5,8 @@ from TetrisUtility import print2d
 # Store a complete postion, including both frames, the current piece, and lookahead. (eventually evaluation as well)
 class Position:
 
-    def __init__(self, board, currentPiece, nextPiece, placement = None, evaluation = None, frame = None, level = None):
+    def __init__(self, board, currentPiece, nextPiece, placement = None, evaluation = None, frame = None,
+                 level = None, lines = None, currLines = None, transition = None, score = None):
         print("created")
         self.board = board
         self.currentPiece = currentPiece
@@ -13,6 +14,10 @@ class Position:
         self.placement = placement # the final placement for the current piece. 2d binary array (mask)
 
         self.level = level
+        self.lines = lines
+        self.currLines = currLines
+        self.transition = transition
+        self.score = score
 
         self.frame = None
 
