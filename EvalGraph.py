@@ -268,7 +268,7 @@ class Graph:
 
         # Graph feedback dots. Only show blunders in overall graph
         for fb, x, y in self.feedbackList:
-            if fb == AC.BLUNDER or self.isDetailed:
+            if self.isDetailed or fb == AC.BLUNDER or fb == AC.BEST or fb == AC.RAPID:
                 selected = (x == cx) and self.hovering
                 pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.8 if selected else 0.9), [x,y], FEEDBACK_RADIUS * (1.2 if selected else 1))
                 if selected:

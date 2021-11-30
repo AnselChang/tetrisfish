@@ -108,13 +108,21 @@ def analyze(positionDatabase, hzInt):
     for i in range(len(positionDatabase)):
         p = positionDatabase[i]
         if p.ratherRapid and p.playerFinal > p.bestFinal:
-            feedback[i] = AC.BRILLIANCY # rather rapid
-        elif p.playerFinal >= p.bestFinal - 2:
-            feedback[i] = AC.BEST # best move within 2 units
-        elif p.playerFinal <= p.bestFinal - 20: # blunder if move is 20+ units below best move
+            feedback[i] = AC.RAPID # rather rapid
+        elif p.playerFinal <= p.bestFinal - 25:
             feedback[i] = AC.BLUNDER
-        elif p.playerFinal <= p.bestFinal - 12: # mistake if move is 12+ units below best move
+        elif p.playerFinal <= p.bestNNB - 15:
+            feedback[i] = AC.MISTAKE
+        elif p.playerFinal <= p.bestNNB - 7 or p.playerFinal <= p.bestFinal - 15:
             feedback[i] = AC.INACCURACY
+        elif p.playerFinal < p.bestNNB - 3:
+            pass # decent move
+        elif p.playerFinal >= p.bestNNB - 3 and p.playerFinal >= p.bestFinal - 5:
+            feedback[i] = AC.EXCELLENT
+        elif p.playerFinal >= p.bestNNB - 0.5 and p.playerFinal >= p.bestFinal - 5:
+            feedback[i] = AC.BEST
+            
+        
             
             
 
@@ -241,6 +249,7 @@ def analyze(positionDatabase, hzInt):
         c.screen.blit(c.fontbig.render("bestFinal: {}".format(analysisBoard.position.bestFinal), True, BLACK), [1300, 660])
         c.screen.blit(c.fontbig.render("RatherRapid: {}".format(analysisBoard.position.ratherRapid), True, BLACK), [1300, 760])
         c.screen.blit(c.fontbig.render("{} Hz Analysis".format(hzInt), True, BLACK), [1900, 120])
+        c.screen.blit(c.fontbig.render(AC.feedbackString[feedback[positionNum]], True, feedbackColor), [1900, 220])
 
         # Text for position number
         text = c.fontbig.render("Position: {}".format(analysisBoard.positionNum + 1), True, BLACK)
