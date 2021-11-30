@@ -60,6 +60,14 @@ def evaluate(position, x_and_dots):
     except Exception as e:
         traceback.print_exc()
         print(number, e, type(e))
+
+def getJson(url):
+    # try request up to 3 times for internet connection things
+    for i in range(3):
+        try:
+            return requests.get(url).json()
+        except:
+            print("Internet connection attempt {}/3 failed".format(i))
         
     
 def makeAPICall(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots):
@@ -67,7 +75,7 @@ def makeAPICall(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots):
     url = "https://stackrabbit.herokuapp.com/rate-move-nb/{}/{}/{}/{}/{}/{}/0/0/0/0/21/{}/false".format(
         b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots)
     print(url)
-    json = requests.get(url).json()
+    json = getJson(url)
     #print(r.status_code)
 
     
@@ -82,7 +90,7 @@ def makeAPICall(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots):
         url = "https://stackrabbit.herokuapp.com/rate-move-nb/{}/{}/{}/{}/{}/{}/0/0/0/0/21/{}/false".format(
         b1Str, b2Str, currStr, nextStr, level, lines, TIMELINE_30_HZ)
         print("url 2 ", url)
-        json = requests.get(url).json()
+        json = getJson(url)
         playerNNB, playerFinal = float(json['playerMoveNoAdjustment']), float(json['playerMoveAfterAdjustment'])
         rapid = True
 

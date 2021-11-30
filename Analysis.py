@@ -105,8 +105,48 @@ def analyze(positionDatabase, hzInt):
     #    testFeedback[random.randint(0,len(levels)-1)] = random.choice(list(AC.feedbackColors))
 
     feedback = [AC.NONE] * len(levels)
+    adjustment = [AC.NONE] * len(levels)
     for i in range(len(positionDatabase)):
         p = positionDatabase[i]
+        if levels[i] <= 18:
+            k = 0.66 # weight of NNB vs weight of adjusted
+        elif levels[i] < 29:
+            k = 0.8
+        else:
+            k = 1
+
+        e = (p.playerNNB - p.bestNNB) * k + (p.playerFinal - p.bestFinal) * (1-k)
+        p.e = e
+        if e >= -2 or p.playerFinal >= p.bestFinal - 2:
+            if p.ratherRapid:
+                feedback[i] = AC.RAPID
+            else:
+                feedback[i] = AC.BEST
+        elif e >= -5 or p.playerFinal >= p.bestFinal - 5:
+            feedback[i] = AC.EXCELLENT
+        elif e >= -13 or p.playerFinal >= p.bestFinal - 13:
+            feedback[i] = AC.NONE
+        elif e  >= -22:
+            feedback[i] = AC.INACCURACY
+        elif e >= -35:
+            feedback[i] = AC.MISTAKE
+        else:
+            feedback[i] = AC.BLUNDER
+
+        f = -1
+        if p.bestNNB - p.playerNNB < 10 and k != -1: # NONE or higher
+            f = p.bestFinal - p.playerFinal
+            if f >= 20:
+                adjustment[i] = AC.MAJOR_MISSED
+            elif f >= 10:
+                adjustment[i] = AC.MINOR_MISSED
+        p.f = f
+            
+
+        
+        
+        
+        """
         if p.ratherRapid and p.playerFinal > p.bestFinal:
             feedback[i] = AC.RAPID # rather rapid
         elif p.playerNNB <= p.bestNNB - 40:
@@ -116,11 +156,10 @@ def analyze(positionDatabase, hzInt):
         elif p.playerNNB <= p.bestNNB - 7 or p.playerFinal <= p.bestFinal - 20:
             feedback[i] = AC.INACCURACY
 
-        
-        if p.playerFinal >= p.bestFinal - 10 or (p.playerFinal >= p.bestFinal - 15 and p.playerNNB >= p.bestNNB - 5):
-            feedback[i] = AC.EXCELLENT
-        elif p.playerFinal >= p.bestFinal - 5:
+        if p.playerFinal >= p.bestFinal - 5:
             feedback[i] = AC.BEST
+        elif p.playerFinal >= p.bestFinal - 10 or (p.playerFinal >= p.bestFinal - 15 and p.playerNNB >= p.bestNNB - 5):
+            feedback[i] = AC.EXCELLENT"""
             
         
             
@@ -213,7 +252,7 @@ def analyze(positionDatabase, hzInt):
 
         currPos = analysisBoard.position
         feedbackColor = AC.feedbackColors[feedback[positionNum]]
-        evalBar.tick(currPos.evaluation, feedbackColor)
+        evalBar.tick(positionDatabase[positionNum].evaluation, feedbackColor)
 
 
         # --- [ DISPLAY ] ---
@@ -252,6 +291,8 @@ def analyze(positionDatabase, hzInt):
         c.screen.blit(c.fontbig.render("RatherRapid: {}".format(analysisBoard.position.ratherRapid), True, BLACK), [1300, 760])
         c.screen.blit(c.fontbig.render("{} Hz Analysis".format(hzInt), True, BLACK), [1900, 120])
         c.screen.blit(c.fontbig.render(AC.feedbackString[feedback[positionNum]], True, feedbackColor), [1900, 220])
+        c.screen.blit(c.fontbig.render(AC.adjustmentString[adjustment[positionNum]], True, BRIGHT_RED if adjustment[positionNum] = AC.MAJOR_MISSED else YELLOW), [1900, 320])
+        c.screen.blit(c.fontbig.render("e: {}".format(positionDatabase[positionNum].e), True, BLACK), [1900, 420])
 
         # Text for position number
         text = c.fontbig.render("Position: {}".format(analysisBoard.positionNum + 1), True, BLACK)

@@ -204,6 +204,7 @@ def main():
         print("Level: {}, hz: {}".format(level,hz))
 
         print("Successfully callibrated video.")
+        print("First, last:", firstFrame, lastFrame)
         
         
         positionDatabase = render(firstFrame, lastFrame, bounds, nextBounds, level, hz)

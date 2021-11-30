@@ -253,7 +253,7 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
 
     startTime = time.time()
 
-    while frameCount  <= lastFrame:
+    while frameCount  <= lastFrame - firstFrame:
 
         # read frame sequentially
         ret, frame = vcap.read()
