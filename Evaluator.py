@@ -1,4 +1,4 @@
-import requests
+import requests, traceback
 import config as c
 from PieceMasks import *
 from numpy import ndarray
@@ -20,42 +20,48 @@ def evaluate(position, x_and_dots):
     
     print("Start eval ", number)
 
-    #print(x_and_dots)
+    try:
 
-    """printBoard = self.position.board + (2 * self.position.placement)
-    for row in printBoard:
-        print(row)"""
+        #print(x_and_dots)
 
-    def toStr(arr):
-        return "".join(map(str,arr.ravel().astype(int)))
+        """printBoard = self.position.board + (2 * self.position.placement)
+        for row in printBoard:
+            print(row)"""
 
-    b1Str = toStr(position.board)
-    b2Str = toStr(lineClear(position.board + position.placement)[0])
-    currStr = TETRONIMO_LETTER[position.currentPiece]
-    nextStr = TETRONIMO_LETTER[position.nextPiece]
+        def toStr(arr):
+            return "".join(map(str,arr.ravel().astype(int)))
 
-    # API calls only work for 18/19/29 starts. Need to do manual conversion for lower starts.
-    if position.level >= 29:
-        level = 29
-        lines = 0
-    elif position.level >= 18:
-        level = position.level
-        trans = 130 + (position.level - 18)
-        lines = max(min(trans - 1, position.lines), trans - 10)
-    else:
-        level = 18
-        lines = 0
+        b1Str = toStr(position.board)
+        b2Str = toStr(lineClear(position.board + position.placement)[0])
+        currStr = TETRONIMO_LETTER[position.currentPiece]
+        nextStr = TETRONIMO_LETTER[position.nextPiece]
 
-        # For levels lower than 18 speeds, just assume 30hz movement (unlimited piece range)
-        if position.level < 16:
-            x_and_dots = TIMELINE_30_HZ
+        # API calls only work for 18/19/29 starts. Need to do manual conversion for lower starts.
+        if position.level >= 29:
+            level = 29
+            lines = 0
+        elif position.level >= 18:
+            level = position.level
+            trans = 130 + (position.level - 18)
+            lines = max(min(trans - 1, position.lines), trans - 10)
+        else:
+            level = 18
+            lines = 0
+
+            # For levels lower than 18 speeds, just assume 30hz movement (unlimited piece range)
+            if position.level < 16:
+                x_and_dots = TIMELINE_30_HZ
+        
+        result = makeAPICall(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots)
+        print("Finish eval ", number)
+        position.setEvaluation(*result)
+        print("Set eval ", number)
+
+    except Exception as e:
+        traceback.print_exc()
+        print(number, e, type(e))
+        
     
-    result = makeAPICall(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots)
-    print("Finish eval ", number)
-    position.setEvaluation(*result)
-    print("Set eval ", number)
-    
-
 def makeAPICall(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots):
     
     url = "https://stackrabbit.herokuapp.com/rate-move-nb/{}/{}/{}/{}/{}/{}/0/0/0/0/21/{}/false".format(
@@ -72,13 +78,15 @@ def makeAPICall(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots):
         playerFinal = float(playerFinal)
         rapid = False
     except: # Player made a move faster than inputted hz. In this case, compare with 30hz StackRabbit and determine whether "rather rapid" should be awarded
+        print("rapid")
         url = "https://stackrabbit.herokuapp.com/rate-move-nb/{}/{}/{}/{}/{}/{}/0/0/0/0/21/{}/false".format(
         b1Str, b2Str, currStr, nextStr, level, lines, TIMELINE_30_HZ)
+        print("url 2 ", url)
         json = requests.get(url).json()
         playerNNB, playerFinal = float(json['playerMoveNoAdjustment']), float(json['playerMoveAfterAdjustment'])
         rapid = True
 
-    return playerNNB, playerFinal, bestNNB, bestFinal, rapid
+    return playerNNB, playerFinal, bestNNB, bestFinal, rapid, url
     
 
     

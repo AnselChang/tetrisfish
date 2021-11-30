@@ -181,10 +181,12 @@ def analyze(positionDatabase, hzInt):
         if buttons.get(B_LEFT).clicked and analysisBoard.positionNum > 0:
             analysisBoard.updatePosition(analysisBoard.positionNum-1)
             positionNum -= 1
+            print(analysisBoard.position.url)
             
         elif buttons.get(B_RIGHT).clicked and analysisBoard.positionNum < len(positionDatabase) - 1:
             analysisBoard.updatePosition(analysisBoard.positionNum+1)
             positionNum += 1
+            print(analysisBoard.position.url)
 
 
         # Update Graphs

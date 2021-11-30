@@ -82,17 +82,35 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
                                                lines = totalLineClears, currLines = lineClears, transition = transition, score = score ))
 
         return [False, 0, finalCount] # not line clear
-        
-    elif not isLineClear and count == prevCount + 4:
+
+    elif not isLineClear and (count == prevCount + 2 or count == prevCount + 3 or count == prevCount + 4):
         """ If there was no drop in the number of filled squares to detect a line clear, and
         instead, there is an increase of 4 filled squares, this means there was no line clear
         at all, and the frame with the filled square increase is the initial frame of the next piece.
         The frame before this one will yield the final position of the previous piece. """
         #print("Framecount:", frameCount)
 
+        # Two possibilities: longbar spin on first rotation, or longbar spawn +4, spin -2, then drop +2 again. Latter does not count as new piece
+        # fucking cursed code due to weird video frame shit
+        if count == prevCount + 2:
+            # We check for all the possible half-longbar spawns. If none of these are the case, it's a false start and we break
+            if minosMain[0][4] == 1 and minosMain[1][4] == 1 and minosMain[2][4] == 0:
+                pass
+            elif minosMain[0][5] == 1 and minosMain[1][5] == 1 and minosMain[2][5] == 0:
+                pass
+            elif minosMain[0][6] == 1 and minosMain[1][6] == 1 and minosMain[2][6] == 0:
+                pass
+            else:
+                return [False, 0, finalCount]
+
        # Update final placement of previous position. The difference between the original board and the
         # board after placement yields a mask of the placed piece
         positionDatabase[-1].placement = prevMinosMain - positionDatabase[-1].board
+        if np.count_nonzero(positionDatabase[-1].placement == 1) != 4:
+            print2d(positionDatabase[-1].board)
+            print2d(positionDatabase[-1].placement)
+            print(frameCount)
+            assert(False)
         positionDatabase[-1].frame = frameCount
         pool.apply_async(Evaluator.evaluate, (positionDatabase[-1],hz))
 
@@ -128,6 +146,11 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
         # Update final placement of previous position. The difference between the original board and the
         # board after placement yields a mask of the placed piece
         positionDatabase[-1].placement = prevMinosMain - positionDatabase[-1].board
+        if np.count_nonzero(positionDatabase[-1].placement == 1) != 4:
+            print2d(positionDatabase[-1].board)
+            print2d(positionDatabase[-1].placement)
+            print(frameCount)
+            assert(False)
         positionDatabase[-1].frame = frameCount
         pool.apply_async(Evaluator.evaluate, (positionDatabase[-1],hz))
 
@@ -156,16 +179,21 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
         # prevCount is number of filled cells for the frame right before line clear (aka frame with full row(s))
         finalCount = prevCount - numFilledRows*10
 
+        if numFilledRows < 3:
         # We need to skip past line clear and drop animation into next start frame. We wait until count drops BELOW finalCount+4
-        # We are setting isLineClear to 1 here
-        return [1, 0, finalCount]
+        # We are setting isLineClear to 1 here        
+            return [1, 0, finalCount]
+        else:
+            # But for triples and tetrises, we can just wait directly for when next piece spawns because the line clear frames will never have exact
+            # same number of filled cells compared to the board when new piece spawns. Again, more cursed code
+            return [2, 0, finalCount]
 
     elif isLineClear == 1 and count < finalCount+4:
         # Now that count has dipped below finalCount + 4, we keep waiting until the new piece appears, where count == finalCount+4 would be true
         # We are setting isLineClear to 2 here
         return [2, 0, finalCount]
 
-    elif isLineClear == 2 and count == finalCount + 4:
+    elif isLineClear == 2 and (count == finalCount + 3 or count == finalCount + 4):
         
         # We finally have reached the start frame of the next piece after the previous line clear animation!
 
@@ -290,7 +318,7 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
     pool.close()
     pool.join()
     print("Render done. Render time: {} seconds".format(round(time.time() - startTime,2)))
-    print([p.evaluation for p in positionDatabase])
+    
 
     # End of loop signifying no more frames to read
     if len(positionDatabase) > 1:
@@ -303,6 +331,12 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
         while positionDatabase[-1].evaluation == None:
             print("Removed invalid position at the end")
             positionDatabase.pop()
+
+        print([p.evaluation for p in positionDatabase])
+
+        print("rapid")
+        print([p.ratherRapid for p in positionDatabase])
+        
 
         # For any weird evaluations, just set it to 0
         for p in positionDatabase:

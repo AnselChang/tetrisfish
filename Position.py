@@ -27,6 +27,7 @@ class Position:
         #self.evaluation =  random.uniform(0, 1)
 
         self.evaluation = None
+        self.ratherRapid = None
 
         # Position is actually a Linked list. PositionDatabase stores a list of first nodes.
         # Each first node by default has no previous or next node.
@@ -40,10 +41,11 @@ class Position:
         print2d(self.placement)
         print()
 
-    def setEvaluation(self, playerNNB, playerFinal, bestNNB, bestFinal, ratherRapid ):
+    def setEvaluation(self, playerNNB, playerFinal, bestNNB, bestFinal, ratherRapid, url):
         print("\tNNB\tFinal\nPlayer: {} {}\nBest: {} {}\nRather Rapid: {}".format(playerNNB, playerFinal, bestNNB, bestFinal, ratherRapid))
         self.playerNNB, self.playerFinal, self.bestNNB, self.bestFinal = playerNNB, playerFinal, bestNNB, bestFinal
         self.ratherRapid = ratherRapid
+        self.url = url
 
         # https://www.desmos.com/calculator/x6427u0ygb
         self.evaluation = min(1,max(0,1.008 ** (self.playerFinal - 50)))
