@@ -109,17 +109,17 @@ def analyze(positionDatabase, hzInt):
         p = positionDatabase[i]
         if p.ratherRapid and p.playerFinal > p.bestFinal:
             feedback[i] = AC.RAPID # rather rapid
-        elif p.playerFinal <= p.bestFinal - 25:
+        elif p.playerNNB <= p.bestNNB - 40:
             feedback[i] = AC.BLUNDER
-        elif p.playerFinal <= p.bestNNB - 15:
+        elif p.playerFinal <= p.bestFinal - 30:
             feedback[i] = AC.MISTAKE
-        elif p.playerFinal <= p.bestNNB - 7 or p.playerFinal <= p.bestFinal - 15:
+        elif p.playerNNB <= p.bestNNB - 7 or p.playerFinal <= p.bestFinal - 20:
             feedback[i] = AC.INACCURACY
-        elif p.playerFinal < p.bestNNB - 3:
-            pass # decent move
-        elif p.playerFinal >= p.bestNNB - 3 and p.playerFinal >= p.bestFinal - 5:
+
+        
+        if p.playerNNB >= p.bestNNB - 3 and p.playerFinal >= p.bestFinal - 10:
             feedback[i] = AC.EXCELLENT
-        elif p.playerFinal >= p.bestNNB - 0.5 and p.playerFinal >= p.bestFinal - 5:
+        elif p.playerNNB >= p.bestNNB - 1 and p.playerFinal >= p.bestFinal - 5:
             feedback[i] = AC.BEST
             
         
