@@ -117,9 +117,9 @@ def analyze(positionDatabase, hzInt):
             feedback[i] = AC.INACCURACY
 
         
-        if p.playerNNB >= p.bestNNB - 3 and p.playerFinal >= p.bestFinal - 10:
+        if p.playerFinal >= p.bestFinal - 10 or (p.playerFinal >= p.bestFinal - 15 and p.playerNNB >= p.bestNNB - 5):
             feedback[i] = AC.EXCELLENT
-        elif p.playerNNB >= p.bestNNB - 1 and p.playerFinal >= p.bestFinal - 5:
+        elif p.playerFinal >= p.bestFinal - 5:
             feedback[i] = AC.BEST
             
         
