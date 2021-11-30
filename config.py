@@ -8,6 +8,10 @@ import cv2
 import numpy as np
 from TetrisUtility import scaleImage
 
+import threading
+lock = threading.Lock()
+numEvaluatedPositions = 0
+
 pygame.init()
 pygame.font.init()
 font = pygame.font.SysFont('Comic Sans MS', 60)

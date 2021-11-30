@@ -12,9 +12,14 @@ from TetrisUtility import *
 from Callibration import callibrate
 from RenderVideo import render
 from Analysis import analyze
+import Evaluator
+from multiprocessing.dummy import Pool as ThreadPool
+
+
 
         
 testing = False
+testingEval = True
 #askFilePath = True # Testing, set to false if want to use same hardcoded filepath
 
 # Open a pygame window where you can drag a video into. Returns the filepath of the video.
@@ -61,7 +66,7 @@ def main():
                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
                   [1, 0, 0, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 1, 1, 1, 0, 0, 0,],
+                  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
                   [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
                   [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
                   [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
@@ -152,6 +157,32 @@ def main():
                                          placement = testplacement3, evaluation = 0.6, level = 26, lines = 2, currLines = 9,
                                          transition = 10, score = 1500))
 
+        if testingEval:
+            
+            
+
+            numPos = 500
+            positions = [positionDatabase[0]] * numPos
+            hzs = [timeline[2]] * numPos
+            print([p.evaluation for p in positions])
+
+            start = time.time()
+            
+            workers = 16
+            pool = ThreadPool(workers)
+            for i in range(len(positions)):
+                pool.apply_async(Evaluator.evaluate, (positions[i],hzs[i]))
+                
+
+            pool.close()
+            pool.join()
+            print([p.evaluation for p in positions])
+
+            print("Time for {} workers for {} positions: {} seconds".format(workers, numPos, time.time() - start))
+            
+            
+            return
+
     else:
 
         import config as c
@@ -169,7 +200,7 @@ def main():
         if output == None:
             return # exit if pygame screen closed
         
-        firstFrame, lastFrame, bounds, nextBounds, level, hz = output
+        firstFrame, lastFrame, bounds, nextBounds, level, hz, hzInt = output
         print("Level: {}, hz: {}".format(level,hz))
 
         print("Successfully callibrated video.")
@@ -177,13 +208,10 @@ def main():
         
         positionDatabase = render(firstFrame, lastFrame, bounds, nextBounds, level, hz)
         print("Num positions: ", len(positionDatabase))
-        for position in positionDatabase:
-            print(position.level)
-        
         
 
     if positionDatabase != None:
-        analyze(positionDatabase)
+        analyze(positionDatabase, hzInt)
 
 if __name__ == "__main__":
     main()

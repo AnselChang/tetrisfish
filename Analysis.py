@@ -37,7 +37,7 @@ class EvalBar:
 
         return surf
     
-def analyze(positionDatabase):
+def analyze(positionDatabase, hzInt):
     global realscreen
 
     print("START ANALYSIS")
@@ -89,16 +89,32 @@ def analyze(positionDatabase):
 
     # Setup graph
     evals = [position.evaluation for position in positionDatabase]
-    # for TESTING ONLY
+
+    print("Evals: ", evals)
+    
     
     levels = [position.level for position in positionDatabase]
     #TESTLEVELS = [18]*500 + [19] * 500
-    testEvals = [max(0, min(1, np.random.normal(loc = 0.5, scale = 0.2))) for i in range(len(levels))]
+    #testEvals = [max(0, min(1, np.random.normal(loc = 0.5, scale = 0.2))) for i in range(len(levels))]
 
     # CALCULATE BRILLANCIES/BLUNDERS/ETC HERE. For now, test code
-    testFeedback = [AC.NONE] * len(levels)
-    for i in range(30):
-        testFeedback[random.randint(0,len(levels)-1)] = random.choice(list(AC.feedbackColors))
+    #testFeedback = [AC.NONE] * len(levels)
+    #for i in range(30):
+    #    testFeedback[random.randint(0,len(levels)-1)] = random.choice(list(AC.feedbackColors))
+
+    feedback = [AC.NONE] * len(levels)
+    for i in range(len(positionDatabase)):
+        p = positionDatabase[i]
+        if p.ratherRapid and p.playerFinal > p.bestFinal:
+            feedback[i] = AC.BRILLIANCY # rather rapid
+        elif p.playerFinal >= p.bestFinal - 2:
+            feedback[i] = AC.BEST # best move within 2 units
+        elif p.playerFinal <= p.bestFinal - 20: # blunder if move is 20+ units below best move
+            feedback[i] = AC.BLUNDER
+        elif p.playerFinal <= p.bestFinal - 12: # mistake if move is 12+ units below best move
+            feedback[i] = AC.INACCURACY
+            
+            
 
     smallSize = 70
     bigResolution = 4
@@ -107,11 +123,11 @@ def analyze(positionDatabase):
     # Graph only accepts a minimum of 4 positions, otherwise interpolation doesn't work
     showGraphs = (len(levels) >= 4)
     if showGraphs:
-        smallGraph = EvalGraph.Graph(True, testEvals, levels, testFeedback, 950, 970, width, 200, 1, smallSize, bigRes = bigResolution)
+        smallGraph = EvalGraph.Graph(True, evals, levels, feedback, 950, 970, width, 200, 1, smallSize, bigRes = bigResolution)
         bigWidth = width if len(levels) >= 200 else (width // 2) # Cut the big graph in half if there are under 200 positions
         showBig = len(levels) >= 50 # If there are under 50 positions, don't show the big graph at all
         if showBig:
-            bigGraph = EvalGraph.Graph(False, testEvals, levels, testFeedback, 950, 1220, bigWidth, 200, bigResolution, smallSize)
+            bigGraph = EvalGraph.Graph(False, evals, levels, feedback, 950, 1220, bigWidth, 200, bigResolution, smallSize)
     greysurface = pygame.Surface([width, 200])
     greysurface.blit(images[STRIPES],[0,0])
     
@@ -216,10 +232,16 @@ def analyze(positionDatabase):
         c.screen.blit(c.fontbig.render("Level: {}".format(analysisBoard.position.level), True, BLACK), [1300, 20])
         c.screen.blit(c.fontbig.render("Lines: {}".format(analysisBoard.position.lines), True, BLACK), [1300, 120])
         c.screen.blit(c.fontbig.render("Score: {}".format(analysisBoard.position.score), True, BLACK), [1300, 220])
+        c.screen.blit(c.fontbig.render("playerNNB: {}".format(analysisBoard.position.playerNNB), True, BLACK), [1300, 360])
+        c.screen.blit(c.fontbig.render("bestNNB: {}".format(analysisBoard.position.bestNNB), True, BLACK), [1300, 460])
+        c.screen.blit(c.fontbig.render("playerFinal: {}".format(analysisBoard.position.playerFinal), True, BLACK), [1300, 560])
+        c.screen.blit(c.fontbig.render("bestFinal: {}".format(analysisBoard.position.bestFinal), True, BLACK), [1300, 660])
+        c.screen.blit(c.fontbig.render("RatherRapid: {}".format(analysisBoard.position.ratherRapid), True, BLACK), [1300, 760])
+        c.screen.blit(c.fontbig.render("{} Hz Analysis".format(hzInt), True, BLACK), [1900, 120])
 
         # Text for position number
         text = c.fontbig.render("Position: {}".format(analysisBoard.positionNum + 1), True, BLACK)
-        c.screen.blit(text, [1300,700])
+        c.screen.blit(text, [1300,900])
 
         # Draw timestamp
         frameNum = analysisBoard.positionDatabase[analysisBoard.positionNum].frame

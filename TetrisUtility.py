@@ -163,6 +163,10 @@ def lineClear(array):
     # This yields a list of all the rows that are not filled
     nonFilledRows = np.where((1-array).any(axis=1))[0]
 
+    # no line clear
+    if len(nonFilledRows) == 20:
+        return array, 0
+
     # Nice numpy trick which stores all the non-filled rows in a list.
     newBoard = array[nonFilledRows]
     numFilled = 20 - len(nonFilledRows)

@@ -46,20 +46,7 @@ CALLIBRATION_IMAGES.extend([ C_LVIDEO, C_LVIDEO2, C_RVIDEO, C_RVIDEO2 ])
 CALLIBRATION_IMAGES.extend([ C_LVIDEORED, C_LVIDEORED2, C_RVIDEORED, C_RVIDEORED2 ])
 images = loadImages("Images/Callibration/{}.png", CALLIBRATION_IMAGES)
 
-START_LEVELS = [9, 12, 15, 18, 19 ,29]
 
-TIMELINE_10_HZ = "X....."
-TIMELINE_11_HZ = "X.....X....X...."
-TIMELINE_12_HZ = "X...."
-TIMELINE_13_HZ = "X....X..."
-TIMELINE_13_5_HZ = "X....X...X..."
-TIMELINE_14_HZ = "X....X...X...X..."
-TIMELINE_15_HZ = "X..."
-TIMELINE_20_HZ = "X.."
-TIMELINE_30_HZ = "X."
-
-timeline = [TIMELINE_10_HZ,TIMELINE_11_HZ,TIMELINE_12_HZ,TIMELINE_13_HZ,TIMELINE_13_5_HZ,TIMELINE_14_HZ,TIMELINE_15_HZ,TIMELINE_20_HZ,TIMELINE_30_HZ]
-timelineNum = [10,11,12,13,13.5,14,15,20,30]
 # 1 is none, 2 is hovered, 3 is clicked
 levelImages = {}
 
@@ -495,7 +482,7 @@ def callibrate():
 
                 # Exit callibration, initiate rendering with returned parameters
                 print("Hz num: ", timelineNum[hzNum])
-                return vidFrame[LEFT_FRAME], vidFrame[RIGHT_FRAME], bounds, nextBounds, LEVEL, timeline[hzNum]
+                return vidFrame[LEFT_FRAME], vidFrame[RIGHT_FRAME], bounds, nextBounds, LEVEL, timeline[hzNum], timelineNum[hzNum]
 
         elif click:
             if bounds != None:

@@ -1,17 +1,24 @@
-import pygame, sys
+import pygame, sys, time, cv2
+from multiprocessing.dummy import Pool as ThreadPool
+import numpy as np
+
 import config as c
 from Position import Position
-import cv2
-import numpy as np
 from colors import *
 from TetrisUtility import *
-import time
+from PieceMasks import levelToTransition
+import Evaluator
+
+# The number of workers in the pool (parallel-ness)
+poolSize = 16
 
 totalLineClears = 0
 lineClears = 0
 transition = 0
 level = 0
 score = 0
+
+pool = None
 
 def drawProgressBar(screen,percent):
     CENTER_Y = 30
@@ -51,14 +58,14 @@ position of the previous piece.
 This function returns [updated isLineclear, boolean whether it's a start frame, frames moved ahead]
 """
 # Given a 2d board, parse the board and update the position database
-def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount):
+def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount):
 
     global lineClears, transition, level, totalLineClears, score
 
     # --- Commence Calculations ---!
 
     if isFirst:
-        print("Framecount:", frameCount)
+        #print("Framecount:", frameCount)
         currentP = getCurrentPiece(minosMain)
         nextP = getNextBox(minosNext)
             
@@ -81,12 +88,13 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
         instead, there is an increase of 4 filled squares, this means there was no line clear
         at all, and the frame with the filled square increase is the initial frame of the next piece.
         The frame before this one will yield the final position of the previous piece. """
-        print("Framecount:", frameCount)
+        #print("Framecount:", frameCount)
 
        # Update final placement of previous position. The difference between the original board and the
         # board after placement yields a mask of the placed piece
         positionDatabase[-1].placement = prevMinosMain - positionDatabase[-1].board
         positionDatabase[-1].frame = frameCount
+        pool.apply_async(Evaluator.evaluate, (positionDatabase[-1],hz))
 
         # The starting board for the current piece is simply the frame before this one.  It is unecessary
         # to find the exact placement the current piece as we can simply use previous next box.
@@ -97,7 +105,7 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
 
     elif not isLineClear and count < prevCount-1:
         # Condition for if line clear detected.
-        print("Framecount:", frameCount)
+        #print("Framecount:", frameCount)
         
         # There is ONE ANNOYING POSSIBILITY for rotation on the first frame to lower mino count.
         # The solution is to look for the next DISTINCT frame and see if decrease continues. This will
@@ -120,11 +128,13 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
         # Update final placement of previous position. The difference between the original board and the
         # board after placement yields a mask of the placed piece
         positionDatabase[-1].placement = prevMinosMain - positionDatabase[-1].board
+        positionDatabase[-1].frame = frameCount
+        pool.apply_async(Evaluator.evaluate, (positionDatabase[-1],hz))
 
         # To find the starting position from the filled frame, we must manually perform line clear computation.
 
         newBoard, numFilledRows = lineClear(prevMinosMain)
-        print("num: ", numFilledRows)
+        #print("num: ", numFilledRows)
         assert(numFilledRows > 0) # this assert fails if there are too many skipped frames and the frame before line clear doesn't have locked piece yet
 
         # Update level and line clears
@@ -175,9 +185,13 @@ def parseBoard(frameCount, isFirst, positionDatabase, count, prevCount, prevMino
 def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
     print("Beginning render...")
 
+    c.numEvaluatedPositions = 0
+
+    global pool
+    pool = ThreadPool(poolSize)
+
     global lineClears, transition, level, totalLineClears, score
 
-    levelToTransition = {9 : 100, 12 : 100, 15 : 100, 18 : 130, 19 : 140, 29 : 200}
     level = levelP
     transition = levelToTransition[level]
     print("Transition: ", transition)
@@ -229,7 +243,7 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
 
 
         # Possibly update positionDatabase given the current frame.
-        params = [frameCount, frameCount == firstFrame, positionDatabase, count, prevCount, prevMinosMain,
+        params = [hz, frameCount, frameCount == firstFrame, positionDatabase, count, prevCount, prevMinosMain,
                   minosMain, minosNext, isLineClear, vcap, bounds, finalCount]  # lots of params!
         isLineClear, frameDelta, finalCount = parseBoard(*params)
         frameCount += frameDelta
@@ -263,11 +277,20 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
         x += 1
         frameCount += 1
 
-        # dummy call, won't be checking for quit event here
-        #pygame.event.get()
-                
 
+    c.screen.fill(BACKGROUND)
+    c.realscreen.fill(BACKGROUND)
+    text = c.fontbig.render("Step 3: Evaluating... please wait...", True, BLACK)
+    c.screen.blit(text, (10,10))
+    pygame.event.get()
+    c.handleWindowResize()
+    pygame.display.update()
+
+    print("waiting for pool..", len(positionDatabase))
+    pool.close()
+    pool.join()
     print("Render done. Render time: {} seconds".format(round(time.time() - startTime,2)))
+    print([p.evaluation for p in positionDatabase])
 
     # End of loop signifying no more frames to read
     if len(positionDatabase) > 1:
@@ -275,6 +298,17 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
             # Dummy first position
             del positionDatabase[0]
         positionDatabase.pop() # last position must be popped because it has incomplete final placement data
+
+        # Remove any topout positions that don't have evaluations
+        while positionDatabase[-1].evaluation == None:
+            print("Removed invalid position at the end")
+            positionDatabase.pop()
+
+        # For any weird evaluations, just set it to 0
+        for p in positionDatabase:
+            if p.evaluation == None:
+                p.evaluation = 0
+
         return positionDatabase
     else:
         return None

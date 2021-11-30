@@ -7,7 +7,6 @@ class Position:
 
     def __init__(self, board, currentPiece, nextPiece, placement = None, evaluation = None, frame = None,
                  level = None, lines = None, currLines = None, transition = None, score = None):
-        print("created")
         self.board = board
         self.currentPiece = currentPiece
         self.nextPiece = nextPiece
@@ -25,7 +24,9 @@ class Position:
         #self.evaluation = evaluation
 
         # RANDOM FOR NOW. AWAITING STACKRABBIT API
-        self.evaluation =  random.uniform(0, 1)
+        #self.evaluation =  random.uniform(0, 1)
+
+        self.evaluation = None
 
         # Position is actually a Linked list. PositionDatabase stores a list of first nodes.
         # Each first node by default has no previous or next node.
@@ -38,3 +39,11 @@ class Position:
         print("Next: ", TETRONIMO_NAMES[self.nextPiece])            
         print2d(self.placement)
         print()
+
+    def setEvaluation(self, playerNNB, playerFinal, bestNNB, bestFinal, ratherRapid ):
+        print("\tNNB\tFinal\nPlayer: {} {}\nBest: {} {}\nRather Rapid: {}".format(playerNNB, playerFinal, bestNNB, bestFinal, ratherRapid))
+        self.playerNNB, self.playerFinal, self.bestNNB, self.bestFinal = playerNNB, playerFinal, bestNNB, bestFinal
+        self.ratherRapid = ratherRapid
+
+        # https://www.desmos.com/calculator/x6427u0ygb
+        self.evaluation = min(1,max(0,1.008 ** (self.playerFinal - 50)))
