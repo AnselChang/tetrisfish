@@ -15,12 +15,14 @@ class EvalBar:
     def __init__(self):
         self.currentPercent = 0
         self.targetPercent = 0
+        self.currentColor = WHITE
 
-    def tick(self, target):
+    def tick(self, target, targetColor):
         self.targetPercent = target
 
         # "Approach" the targetPercent with a cool slow-down animation
         self.currentPercent += math.tanh((self.targetPercent - self.currentPercent))/9
+        self.currentColor = [(current + (target-current)*0.13) for (current, target) in zip(self.currentColor, targetColor)]
 
     # percent 0-1, 1 is filled
     def drawEval(self):
@@ -33,7 +35,7 @@ class EvalBar:
         
 
         sheight = int((1-self.currentPercent) * height)
-        pygame.draw.rect(surf, WHITE, [0,sheight, width, height - sheight])
+        pygame.draw.rect(surf, self.currentColor, [0,sheight, width, height - sheight])
 
         return surf
     
@@ -200,7 +202,8 @@ def analyze(positionDatabase, hzInt):
         buttons.get(B_HYP_MAXRIGHT).isAlt = not analysisBoard.hasHypoRight()
 
         currPos = analysisBoard.position
-        evalBar.tick(currPos.evaluation)
+        feedbackColor = AC.feedbackColors[feedback[positionNum]]
+        evalBar.tick(currPos.evaluation, feedbackColor)
 
 
         # --- [ DISPLAY ] ---
