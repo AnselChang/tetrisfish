@@ -129,19 +129,19 @@ def analyze(positionDatabase, hzInt):
             feedback[i] = AC.EXCELLENT
         elif p.playerFinal - p.bestFinal > -15: # usually this is true when the move is an adjustment of some sort
             pass # decent move
-        elif e <= -30:
+        elif e <= -50:
             feedback[i] = AC.BLUNDER
-        elif e <= -22:
+        elif e <= -30:
             feedback[i] = AC.MISTAKE
-        elif e <= -15:
+        elif e <= -18:
             feedback[i] = AC.INACCURACY
 
         f = -1
         if p.bestNNB - p.playerNNB < 10 and k != -1: # NONE or higher
             f = p.bestFinal - p.playerFinal
-            if f >= 10:
+            if f >= 20:
                 adjustment[i] = AC.MAJOR_MISSED
-            elif f >= 5:
+            elif f >= 10:
                 adjustment[i] = AC.MINOR_MISSED
         p.f = f
             
