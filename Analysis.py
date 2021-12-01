@@ -127,8 +127,9 @@ def analyze(positionDatabase, hzInt):
                 feedback[i] = AC.BEST
         elif p.playerFinal >= p.bestFinal - 3:
             feedback[i] = AC.EXCELLENT
-
-        if e <= -30:
+        elif p.playerFinal - p.bestFinal > -15: # usually this is true when the move is an adjustment of some sort
+            pass # decent move
+        elif e <= -30:
             feedback[i] = AC.BLUNDER
         elif e <= -22:
             feedback[i] = AC.MISTAKE
