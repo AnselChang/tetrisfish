@@ -212,7 +212,7 @@ def main():
         
 
     if positionDatabase != None:
-        analyze(positionDatabase, hzInt)
+        analyze(positionDatabase, hzInt, hz)
 
 if __name__ == "__main__":
     main()

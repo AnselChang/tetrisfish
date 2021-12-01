@@ -371,6 +371,8 @@ class AnalysisBoard:
         if addLines > 0:
             score += getScore(level, addLines) # Increment score. cruicial this is done after level update, as in the original NES
 
+        self.position.evaluated = False
+
         # Create a new position after making move. Store a refererence to current position as previous node
         self.position.next = Position(newBoard, self.position.nextPiece, randomPiece(), level = level, lines = totalLines,
                                       currLines = currLines, transition = transition, score = score)

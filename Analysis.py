@@ -7,7 +7,7 @@ from colors import *
 from PieceMasks import *
 import HitboxTracker as HT
 from TetrisUtility import loadImages, lighten
-import EvalGraph
+import EvalGraph, Evaluator
 import AnalysisConstants as AC
 
 class EvalBar:
@@ -39,7 +39,7 @@ class EvalBar:
 
         return surf
     
-def analyze(positionDatabase, hzInt):
+def analyze(positionDatabase, hzInt, hzString):
     global realscreen
 
     print("START ANALYSIS")
@@ -104,69 +104,8 @@ def analyze(positionDatabase, hzInt):
     #for i in range(30):
     #    testFeedback[random.randint(0,len(levels)-1)] = random.choice(list(AC.feedbackColors))
 
-    feedback = [AC.NONE] * len(levels)
-    adjustment = [AC.NONE] * len(levels)
-    for i in range(len(positionDatabase)):
-        p = positionDatabase[i]
-        if levels[i] <= 18:
-            k = 0.33 # weight of NNB vs weight of adjusted
-        elif levels[i] < 29:
-            k = 0.66
-        else:
-            k = 1
-
-        e = (p.playerNNB - p.bestNNB) * k + (p.playerFinal - p.bestFinal) * (1-k)
-        e = round(e,2)
-        p.e = e
-
-        
-        if (levels[i] < 29 and p.playerFinal >= p.bestFinal - 2) or (levels[i] >= 29 and (e >= -1 or (p.playerFinal - p.bestFinal) >= -1)):
-            if p.ratherRapid:
-                feedback[i] = AC.RAPID
-            else:
-                feedback[i] = AC.BEST
-        elif p.playerFinal >= p.bestFinal - 3:
-            feedback[i] = AC.EXCELLENT
-        elif p.playerFinal - p.bestFinal > -15: # usually this is true when the move is an adjustment of some sort
-            pass # decent move
-        elif e <= -50:
-            feedback[i] = AC.BLUNDER
-        elif e <= -30:
-            feedback[i] = AC.MISTAKE
-        elif e <= -18:
-            feedback[i] = AC.INACCURACY
-
-        f = -1
-        if p.bestNNB - p.playerNNB < 10 and k != -1: # NONE or higher
-            f = p.bestFinal - p.playerFinal
-            if f >= 20:
-                adjustment[i] = AC.MAJOR_MISSED
-            elif f >= 10:
-                adjustment[i] = AC.MINOR_MISSED
-        p.f = f
-            
-
-        
-        
-        
-        """
-        if p.ratherRapid and p.playerFinal > p.bestFinal:
-            feedback[i] = AC.RAPID # rather rapid
-        elif p.playerNNB <= p.bestNNB - 40:
-            feedback[i] = AC.BLUNDER
-        elif p.playerFinal <= p.bestFinal - 30:
-            feedback[i] = AC.MISTAKE
-        elif p.playerNNB <= p.bestNNB - 7 or p.playerFinal <= p.bestFinal - 20:
-            feedback[i] = AC.INACCURACY
-
-        if p.playerFinal >= p.bestFinal - 5:
-            feedback[i] = AC.BEST
-        elif p.playerFinal >= p.bestFinal - 10 or (p.playerFinal >= p.bestFinal - 15 and p.playerNNB >= p.bestNNB - 5):
-            feedback[i] = AC.EXCELLENT"""
-            
-        
-            
-            
+    feedback = [p.feedback for p in positionDatabase]
+                    
 
     smallSize = 70
     bigResolution = 4
@@ -253,10 +192,17 @@ def analyze(positionDatabase, hzInt):
         buttons.get(B_HYP_RIGHT).isAlt = not analysisBoard.hasHypoRight()
         buttons.get(B_HYP_MAXRIGHT).isAlt = not analysisBoard.hasHypoRight()
 
-        currPos = analysisBoard.position
-        feedbackColor = AC.feedbackColors[feedback[positionNum]]
-        evalBar.tick(positionDatabase[positionNum].evaluation, feedbackColor)
 
+        # For purposes of displaying eval, use the previous position if current position has not placed piece yet
+        pos = analysisBoard.position
+        if type(pos.placement) != np.ndarray:
+            #print("back one")
+            pos = pos.prev
+
+        if not pos.evaluated:
+            print("ask API new position")
+            Evaluator.evaluate(pos, hzString)
+        
 
         # --- [ DISPLAY ] ---
 
@@ -281,25 +227,27 @@ def analyze(positionDatabase, hzInt):
         
 
         # Eval bar
+        feedbackColor = AC.feedbackColors[pos.feedback]
+        evalBar.tick(pos.evaluation, feedbackColor)
         HT.blit("eval", evalBar.drawEval(), [20,20])
 
         # Text for level / lines / score
-        c.screen.blit(c.fontbig.render("Level: {}".format(analysisBoard.position.level), True, BLACK), [1300, 20])
-        c.screen.blit(c.fontbig.render("Lines: {}".format(analysisBoard.position.lines), True, BLACK), [1300, 120])
-        c.screen.blit(c.fontbig.render("Score: {}".format(analysisBoard.position.score), True, BLACK), [1300, 220])
-        c.screen.blit(c.fontbig.render("playerNNB: {}".format(analysisBoard.position.playerNNB), True, BLACK), [1300, 360])
-        c.screen.blit(c.fontbig.render("bestNNB: {}".format(analysisBoard.position.bestNNB), True, BLACK), [1300, 460])
-        c.screen.blit(c.fontbig.render("playerFinal: {}".format(analysisBoard.position.playerFinal), True, BLACK), [1300, 560])
-        c.screen.blit(c.fontbig.render("bestFinal: {}".format(analysisBoard.position.bestFinal), True, BLACK), [1300, 660])
-        c.screen.blit(c.fontbig.render("RatherRapid: {}".format(analysisBoard.position.ratherRapid), True, BLACK), [1300, 760])
+        c.screen.blit(c.fontbig.render("Level: {}".format(pos.level), True, BLACK), [1300, 20])
+        c.screen.blit(c.fontbig.render("Lines: {}".format(pos.lines), True, BLACK), [1300, 120])
+        c.screen.blit(c.fontbig.render("Score: {}".format(pos.score), True, BLACK), [1300, 220])
+        c.screen.blit(c.fontbig.render("playerNNB: {}".format(pos.playerNNB), True, BLACK), [1300, 360])
+        c.screen.blit(c.fontbig.render("bestNNB: {}".format(pos.bestNNB), True, BLACK), [1300, 460])
+        c.screen.blit(c.fontbig.render("playerFinal: {}".format(pos.playerFinal), True, BLACK), [1300, 560])
+        c.screen.blit(c.fontbig.render("bestFinal: {}".format(pos.bestFinal), True, BLACK), [1300, 660])
+        c.screen.blit(c.fontbig.render("RatherRapid: {}".format(pos.ratherRapid), True, BLACK), [1300, 760])
         c.screen.blit(c.fontbig.render("{} Hz Analysis".format(hzInt), True, BLACK), [1900, 120])
-        if feedback[positionNum] == AC.NONE:
+        if pos.feedback == AC.NONE:
             feedbackColor = DARK_GREY
         else:
             feedbackColor = lighten(feedbackColor,0.7)
-        c.screen.blit(c.fontbig.render(AC.feedbackString[feedback[positionNum]], True, feedbackColor), [1900, 220])
-        c.screen.blit(c.fontbig.render(AC.adjustmentString[adjustment[positionNum]], True, lighten(AC.feedbackColors[adjustment[positionNum]],0.7)), [1900, 320])
-        c.screen.blit(c.fontbig.render("e: {}".format(positionDatabase[positionNum].e), True, BLACK), [1900, 420])
+        c.screen.blit(c.fontbig.render(AC.feedbackString[pos.feedback], True, feedbackColor), [1900, 220])
+        c.screen.blit(c.fontbig.render(AC.adjustmentString[pos.adjustment], True, lighten(AC.feedbackColors[pos.adjustment],0.7)), [1900, 320])
+        c.screen.blit(c.fontbig.render("e: {}".format(pos.e), True, BLACK), [1900, 420])
 
         # Text for position number
         text = c.fontbig.render("Position: {}".format(analysisBoard.positionNum + 1), True, BLACK)

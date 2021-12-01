@@ -55,7 +55,7 @@ increase of 4 filled squares, this means there was no line clear at all, and the
 square increase is the initial frame of the next piece. The frame before this one will yield the final
 position of the previous piece.
 
-This function returns [updated isLineclear, boolean whether it's a start frame, frames moved ahead]
+This function returns [updated isLineclear, boolean whether it's a start frame, frames moved ahead, isError]
 """
 # Given a 2d board, parse the board and update the position database
 def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount):
@@ -81,7 +81,7 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
             positionDatabase.append( Position( removeTopPiece(minosMain, currentP), currentP, nextP, frame = frameCount, level = level,
                                                lines = totalLineClears, currLines = lineClears, transition = transition, score = score ))
 
-        return [False, 0, finalCount] # not line clear
+        return [False, 0, finalCount, False] # not line clear
 
     elif not isLineClear and (count == prevCount + 2 or count == prevCount + 3 or count == prevCount + 4):
         """ If there was no drop in the number of filled squares to detect a line clear, and
@@ -101,7 +101,7 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
             elif minosMain[0][6] == 1 and minosMain[1][6] == 1 and minosMain[2][6] == 0:
                 pass
             else:
-                return [False, 0, finalCount]
+                return [False, 0, finalCount, False]
 
        # Update final placement of previous position. The difference between the original board and the
         # board after placement yields a mask of the placed piece
@@ -110,7 +110,7 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
             print2d(positionDatabase[-1].board)
             print2d(positionDatabase[-1].placement)
             print(frameCount)
-            assert(False)
+            return [None,None,None,True]
         positionDatabase[-1].frame = frameCount
         pool.apply_async(Evaluator.evaluate, (positionDatabase[-1],hz))
 
@@ -119,7 +119,7 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
         positionDatabase.append(Position(prevMinosMain,  positionDatabase[-1].nextPiece, getNextBox(minosNext), frame = frameCount,
                                          level = level, lines = totalLineClears, currLines = lineClears, transition = transition, score = score))
 
-        return [False, 0, finalCount] # not line clear
+        return [False, 0, finalCount, False] # not line clear
 
     elif not isLineClear and count < prevCount-1:
         # Condition for if line clear detected.
@@ -137,11 +137,12 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
             # frame is distinct from previous
             if not (minos == minosMain).all() or frames >= int(vcap.get(cv2.CAP_PROP_FRAME_COUNT)) - 3:
                 break
-            assert(frames < 100) # something has gone terribly wrong
+            if not frames < 100: # something has gone terribly wrong
+                return [None,None,None,True]
         
         # Now, minos is the 2d array for the next frame. If next frame does not have less filled cells, it's a false positive
         if np.count_nonzero(minos) >= count:
-            return [False, frames, finalCount]
+            return [False, frames, finalCount, False]
         
         # Update final placement of previous position. The difference between the original board and the
         # board after placement yields a mask of the placed piece
@@ -150,7 +151,7 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
             print2d(positionDatabase[-1].board)
             print2d(positionDatabase[-1].placement)
             print(frameCount)
-            assert(False)
+            return [None,None,None,True]
         positionDatabase[-1].frame = frameCount
         pool.apply_async(Evaluator.evaluate, (positionDatabase[-1],hz))
 
@@ -158,7 +159,8 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
 
         newBoard, numFilledRows = lineClear(prevMinosMain)
         #print("num: ", numFilledRows)
-        assert(numFilledRows > 0) # this assert fails if there are too many skipped frames and the frame before line clear doesn't have locked piece yet
+        if not numFilledRows > 0: # this assert fails if there are too many skipped frames and the frame before line clear doesn't have locked piece yet
+            return [None,None,None,True]
 
         # Update level and line clears
         lineClears += numFilledRows
@@ -182,16 +184,16 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
         if numFilledRows < 3:
         # We need to skip past line clear and drop animation into next start frame. We wait until count drops BELOW finalCount+4
         # We are setting isLineClear to 1 here        
-            return [1, frames, finalCount]
+            return [1, frames, finalCount, False]
         else:
             # But for triples and tetrises, we can just wait directly for when next piece spawns because the line clear frames will never have exact
             # same number of filled cells compared to the board when new piece spawns. Again, more cursed code
-            return [2, 0, finalCount]
+            return [2, 0, finalCount, False]
 
     elif isLineClear == 1 and count < finalCount+4:
         # Now that count has dipped below finalCount + 4, we keep waiting until the new piece appears, where count == finalCount+4 would be true
         # We are setting isLineClear to 2 here
-        return [2, 0, finalCount]
+        return [2, 0, finalCount, False]
 
     elif isLineClear == 2 and (count == finalCount + 3 or count == finalCount + 4):
         
@@ -202,11 +204,11 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
         positionDatabase[-1].nextPiece = getNextBox(minosNext)
         positionDatabase[-1].frame = frameCount
         
-        return [False, 0, finalCount] # we reset the isLineClear state
+        return [False, 0, finalCount, False] # we reset the isLineClear state
 
     else:
         # Some uninteresting frame, so just move on to the next frame and don't change isLineClear
-        return [isLineClear, 0, finalCount]
+        return [isLineClear, 0, finalCount, False]
 
 
 # Update: render everything through numpy (no conversion to lists at all)
@@ -273,7 +275,15 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
         # Possibly update positionDatabase given the current frame.
         params = [hz, frameCount, frameCount == firstFrame, positionDatabase, count, prevCount, prevMinosMain,
                   minosMain, minosNext, isLineClear, vcap, bounds, finalCount]  # lots of params!
-        isLineClear, frameDelta, finalCount = parseBoard(*params)
+        isLineClear, frameDelta, finalCount, isGlitch = parseBoard(*params)
+
+        if isGlitch:
+            if frameCount - firstFrame > (lastFrame - firstFrame) * 0.7:
+                print("Render failure, but 70% or more done so just roll with it")
+                break
+            else:
+                assert(False) # Rendering failure
+        
         frameCount += frameDelta
 
         if x == maxX:
@@ -285,6 +295,7 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
 
             videoShift = 90
 
+            frame = np.flip(frame,2) # flip frame rgb
             c.displayTetrisImage(frame, 0, videoShift)
             drawProgressBar(c.screen, frameCount / lastFrame)
 
