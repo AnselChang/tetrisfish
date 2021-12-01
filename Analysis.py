@@ -6,7 +6,7 @@ import PygameButton
 from colors import *
 from PieceMasks import *
 import HitboxTracker as HT
-from TetrisUtility import loadImages
+from TetrisUtility import loadImages, lighten
 import EvalGraph
 import AnalysisConstants as AC
 
@@ -116,6 +116,7 @@ def analyze(positionDatabase, hzInt):
             k = 1
 
         e = (p.playerNNB - p.bestNNB) * k + (p.playerFinal - p.bestFinal) * (1-k)
+        e = round(e,2)
         p.e = e
         if e >= -2 or p.playerFinal >= p.bestFinal - 2:
             if p.ratherRapid:
@@ -290,8 +291,8 @@ def analyze(positionDatabase, hzInt):
         c.screen.blit(c.fontbig.render("bestFinal: {}".format(analysisBoard.position.bestFinal), True, BLACK), [1300, 660])
         c.screen.blit(c.fontbig.render("RatherRapid: {}".format(analysisBoard.position.ratherRapid), True, BLACK), [1300, 760])
         c.screen.blit(c.fontbig.render("{} Hz Analysis".format(hzInt), True, BLACK), [1900, 120])
-        c.screen.blit(c.fontbig.render(AC.feedbackString[feedback[positionNum]], True, feedbackColor), [1900, 220])
-        c.screen.blit(c.fontbig.render(AC.adjustmentString[adjustment[positionNum]], True, BRIGHT_RED if adjustment[positionNum] = AC.MAJOR_MISSED else YELLOW), [1900, 320])
+        c.screen.blit(c.fontbig.render(AC.feedbackString[feedback[positionNum]], True, lighten(feedbackColor,0.7)), [1900, 220])
+        c.screen.blit(c.fontbig.render(AC.adjustmentString[adjustment[positionNum]], True, lighten(AC.feedbackColors[adjustment[positionNum]],0.7)), [1900, 320])
         c.screen.blit(c.fontbig.render("e: {}".format(positionDatabase[positionNum].e), True, BLACK), [1900, 420])
 
         # Text for position number

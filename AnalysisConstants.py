@@ -21,7 +21,7 @@ C_EXCE = [159,187,91] # mid green
 C_INAC = [255, 255, 0] # yellow
 
 feedbackColors = {RAPID: C_RAPID, BEST : C_BEST, EXCELLENT : C_EXCE, INACCURACY : C_INAC,
-                  MISTAKE : C_MIST, BLUNDER : C_BLUN, NONE : WHITE}
+                  MISTAKE : C_MIST, BLUNDER : C_BLUN, NONE : WHITE, MAJOR_MISSED : C_BLUN, MINOR_MISSED : C_INAC}
 feedbackString = {RAPID : "Rather Rapid", BEST : "Best Move", EXCELLENT : "Excellent Move", NONE : "Decent Move",
                   INACCURACY : "Inaccuracy", MISTAKE : "Mistake", BLUNDER : "Blunder"}
 
