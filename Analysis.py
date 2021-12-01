@@ -118,12 +118,12 @@ def analyze(positionDatabase, hzInt):
         e = (p.playerNNB - p.bestNNB) * k + (p.playerFinal - p.bestFinal) * (1-k)
         e = round(e,2)
         p.e = e
-        if e >= -2 or p.playerFinal >= p.bestFinal - 2:
+        if (levels[i] < 29 and p.playerFinal >= p.bestFinal - 2) or (levels[i] >= 29 and (e >= -2 or (p.playerFinal - p.bestFinal) >= -2)):
             if p.ratherRapid:
                 feedback[i] = AC.RAPID
             else:
                 feedback[i] = AC.BEST
-        elif e >= -5 or p.playerFinal >= p.bestFinal - 5:
+        elif p.playerFinal >= p.bestFinal - 5:
             feedback[i] = AC.EXCELLENT
         elif e >= -13 or p.playerFinal >= p.bestFinal - 13:
             feedback[i] = AC.NONE
@@ -137,9 +137,9 @@ def analyze(positionDatabase, hzInt):
         f = -1
         if p.bestNNB - p.playerNNB < 10 and k != -1: # NONE or higher
             f = p.bestFinal - p.playerFinal
-            if f >= 20:
+            if f >= 16:
                 adjustment[i] = AC.MAJOR_MISSED
-            elif f >= 10:
+            elif f >= 8:
                 adjustment[i] = AC.MINOR_MISSED
         p.f = f
             

@@ -135,7 +135,7 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
             minos = bounds.getMinos(frame)
 
             # frame is distinct from previous
-            if not (minos == minosMain).all():
+            if not (minos == minosMain).all() or frames >= int(vcap.get(cv2.CAP_PROP_FRAME_COUNT)) - 3:
                 break
             assert(frames < 100) # something has gone terribly wrong
         
@@ -182,7 +182,7 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
         if numFilledRows < 3:
         # We need to skip past line clear and drop animation into next start frame. We wait until count drops BELOW finalCount+4
         # We are setting isLineClear to 1 here        
-            return [1, 0, finalCount]
+            return [1, frames, finalCount]
         else:
             # But for triples and tetrises, we can just wait directly for when next piece spawns because the line clear frames will never have exact
             # same number of filled cells compared to the board when new piece spawns. Again, more cursed code
@@ -253,7 +253,7 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
 
     startTime = time.time()
 
-    while frameCount  <= lastFrame - firstFrame:
+    while frameCount  <= lastFrame:
 
         # read frame sequentially
         ret, frame = vcap.read()
