@@ -109,9 +109,9 @@ def analyze(positionDatabase, hzInt):
     for i in range(len(positionDatabase)):
         p = positionDatabase[i]
         if levels[i] <= 18:
-            k = 0.66 # weight of NNB vs weight of adjusted
+            k = 0.33 # weight of NNB vs weight of adjusted
         elif levels[i] < 29:
-            k = 0.8
+            k = 0.66
         else:
             k = 1
 
