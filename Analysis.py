@@ -118,28 +118,29 @@ def analyze(positionDatabase, hzInt):
         e = (p.playerNNB - p.bestNNB) * k + (p.playerFinal - p.bestFinal) * (1-k)
         e = round(e,2)
         p.e = e
-        if (levels[i] < 29 and p.playerFinal >= p.bestFinal - 2) or (levels[i] >= 29 and (e >= -2 or (p.playerFinal - p.bestFinal) >= -2)):
+
+        
+        if (levels[i] < 29 and p.playerFinal >= p.bestFinal - 2) or (levels[i] >= 29 and (e >= -1 or (p.playerFinal - p.bestFinal) >= -1)):
             if p.ratherRapid:
                 feedback[i] = AC.RAPID
             else:
                 feedback[i] = AC.BEST
-        elif p.playerFinal >= p.bestFinal - 5:
+        elif p.playerFinal >= p.bestFinal - 3:
             feedback[i] = AC.EXCELLENT
-        elif e >= -13 or p.playerFinal >= p.bestFinal - 13:
-            feedback[i] = AC.NONE
-        elif e  >= -22:
-            feedback[i] = AC.INACCURACY
-        elif e >= -35:
-            feedback[i] = AC.MISTAKE
-        else:
+
+        if e <= -30:
             feedback[i] = AC.BLUNDER
+        elif e <= -22:
+            feedback[i] = AC.MISTAKE
+        elif e <= -15:
+            feedback[i] = AC.INACCURACY
 
         f = -1
         if p.bestNNB - p.playerNNB < 10 and k != -1: # NONE or higher
             f = p.bestFinal - p.playerFinal
-            if f >= 16:
+            if f >= 10:
                 adjustment[i] = AC.MAJOR_MISSED
-            elif f >= 8:
+            elif f >= 5:
                 adjustment[i] = AC.MINOR_MISSED
         p.f = f
             
@@ -291,7 +292,11 @@ def analyze(positionDatabase, hzInt):
         c.screen.blit(c.fontbig.render("bestFinal: {}".format(analysisBoard.position.bestFinal), True, BLACK), [1300, 660])
         c.screen.blit(c.fontbig.render("RatherRapid: {}".format(analysisBoard.position.ratherRapid), True, BLACK), [1300, 760])
         c.screen.blit(c.fontbig.render("{} Hz Analysis".format(hzInt), True, BLACK), [1900, 120])
-        c.screen.blit(c.fontbig.render(AC.feedbackString[feedback[positionNum]], True, lighten(feedbackColor,0.7)), [1900, 220])
+        if feedback[positionNum] == AC.NONE:
+            feedbackColor = DARK_GREY
+        else:
+            feedbackColor = lighten(feedbackColor,0.7)
+        c.screen.blit(c.fontbig.render(AC.feedbackString[feedback[positionNum]], True, feedbackColor), [1900, 220])
         c.screen.blit(c.fontbig.render(AC.adjustmentString[adjustment[positionNum]], True, lighten(AC.feedbackColors[adjustment[positionNum]],0.7)), [1900, 320])
         c.screen.blit(c.fontbig.render("e: {}".format(positionDatabase[positionNum].e), True, BLACK), [1900, 420])
 
