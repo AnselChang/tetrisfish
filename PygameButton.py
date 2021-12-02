@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from TetrisUtility import *
 import HitboxTracker as HT
 from colors import *
+import config as c
 
 font = None
 
@@ -17,6 +18,7 @@ class ButtonHandler:
 
         # Use a hashtable for constant-time lookups
         self.buttons = {}
+        self.displayPlacementRect = False
 
     def addText(self, ID, text,x,y,width,height,buttonColor,textColor, margin = 0):
         self.buttons[ID] = TextButton(ID, text, x, y, width, height, buttonColor, textColor, margin)
@@ -24,12 +26,32 @@ class ButtonHandler:
     def addImage(self, ID, image, x, y, scale, margin = 0, alt = None, img2 = None, alt2 = None):
         self.buttons[ID] = ImageButton(ID, image, x, y, scale, margin, alt = alt, img2 = img2, alt2 = alt2)
 
+    def addPlacementButtons(self, num, x, firstY, dy, width, height):
+        self.rectx = x
+        self.recty = firstY
+
+        self.margin = 20
+        
+        self.displayPlacementRect = True
+        self.placementButtons = []
+        for i in range(0,num):
+            ID = "placement{}".format(i)
+            button = PlacementButton(ID, i, x, firstY + i*(dy+height), width, height)
+            self.buttons[ID] = button
+            self.placementButtons.append(button)
+            
+        self.placementRect = pygame.Surface([width + self.margin*2, num * height + (num-1) * dy + self.margin*2])
+        self.placementRect.fill([64,69,73]) # greyish color
+
     def updatePressed(self, mx, my, click):
         
         for ID in self.buttons:
             self.buttons[ID].updatePressed(mx,my, click)
 
     def display(self,screen):
+
+        if self.displayPlacementRect:
+            HT.blit("placement rect", self.placementRect, [self.rectx - self.margin, self.recty - self.margin])
 
         for ID in self.buttons:
             
@@ -69,6 +91,72 @@ class Button(ABC):
     @abstractmethod
     def get(self):
         pass
+
+# Possible moves button class during analysis
+class PlacementButton(Button):
+
+    def __init__(self, ID, i, x, y, width, height):
+
+        mid1 = 0.4 # ratio between eval and first piece notation
+        mid2 = 0.75 # ratio between first and second piece notation
+        text1a = 0.07 # 1), 2) etc
+        text1b = 0.25 # the actual eval
+        
+        A_COLOR = [143, 143, 143] # eval
+        B_COLOR = [71, 156, 220] # first piece notation
+        C_COLOR = [63, 110, 153] # second piece notation
+        self.TEXT_COLOR = WHITE
+        
+        
+        super().__init__(ID, x, y, width, height, 0)
+
+        self.basesurface = pygame.Surface([self.width, height]).convert_alpha()
+        
+        # Draw colors
+        pygame.draw.rect(self.basesurface, A_COLOR, [0,0,mid1*width,height])
+        pygame.draw.rect(self.basesurface, B_COLOR, [mid1*width,0,(mid2-mid1)*width,height])
+        pygame.draw.rect(self.basesurface, C_COLOR, [mid2*width,0,(1-mid2)*width,height])
+
+        self.font = c.font
+
+        # center of texts
+        text = self.font.render("{})".format(i + 1), True, self.TEXT_COLOR) # start with "1)"
+        self.textHeight = height/2 - text.get_height() / 2
+        self.basesurface.blit(text, [text1a*width - text.get_width()/2, self.textHeight])
+        self.centerA = (mid1/2)*width
+        self.centerB = ((mid1+mid2)/2)*width
+        self.centerC = ((1+mid2)/2)*width
+
+        self.update("0.0", "I-2345", "Tr-12", i == 2)
+
+    def update(self, evalStr, currentStr, nextStr, isGreen):
+        
+        self.evalStr = evalStr
+        self.currentStr = currentStr
+        self.nextStr = nextStr
+
+        self.surface = self.basesurface.copy()
+
+        self.textA = self.font.render(evalStr, True, self.TEXT_COLOR)
+        self.textB = self.font.render(currentStr, True, self.TEXT_COLOR)
+        self.textC = self.font.render(nextStr, True, self.TEXT_COLOR)
+
+        # Draw text
+        self.surface.blit(self.textA, [self.centerA - self.textA.get_width()/2, self.textHeight])
+        self.surface.blit(self.textB, [self.centerB - self.textB.get_width()/2, self.textHeight])
+        self.surface.blit(self.textC, [self.centerC - self.textC.get_width()/2, self.textHeight])
+
+        if isGreen:
+            addHueToSurface(self.surface, BRIGHT_GREEN, 0.25)
+
+        self.darksurface = self.surface.copy()
+        addHueToSurface(self.darksurface, BLACK, 0.15)
+        
+
+    def get(self):
+
+        return self.darksurface if self.pressed else self.surface, [self.x, self.y]
+
 
 # Text button has text and background rectangle, inherits Button
 class TextButton(Button):

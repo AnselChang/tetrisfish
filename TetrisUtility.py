@@ -14,6 +14,11 @@ def lighten(color, amount, doThis = True):
     else:
         return color
 
+def addHueToSurface(surf, color, percent):
+    dark = pygame.Surface(surf.get_size()).convert_alpha()
+    dark.fill((*color, percent*255))
+    surf.blit(dark, (0, 0))
+
 def avg(array):
     return sum(array) / len(array)
 

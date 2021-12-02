@@ -84,6 +84,8 @@ def analyze(positionDatabase, hzInt, hzString):
     buttons.addImage(B_HYP_LEFT, images[LEFTARROW], x+100, y, 0.16, margin = 0, alt = images[LEFTARROW2])
     buttons.addImage(B_HYP_RIGHT, images[RIGHTARROW], x+180, y, 0.16, margin = 0, alt = images[RIGHTARROW2])
     buttons.addImage(B_HYP_MAXRIGHT, images[RIGHTARROW_MAX], x+260, y, 0.16, margin = 0, alt = images[RIGHTARROW2_MAX])
+
+    buttons.addPlacementButtons(5, 1600, 100, 15, 800, 100)
     
 
     positionNum = 0
@@ -232,22 +234,26 @@ def analyze(positionDatabase, hzInt, hzString):
         HT.blit("eval", evalBar.drawEval(), [20,20])
 
         # Text for level / lines / score
-        c.screen.blit(c.fontbig.render("Level: {}".format(pos.level), True, BLACK), [1300, 20])
-        c.screen.blit(c.fontbig.render("Lines: {}".format(pos.lines), True, BLACK), [1300, 120])
-        c.screen.blit(c.fontbig.render("Score: {}".format(pos.score), True, BLACK), [1300, 220])
-        c.screen.blit(c.fontbig.render("playerNNB: {}".format(pos.playerNNB), True, BLACK), [1300, 360])
-        c.screen.blit(c.fontbig.render("bestNNB: {}".format(pos.bestNNB), True, BLACK), [1300, 460])
-        c.screen.blit(c.fontbig.render("playerFinal: {}".format(pos.playerFinal), True, BLACK), [1300, 560])
-        c.screen.blit(c.fontbig.render("bestFinal: {}".format(pos.bestFinal), True, BLACK), [1300, 660])
-        c.screen.blit(c.fontbig.render("RatherRapid: {}".format(pos.ratherRapid), True, BLACK), [1300, 760])
-        c.screen.blit(c.fontbig.render("{} Hz Analysis".format(hzInt), True, BLACK), [1900, 120])
+        x1 = 1250
+        x = 900
+        c.screen.blit(c.font.render("Level: {}".format(pos.level), True, BLACK), [x1, 20])
+        c.screen.blit(c.font.render("Lines: {}".format(pos.lines), True, BLACK), [x1, 100])
+        c.screen.blit(c.font.render("Score: {}".format(pos.score), True, BLACK), [x1, 180])
+        c.screen.blit(c.font.render("playerNNB: {}".format(pos.playerNNB), True, BLACK), [x, 460])
+        c.screen.blit(c.font.render("bestNNB: {}".format(pos.bestNNB), True, BLACK), [x, 520])
+        c.screen.blit(c.font.render("playerFinal: {}".format(pos.playerFinal), True, BLACK), [x, 580])
+        c.screen.blit(c.font.render("bestFinal: {}".format(pos.bestFinal), True, BLACK), [x, 620])
+        c.screen.blit(c.font.render("RatherRapid: {}".format(pos.ratherRapid), True, BLACK), [x, 680])
+        
+        x3 = 1650
+        c.screen.blit(c.fontbig.render("{} Hz Analysis".format(hzInt), True, BLACK), [x3, 760])
         if pos.feedback == AC.NONE:
             feedbackColor = DARK_GREY
         else:
             feedbackColor = lighten(feedbackColor,0.7)
-        c.screen.blit(c.fontbig.render(AC.feedbackString[pos.feedback], True, feedbackColor), [1900, 220])
-        c.screen.blit(c.fontbig.render(AC.adjustmentString[pos.adjustment], True, lighten(AC.feedbackColors[pos.adjustment],0.7)), [1900, 320])
-        c.screen.blit(c.fontbig.render("e: {}".format(pos.e), True, BLACK), [1900, 420])
+        c.screen.blit(c.fontbig.render(AC.feedbackString[pos.feedback], True, feedbackColor), [x3, 860])
+        c.screen.blit(c.fontbig.render(AC.adjustmentString[pos.adjustment], True, lighten(AC.feedbackColors[pos.adjustment],0.7)), [x3, 960])
+        c.screen.blit(c.fontbig.render("e: {}".format(pos.e), True, BLACK), [x1, 760])
 
         # Text for position number
         text = c.fontbig.render("Position: {}".format(analysisBoard.positionNum + 1), True, BLACK)
@@ -256,8 +262,8 @@ def analyze(positionDatabase, hzInt, hzString):
         # Draw timestamp
         frameNum = analysisBoard.positionDatabase[analysisBoard.positionNum].frame
         if frameNum != None:
-            text = c.fontbig.render(c.timestamp(frameNum), True, BLACK)
-            c.screen.blit(text, [1000,600] )
+            text = c.font.render(c.timestamp(frameNum), True, BLACK)
+            c.screen.blit(text, [1340,600] )
 
         
         for event in pygame.event.get():

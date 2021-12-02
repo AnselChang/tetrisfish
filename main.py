@@ -19,7 +19,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 
         
 testing = False
-testingEval = True
+testingEval = False
 #askFilePath = True # Testing, set to false if want to use same hardcoded filepath
 
 # Open a pygame window where you can drag a video into. Returns the filepath of the video.
@@ -182,6 +182,12 @@ def main():
             
             
             return
+        else:
+            # analysis testing
+            for p in positionDatabase:
+                Evaluator.evaluate(p, "X.")
+            analyze(positionDatabase, 30, "X.")
+            
 
     else:
 
