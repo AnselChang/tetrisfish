@@ -197,7 +197,8 @@ def scaleImage(img, scale):
 
 # Return the type of piece from a 2d list piece mask. Used in conjunction with extractCurrentPiece()
 def getPieceMaskType(mask):
-    assert(np.count_nonzero(mask == 1) == 4)
+    if np.count_nonzero(mask == 1) != 4:
+        return None
 
     # We first shrink the array by removing all trailing 0s of rows and columns
     p = np.where(mask != 0)
@@ -215,11 +216,11 @@ def getPieceMaskType(mask):
             arr[row : row+len(maskSmall), col : col+len(maskSmall[0])] = maskSmall
 
             # We look for the equivalent matrix in the list of pieces with all their rotations
-            for i in range(len(TETRONIMO_SHAPES)):
-                for rotArr in TETRONIMO_SHAPES[i]:
+            for i in range(len(PM.TETRONIMO_SHAPES)):
+                for rotArr in PM.TETRONIMO_SHAPES[i]:
                     if (arr == rotArr).all():
                         print2d(arr)
-                        return TETRONIMOS[i]
+                        return PM.TETRONIMOS[i]
 
     return None
 

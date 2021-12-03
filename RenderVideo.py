@@ -85,20 +85,13 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
 
     if isFirst:
         #print("Framecount:", frameCount)
-        currentP = getCurrentPiece(minosMain)
-        nextP = getNextBox(minosNext)
-            
-        if currentP == None:
-            # if first frame does not have piece in spawn position, we won't be using this position.
-            # Insert dummy position, first real position will be when the next piece spawns
+        currentMask = extractCurrentPiece(minosMain)
+        currentP = getPieceMaskType(currentMask)
+        board = minosMain - currentMask
+        nextP = getNextBoxResilient(frame, nextBounds)
 
-            positionDatabase.append( Position (minosMain, None, nextP, frame = frameCount,level = level, lines = totalLineClears,
+        positionDatabase.append( Position (board, currentP, nextP, frame = frameCount,level = level, lines = totalLineClears,
                                                currLines = lineClears, transition = transition, score = score))
-            
-        else:
-            # If first frame has current piece in correct spawn position, extract it and store in position
-            positionDatabase.append( Position( removeTopPiece(minosMain, currentP), currentP, nextP, frame = frameCount, level = level,
-                                               lines = totalLineClears, currLines = lineClears, transition = transition, score = score ))
 
         return [False, 0, finalCount, False] # not line clear
 
@@ -196,7 +189,7 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
 
         # Finally, create a new position using the generated resultant board.
         # We don't know what the nextbox piece is yet, and must wait until start piece actually spawns
-        positionDatabase.append(Position(newBoard,  getNextBox(minosNext), None, frame = frameCount, level = level,
+        positionDatabase.append(Position(newBoard,  getNextBoxResilient(frame, nextBounds), None, frame = frameCount, level = level,
                                          lines = totalLineClears, currLines = lineClears, transition = transition, score = score))
 
         
