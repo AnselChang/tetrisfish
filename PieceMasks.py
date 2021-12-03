@@ -246,7 +246,16 @@ TIMELINE_30_HZ = "X."
 timeline = [TIMELINE_10_HZ,TIMELINE_11_HZ,TIMELINE_12_HZ,TIMELINE_13_HZ,TIMELINE_13_5_HZ,TIMELINE_14_HZ,TIMELINE_15_HZ,TIMELINE_20_HZ,TIMELINE_30_HZ]
 timelineNum = [10,11,12,13,13.5,14,15,20,30]
 
-levelToTransition = {9 : 100, 12 : 100, 15 : 100, 18 : 130, 19 : 140, 29 : 200}
+def getTransitionFromLevel(level):
+    if level <= 9:
+        return (level+1) * 10
+    elif level <= 15:
+        return 100
+    elif level <= 19:
+        return (level - 5) * 10
+    elif level == 29:
+        return 200
+    assert(False)
 
 
 def colorMinos(minos, piece, white2 = False):

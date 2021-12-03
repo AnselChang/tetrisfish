@@ -427,6 +427,7 @@ def callibrate():
 
     key = None # left/right pressed key
     keyshift = {pygame.K_COMMA : -1, pygame.K_PERIOD : 1, pygame.K_LEFT : -20, pygame. K_RIGHT : 20}
+    enterKey = False
     
     while True:
 
@@ -473,7 +474,7 @@ def callibrate():
             if bounds != None:
                 bounds.set()
 
-        elif buttons.get(B_RENDER).clicked:
+        elif buttons.get(B_RENDER).clicked or enterKey:
 
             # If not callibrated, do not allow render
             if bounds == None or nextBounds == None or bounds.notSet or nextBounds.notSet or getNextBox(minosNext) == None:
@@ -608,6 +609,7 @@ def callibrate():
         wasPressed = isPressed
 
         key = None
+        enterKey = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 vcap.release()
@@ -621,6 +623,8 @@ def callibrate():
             elif event.type == pygame.KEYDOWN:
                 if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_COMMA, pygame.K_PERIOD]:
                     key = event.key
+                elif event.key == pygame.K_ENTER:
+                    enterKey = True
 
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_SPACE:

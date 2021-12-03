@@ -6,7 +6,7 @@ import config as c
 from Position import Position
 from colors import *
 from TetrisUtility import *
-from PieceMasks import levelToTransition
+from PieceMasks import getTransitionFromLevel
 import Evaluator
 
 # The number of workers in the pool (parallel-ness)
@@ -239,7 +239,7 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
 
 
 # Update: render everything through numpy (no conversion to lists at all)
-def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
+def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP, hz):
     print("Beginning render...")
 
     c.numEvaluatedPositions = 0
@@ -249,8 +249,20 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
 
     global lineClears, transition, level, totalLineClears, score
 
-    level = levelP
-    transition = levelToTransition[level]
+    transition = getTransitionFromLevel(levelP)
+    print(transition)
+    if linesP > transition:
+        # User has transitioned already to a higher level
+        level = levelP + (linesP - transition) // 10
+        transition = 10
+        lineClears = linesP % 10
+    else:
+        # User has not yet transitioned
+        lineClears = linesP
+        level = levelP
+
+    totalLineClears = linesP
+    score = scoreP
     print("Transition: ", transition)
 
     vcap = c.getVideo()

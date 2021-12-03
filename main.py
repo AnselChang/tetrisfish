@@ -176,13 +176,18 @@ def main():
         
         
         
-        positionDatabase = [Position(testboard, S_PIECE, L_PIECE, placement = testplacement, evaluation = 1,
-                                     level = 18, lines = 0, currLines = 0, transition = 10, score = 0, evaluated = True)]
-        positionDatabase.append(Position(testboard+testplacement, L_PIECE, I_PIECE, placement = testplacement2,
-                                         evaluation = 0.5, level = 19, lines = 0, currLines = 0, transition = 10, score = 0, evaluated = True))
-        for i in range(100):
+        #positionDatabase = [Position(testboard, S_PIECE, L_PIECE, placement = testplacement, evaluation = 1,
+         #                            level = 18, lines = 0, currLines = 0, transition = 10, score = 0, evaluated = True)]
+       # positionDatabase.append(Position(testboard+testplacement, L_PIECE, I_PIECE, placement = testplacement2,
+         #                                evaluation = 0.5, level = 19, lines = 0, currLines = 0, transition = 10, score = 0, evaluated = True))
+        positionDatabase = []
+        levels = [8]*50
+        for i in range(9,34):
+            levels.extend([i]*10)
+        print(levels)
+        for i in range(0,len(levels)):
             positionDatabase.append(Position(testboard+testplacement+testplacement2, I_PIECE, I_PIECE,
-                                         placement = testplacement3, evaluation = 0.1, level = 27, lines = 2, currLines = 9,
+                                         placement = testplacement3, evaluation = 0.1, level = levels[i], lines = 2, currLines = 9,
                                          transition = 10, score = 1500, evaluated = True))
 
         for i in range(5):
@@ -243,8 +248,9 @@ def main():
         print("Successfully callibrated video.")
         print("First, last:", firstFrame, lastFrame)
         
-        
-        positionDatabase = render(firstFrame, lastFrame, bounds, nextBounds, level, hz)
+        lines = 0
+        score = 0
+        positionDatabase = render(firstFrame, lastFrame, bounds, nextBounds, level, lines, score, hz)
         print("Num positions: ", len(positionDatabase))
         
 

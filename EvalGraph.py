@@ -12,7 +12,9 @@ from TetrisUtility import lighten
 # https://www.desmos.com/calculator/8a7xmddbwl
 
 def getEquivalentLevel(level):
-    if level == 9:
+    if level < 9:
+        return 8
+    elif level == 9:
         return 9
     elif level <= 12:
         return 12
@@ -124,10 +126,13 @@ class Graph:
            currX += 1
 
         # Calculate the boundary of each level change (specifically, 18, 19, 29, etc)
+        LEVEL_12 = [255, 179, 255]
+        LEVEL_15 = [179, 255, 224]
         LEVEL_18 = [204,220,255] # blue
         LEVEL_19 = [255, 229, 204] # orange
         LEVEL_29 = [255,204,204] # red
-        self.levelColors = {18 : LEVEL_18, 19 : LEVEL_19, 29 : LEVEL_29}
+        self.levelColors = {8 : LEVEL_18, 9 : LEVEL_19, 12 : LEVEL_12, 15 : LEVEL_15,
+                            18 : LEVEL_18, 19 : LEVEL_19, 29 : LEVEL_29}
 
         self.levelBounds = {}
         prevLevel = -1
@@ -136,16 +141,17 @@ class Graph:
         for i in range(len(self.levels)):
             
             # transition to new level (or start level)
-            if self.levels[i] != prevLevel and self.levels[i] in self.levelColors:
-                current = self.levels[i]
-                self.levelBounds[current] = [i * self.dist, -1] # store the left and right x positions of the bound
+            level = getEquivalentLevel(self.levels[i])
+            if level != prevLevel:
+                current = level
+                self.levelBounds[current] = [i * self.dist - self.dist/2, -1] # store the left and right x positions of the bound
 
                 if prevLevel != -1:
                     self.levelBounds[prevLevel][1] = i * self.dist
 
             prevLevel = current
 
-            if self.levels[i] == 29:
+            if level == 29:
                 break
 
         self.levelBounds[current][1] = self.right + self.dist * self.intervalSize * self.resolution
@@ -244,7 +250,6 @@ class Graph:
         
 
         self.surf = pygame.Surface([self.realwidth, self.realheight]).convert_alpha()
-        print("levels", self.levels)
         self.surf.fill(self.levelColors[getEquivalentLevel(self.levels[0])])
         
 
