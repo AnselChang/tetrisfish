@@ -1,4 +1,4 @@
-import pygame, sys
+import pygame, sys, pickle
 import math, time
 import cv2
 from TetrisUtility import *
@@ -67,18 +67,17 @@ for level in START_LEVELS:
 background = pygame.transform.smoothscale(images[C_BACKDROP], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
  # Hydrant-to-Primer scaling factor
 hydrantScale = background.get_width() / images[C_BACKDROP].get_width()
-#hydrantScale = 1
 
 class Bounds:
 
-    def __init__(self,isNextBox, x1,y1,x2,y2):
+    def __init__(self,isNextBox, x1,y1,x2,y2, mode = 1):
 
         self.isNB = isNextBox
         self.x1 = x1
         self.y1 = y1
         self.x2 = x2
         self.y2 = y2
-        self.callibration = 1 # 1 = setting top-left point, 2 = setting bottom-right point, 0 = already set
+        self.callibration = mode # 1 = setting top-left point, 2 = setting bottom-right point, 0 = already set
         self.r = 2 if isNextBox else 4
 
         self.notSet = True
@@ -425,6 +424,9 @@ def callibrate():
     frame = c.goToFrame(vcap, 0)[0]
 
     b = buttons.get(B_PLAY)
+
+    key = None # left/right pressed key
+    keyshift = {pygame.K_COMMA : -1, pygame.K_PERIOD : 1, pygame.K_LEFT : -20, pygame. K_RIGHT : 20}
     
     while True:
 
@@ -447,7 +449,12 @@ def callibrate():
         if b.clicked:
             b.isAlt = not b.isAlt
 
-        if b.isAlt or buttons.get(B_RIGHT).clicked and vidFrame[currentEnd] < c.totalFrames - 1:
+
+        if key != None:
+            b.isAlt = False
+            frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] + keyshift[key])
+
+        elif b.isAlt or buttons.get(B_RIGHT).clicked and vidFrame[currentEnd] < c.totalFrames - 1:
             
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] + 1)
                 
@@ -513,6 +520,47 @@ def callibrate():
             else:
                 b.isAlt = False
 
+        # Pickle callibration settings into file
+        # Save hz, bounds, nextBounds, color callibration, zoom
+        if False and savePreset:
+
+            # tetris board
+            if bounds == None:
+                bData = None
+            else:
+                bData = [bounds.x1, bounds.y1, bounds.x2, bounds.y2]
+
+            # next box
+            if nextBounds == None:
+                bData = None
+            else:
+                bData = [nextBounds.x1, nextBounds.y1, nextBounds.x2, nextBounds.y2]
+
+            data = [hzNum, bData, nData, c.COLOR_CALLIBRATION, c.SCALAR]
+            pickle.dump( data, open( "callibration_preset.p", "wb" ) )
+
+            print("Saved preset")
+
+        # Unpickle callibration settings and update to those settings
+        if False and loadPreset:
+
+            data = pickle.load( open( "callibration_preset.p", "rb" ) )
+
+            hzNum = data[0]
+            if data[1] == None:
+                bounds = None
+            else:
+                bounds = Bounds(False, *data[1], mode = 0)
+
+            if data[2] == None:
+                nextBounds = None
+            else:
+                nextBounds = Bounds(True, *data[2], mode = 0)
+
+            c.COLOR_CALLIBRATION = data[3]
+            c.SCALAR = data[4]
+            
+            print("loaded preset")
         
 
         # Draw buttons
@@ -559,6 +607,7 @@ def callibrate():
 
         wasPressed = isPressed
 
+        key = None
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 vcap.release()
@@ -568,6 +617,21 @@ def callibrate():
                 
             elif event.type == pygame.VIDEORESIZE:
                 c.realscreen = pygame.display.set_mode(event.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+
+            elif event.type == pygame.KEYDOWN:
+                if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_COMMA, pygame.K_PERIOD]:
+                    key = event.key
+
+            elif event.type == pygame.KEYUP:
+                if event.key == pygame.K_SPACE:
+                    if currentEnd == LEFT_FRAME:
+                        currentEnd = RIGHT_FRAME
+                        rightVideoSlider.setAlt(True)
+                        leftVideoSlider.setAlt(False)
+                    else:
+                        currentEnd = LEFT_FRAME
+                        rightVideoSlider.setAlt(False)
+                        leftVideoSlider.setAlt(True)
 
         c.handleWindowResize()
             

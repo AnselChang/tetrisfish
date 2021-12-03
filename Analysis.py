@@ -298,8 +298,20 @@ def analyze(positionDatabase, hzInt, hzString):
                 return True
 
             elif event.type == pygame.KEYDOWN:
+                
                 if event.key == pygame.K_t:
                     analysisBoard.toggle()
+                    
+                elif event.key == pygame.K_LEFT and analysisBoard.positionNum > 0:
+                    analysisBoard.updatePosition(analysisBoard.positionNum-1)
+                    positionNum -= 1
+                    print(analysisBoard.position.url)
+            
+                elif event.key == pygame.K_RIGHT and analysisBoard.positionNum < len(positionDatabase) - 1:
+                    analysisBoard.updatePosition(analysisBoard.positionNum+1)
+                    positionNum += 1
+                    print(analysisBoard.position.url)
+                    
                 
             elif event.type == pygame.VIDEORESIZE:
 

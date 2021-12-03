@@ -18,6 +18,10 @@ font = pygame.font.SysFont('Comic Sans MS', 60)
 font2 = pygame.font.SysFont('Comic Sans MS', 36)
 fontbig = pygame.font.SysFont('Comic Sans MS', 90)
 
+KEY_DELAY = 500
+KEY_INTERVAL = 100
+pygame.key.set_repeat(KEY_DELAY, KEY_INTERVAL)
+
 filename = None
 fps = 30
 totalFrames = 2
