@@ -1,4 +1,4 @@
-import pygame, sys, math
+import pygame, sys, math, time
 import AnalysisBoard
 import config as c
 from Position import Position
@@ -9,6 +9,8 @@ import HitboxTracker as HT
 from TetrisUtility import loadImages, lighten
 import EvalGraph, Evaluator
 import AnalysisConstants as AC
+
+MS_PER_FRAME = 25
 
 class EvalBar:
 
@@ -21,8 +23,8 @@ class EvalBar:
         self.targetPercent = target
 
         # "Approach" the targetPercent with a cool slow-down animation
-        self.currentPercent += math.tanh((self.targetPercent - self.currentPercent))/9
-        self.currentColor = [(current + (target-current)*0.13) for (current, target) in zip(self.currentColor, targetColor)]
+        self.currentPercent += math.tanh((self.targetPercent - self.currentPercent))*0.2
+        self.currentColor = [(current + (target-current)*0.2) for (current, target) in zip(self.currentColor, targetColor)]
 
     # percent 0-1, 1 is filled
     def drawEval(self):
@@ -130,6 +132,8 @@ def analyze(positionDatabase, hzInt, hzString):
     updatePosIndex = None
 
     while True:
+
+        startTime = time.time()
 
         # --- [ CALCULATIONS ] ---
 
@@ -303,4 +307,6 @@ def analyze(positionDatabase, hzInt, hzString):
             
         c.handleWindowResize()
         pygame.display.update()
-        pygame.time.wait(3)
+
+        dt = (time.time() - startTime)*1000
+        pygame.time.wait(int(max(0, MS_PER_FRAME - dt)))

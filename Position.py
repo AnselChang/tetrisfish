@@ -57,8 +57,8 @@ class PossibleMove:
 # Store a complete postion, including both frames, the current piece, and lookahead. (eventually evaluation as well)
 class Position:
 
-    def __init__(self, board, currentPiece, nextPiece, placement = None, evaluation = None, frame = None,
-                 level = None, lines = None, currLines = None, transition = None, score = None):
+    def __init__(self, board, currentPiece, nextPiece, placement = None, evaluation = 0, frame = None,
+                 level = None, lines = None, currLines = None, transition = None, score = None, evaluated = False):
         self.board = board
         self.currentPiece = currentPiece
         self.nextPiece = nextPiece
@@ -78,8 +78,6 @@ class Position:
         # RANDOM FOR NOW. AWAITING STACKRABBIT API
         #self.evaluation =  random.uniform(0, 1)
 
-        self.evaluation = None
-        self.ratherRapid = None
 
         # Position is actually a Linked list. PositionDatabase stores a list of first nodes.
         # Each first node by default has no previous or next node.
@@ -90,8 +88,9 @@ class Position:
         self.playerNNB, self.playerFinal, self.bestNNB, self.bestFinal = -1,-1,-1,-1
         self.ratherRapid = False
         self.url = "Invalid"
-        self.evaluation = 0
-        self.evaluated = False
+        self.evaluation = evaluation
+        self.evaluated = evaluated
+        self.e = 0
         
         self.feedback = AC.INVALID
         self.adjustment = AC.INVALID

@@ -277,7 +277,7 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
     positionDatabase = [] # The generated list of all the positions in the video. To be returned
 
     
-    maxX = 400 # display screen every 200 frames (to save time)
+    maxX = 200 # display screen every 200 frames (to save time)
     x = maxX
 
     startTime = time.time()

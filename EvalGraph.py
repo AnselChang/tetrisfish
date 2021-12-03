@@ -11,6 +11,20 @@ from TetrisUtility import lighten
 # return a,b,c -> f(x) = ax^2 + bx + c
 # https://www.desmos.com/calculator/8a7xmddbwl
 
+def getEquivalentLevel(level):
+    if level == 9:
+        return 9
+    elif level <= 12:
+        return 12
+    elif level <= 15:
+        return 15
+    elif level <= 18:
+        return 18
+    elif level <= 28:
+        return 19
+    else:
+        return 29
+
 def abs_sqrt(x):
     if x > 0:
         return math.sqrt(x)
@@ -117,16 +131,17 @@ class Graph:
 
         self.levelBounds = {}
         prevLevel = -1
-        current = -1
+        current = getEquivalentLevel(self.levels[0])
+        self.levelBounds[current] = [0, -1]
         for i in range(len(self.levels)):
             
             # transition to new level (or start level)
             if self.levels[i] != prevLevel and self.levels[i] in self.levelColors:
                 current = self.levels[i]
-                self.levelBounds[current] = [self.HORI_PADDING + i * self.dist, -1] # store the left and right x positions of the bound
+                self.levelBounds[current] = [i * self.dist, -1] # store the left and right x positions of the bound
 
                 if prevLevel != -1:
-                    self.levelBounds[prevLevel][1] = self.HORI_PADDING + i * self.dist
+                    self.levelBounds[prevLevel][1] = i * self.dist
 
             prevLevel = current
 
@@ -229,7 +244,8 @@ class Graph:
         
 
         self.surf = pygame.Surface([self.realwidth, self.realheight]).convert_alpha()
-        self.surf.fill(self.levelColors[self.levels[0]])
+        print("levels", self.levels)
+        self.surf.fill(self.levelColors[getEquivalentLevel(self.levels[0])])
         
 
         surf2 = pygame.Surface([self.right+self.intervalSize * self.resolution * self.dist, self.realheight]).convert_alpha()

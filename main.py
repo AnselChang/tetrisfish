@@ -52,7 +52,7 @@ def dragFile():
         c.handleWindowResize()
         pygame.display.update()
 
-        pygame.time.wait(3)
+        pygame.time.wait(20)
     
 
 def main():
@@ -176,13 +176,14 @@ def main():
         
         
         
-        positionDatabase = [Position(testboard, S_PIECE, L_PIECE, placement = testplacement, evaluation = 0.2,
-                                     level = 20, lines = 0, currLines = 0, transition = 10, score = 0)]
+        positionDatabase = [Position(testboard, S_PIECE, L_PIECE, placement = testplacement, evaluation = 1,
+                                     level = 18, lines = 0, currLines = 0, transition = 10, score = 0, evaluated = True)]
         positionDatabase.append(Position(testboard+testplacement, L_PIECE, I_PIECE, placement = testplacement2,
-                                         evaluation = 0.7, level = 22, lines = 0, currLines = 0, transition = 10, score = 0))
-        positionDatabase.append(Position(testboard+testplacement+testplacement2, I_PIECE, T_PIECE,
-                                         placement = testplacement3, evaluation = 0.6, level = 26, lines = 2, currLines = 9,
-                                         transition = 10, score = 1500))
+                                         evaluation = 0.5, level = 19, lines = 0, currLines = 0, transition = 10, score = 0, evaluated = True))
+        for i in range(100):
+            positionDatabase.append(Position(testboard+testplacement+testplacement2, I_PIECE, I_PIECE,
+                                         placement = testplacement3, evaluation = 0.1, level = 27, lines = 2, currLines = 9,
+                                         transition = 10, score = 1500, evaluated = True))
 
         for i in range(5):
             positionDatabase[0].possible.append(PossibleMove(43,testplacementa,testplacement2, S_PIECE, L_PIECE))
@@ -214,8 +215,8 @@ def main():
             return
         else:
             # analysis testing
-            for p in positionDatabase:
-                Evaluator.evaluate(p, "X.")
+            #for p in positionDatabase:
+            #    Evaluator.evaluate(p, "X.")
             analyze(positionDatabase, 30, "X.")
             
 

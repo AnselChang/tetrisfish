@@ -21,8 +21,8 @@ C_INAC = [255, 255, 0] # yellow
 
 feedbackColors = {RAPID: C_RAPID, BEST : C_BEST, EXCELLENT : C_EXCE, INACCURACY : C_INAC,
                   MISTAKE : C_MIST, BLUNDER : C_BLUN, NONE : WHITE, MAJOR_MISSED : C_BLUN,
-                  MINOR_MISSED : C_INAC, INVALID : DARK_GREY}
+                  MINOR_MISSED : C_INAC, INVALID : DARK_GREY, INVALID : WHITE}
 feedbackString = {RAPID : "Rather Rapid", BEST : "Best Move", EXCELLENT : "Excellent Move", NONE : "Decent Move",
                   INACCURACY : "Inaccuracy", MISTAKE : "Mistake", BLUNDER : "Blunder", INVALID : "Unable to process"}
 
-adjustmentString = {MAJOR_MISSED : "Major Missed Adjust.", MINOR_MISSED : "Minor Missed Adjust.", NONE : ""}
+adjustmentString = {INVALID : "Invalid", MAJOR_MISSED : "Major Missed Adjust.", MINOR_MISSED : "Minor Missed Adjust.", NONE : ""}

@@ -97,10 +97,10 @@ class Bounds:
             self.color = BLUE
             self.horizontal = 8
             self.vertical = 4
-            self.Y_TOP = 0.4
-            self.Y_BOTTOM = 0.35
-            self.X_LEFT = 0.05
-            self.X_RIGHT = 0.9
+            self.Y_TOP = 0.406
+            self.Y_BOTTOM = 0.363
+            self.X_LEFT = 0.04
+            self.X_RIGHT = 0.93
         else:
             self.color = BRIGHT_RED
             self.horizontal = c.NUM_HORIZONTAL_CELLS
@@ -572,4 +572,4 @@ def callibrate():
         c.handleWindowResize()
             
         pygame.display.update()
-        pygame.time.wait(3)
+        pygame.time.wait(20)

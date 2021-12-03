@@ -32,7 +32,7 @@ X_MAX = 1642
 Y_MAX = 1360
 
 # Scale constant for tetris footage
-SCALAR = 1
+SCALAR = 1.4
 
 COLOR_CALLIBRATION = 15
 
