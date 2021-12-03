@@ -342,9 +342,13 @@ class AnalysisBoard:
         self.position.next.prev = self.position
         self.position = self.position.next
 
-    def placeSelectedPiece(self):
+    def placeSelectedPiece(self, placement = None):
+        
+        if not isArray(placement):
+            placement = self.hover
+        
         # assert hover piece is not empty
-        assert(self.hover.any())
+        assert(placement.any())
 
          # if this is the original position, create an "intermediate" second position that stores the hypothetical placement
         # and not overwrite the original position's placement
@@ -353,10 +357,10 @@ class AnalysisBoard:
             self.isAdjustCurrent = False
 
         # Store the current "hypothetical" placement into the position
-        self.position.placement = self.hover.copy()
+        self.position.placement = placement.copy()
 
         # Calculate resulting position after piece placement and line claer
-        newBoard, addLines = lineClear(self.position.board + self.hover)
+        newBoard, addLines = lineClear(self.position.board + placement)
 
         # Update lines and levels
         totalLines = self.position.lines + addLines
@@ -560,28 +564,43 @@ class AnalysisBoard:
         
     
     # Draw tetris board to screen
-    def draw(self):
+    def draw(self, hoveredPlacement):
 
-
+        board = self.position.board.copy()
         curr = self.position.currentPiece
 
-        # We add current piece to the board
-        plainBoard = self.position.board.copy()
+        # When mouse is hovering over a possible placement
+        if hoveredPlacement != None:
+            
+            board += colorMinos(hoveredPlacement.move1, curr)
+            board += colorMinos(hoveredPlacement.move2, self.position.nextPiece)
 
-        if type(self.position.placement) == np.ndarray:
-            placement = colorMinos(self.position.placement, curr, white2 = True)
+            # Next box ideal placement is displayed transparently
+            finalHoverArray = hoveredPlacement.move2
+            
         else:
-            placement = empty()
+            # If not, just regular analysis board display
 
-        # If active selection mode, then display that. Otherwise, display original placed piece location
-        board = self.position.board.copy()
-        if self.isAdjustCurrent:
-            if self.isHoverPiece:
-                board += colorMinos(self.hover, curr, white2 = True)
-        else:
-            board += placement
+            # We add current piece to the board
+            if type(self.position.placement) == np.ndarray:
+                placement = colorMinos(self.position.placement, curr, white2 = True)
+            else:
+                placement = empty()
+
+            # If active selection mode, then display that. Otherwise, display original placed piece location
+            if self.isAdjustCurrent:
+                if self.isHoverPiece:
+                    board += colorMinos(self.hover, curr, white2 = True)
+            else:
+                board += placement
+                
+            finalHoverArray = self.hover
         
-        surf = drawGeneralBoard(self.position.level, board, images[BOARD], 1.294, 0.995, self.xoffset, self.yoffset, hover = self.hover)
+        surf = drawGeneralBoard(self.position.level, board, images[BOARD], 1.294, 0.995, self.xoffset, self.yoffset, hover = finalHoverArray)
+
+        if hoveredPlacement != None:
+            addHueToSurface(surf, MID_GREY, 0.23)
+
         HT.blit("tetris", surf ,[self.x,self.y])
 
         self.nextBox.blit(self.position.level)

@@ -42,6 +42,10 @@ class ButtonHandler:
             
         self.placementRect = pygame.Surface([width + self.margin*2, num * height + (num-1) * dy + self.margin*2])
         self.placementRect.fill([64,69,73]) # greyish color
+        loading = c.fontbig.render("Loading...", True, WHITE)
+        self.placementRect.blit(loading, [self.placementRect.get_width()/2-loading.get_width()/2,
+                                          self.placementRect.get_height()/2 - loading.get_height()/2])
+        
 
     def updatePressed(self, mx, my, click):
         
@@ -54,8 +58,8 @@ class ButtonHandler:
             HT.blit("placement rect", self.placementRect, [self.rectx - self.margin, self.recty - self.margin])
 
         for ID in self.buttons:
-            
-            HT.blit(ID, *(self.buttons[ID].get()))
+            if not (isinstance(self.buttons[ID], PlacementButton) and not self.buttons[ID].show):
+                HT.blit(ID, *(self.buttons[ID].get()))
 
     def get(self, buttonID):
 
@@ -97,6 +101,8 @@ class PlacementButton(Button):
 
     def __init__(self, ID, i, x, y, width, height):
 
+        self.i = i
+
         mid1 = 0.4 # ratio between eval and first piece notation
         mid2 = 0.75 # ratio between first and second piece notation
         text1a = 0.07 # 1), 2) etc
@@ -127,7 +133,7 @@ class PlacementButton(Button):
         self.centerB = ((mid1+mid2)/2)*width
         self.centerC = ((1+mid2)/2)*width
 
-        self.update("0.0", "I-2345", "Tr-12", i == 2)
+        self.show = False
 
     def update(self, evalStr, currentStr, nextStr, isGreen):
         

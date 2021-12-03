@@ -3,6 +3,57 @@ from PieceMasks import *
 from TetrisUtility import print2d
 import AnalysisConstants as AC
 
+# A possible move is defined by the possible current piece placement followed by the possible next piece placement.
+# The next piece placement should NOT be preceded by a line clear calculation for the current piece. This may be tricky
+class PossibleMove:
+
+    # numpy 2d arrays
+    def __init__(self, evaluation, move1, move2, currentPiece, nextPiece):
+        
+        self.evaluation = evaluation
+        self.move1Str = self.getPlacementStr(move1, currentPiece)
+        self.move2Str = self.getPlacementStr(move2, nextPiece)
+        
+        self.move1 = move1
+        self.move2 = move2
+
+    def getPlacementStr(self, placement, piece):
+
+        columns = np.where(placement.any(axis=0))[0] # generate a list of columns the piece occupies
+        columns = (columns + 1) % 10 # start counting from 1, and 10 -> 0
+
+        # Only the pieces of T, L and J are described with u, d, l, r because the other pieces don't need their
+        # orientation described as that can be inferred by the right side of the notation
+
+        def index(arr, i):
+            return np.where(arr==i)[0][0]
+
+        if piece in [T_PIECE, L_PIECE, J_PIECE]:
+            if len(columns) == 2:
+                # left/right
+                s = placement.sum(axis = 0)
+                print(s)
+                if index(s,3) < index(s,1):
+                    orientation = "r"
+                else:
+                    orientation = "l"
+            else:
+                 # up/down
+                s = placement.sum(axis = 1)
+                print(s)
+                if index(s,3) < index(s,1):
+                    orientation = "d"
+                else:
+                    orientation = "u"
+        else:
+            orientation = ""
+
+        
+        string = "{}{}-{}".format(TETRONIMO_LETTER[piece], orientation, "".join(map(str,columns)))
+        print(string)
+        return string
+    
+
 # Store a complete postion, including both frames, the current piece, and lookahead. (eventually evaluation as well)
 class Position:
 
@@ -41,6 +92,11 @@ class Position:
         self.url = "Invalid"
         self.evaluation = 0
         self.evaluated = False
+        
+        self.feedback = AC.INVALID
+        self.adjustment = AC.INVALID
+
+        self.possible = [] # Best possible placements as found by SR
 
     def print(self):
         print("Current: ", TETRONIMO_NAMES[self.currentPiece])

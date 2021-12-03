@@ -51,6 +51,8 @@ def dragFile():
 
         c.handleWindowResize()
         pygame.display.update()
+
+        pygame.time.wait(3)
     
 
 def main():
@@ -101,6 +103,28 @@ def main():
             [0, 0, 0, 0, 0, 1, 1, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
         ])
+        testplacementa = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 1, 1, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 1, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+        ])
         testplacement2 = np.array([
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
@@ -115,8 +139,8 @@ def main():
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 1, 1,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
@@ -133,11 +157,11 @@ def main():
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
@@ -146,16 +170,22 @@ def main():
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
         ])
 
-        from Position import Position
+        from Position import Position, PossibleMove
         import config
+
         
-        positionDatabase = [Position(testboard, S_PIECE, S_PIECE, placement = testplacement, evaluation = 0.2,
+        
+        
+        positionDatabase = [Position(testboard, S_PIECE, L_PIECE, placement = testplacement, evaluation = 0.2,
                                      level = 20, lines = 0, currLines = 0, transition = 10, score = 0)]
-        positionDatabase.append(Position(testboard+testplacement, I_PIECE, I_PIECE, placement = testplacement2,
+        positionDatabase.append(Position(testboard+testplacement, L_PIECE, I_PIECE, placement = testplacement2,
                                          evaluation = 0.7, level = 22, lines = 0, currLines = 0, transition = 10, score = 0))
-        positionDatabase.append(Position(testboard+testplacement+testplacement2, I_PIECE, L_PIECE,
+        positionDatabase.append(Position(testboard+testplacement+testplacement2, I_PIECE, T_PIECE,
                                          placement = testplacement3, evaluation = 0.6, level = 26, lines = 2, currLines = 9,
                                          transition = 10, score = 1500))
+
+        for i in range(5):
+            positionDatabase[0].possible.append(PossibleMove(43,testplacementa,testplacement2, S_PIECE, L_PIECE))
 
         if testingEval:
             

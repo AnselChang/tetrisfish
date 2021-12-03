@@ -204,6 +204,27 @@ def analyze(positionDatabase, hzInt, hzString):
         if not pos.evaluated:
             print("ask API new position")
             Evaluator.evaluate(pos, hzString)
+
+        # Update possible moves
+        bs = buttons.placementButtons
+        for i in range(len(bs)):
+            if i > len(pos.possible) - 1:
+                bs[i].show = False
+            else:
+                bs[i].show = True
+                pm = pos.possible[i]
+                bs[i].update(str(pm.evaluation), pm.move1Str, pm.move2Str, (pos.placement == pm.move1).all())
+
+        # Check mouse hovering over possible moves
+        hoveredPlacement = None # stores the PossibleMove object the mouse is hovering on
+        for pb in bs:
+            if pb.pressed and pb.show:
+                hoveredPlacement = pos.possible[pb.i]
+                break
+
+        # If a possible placement is clicked, make that move
+        if hoveredPlacement != None and click:
+            analysisBoard.placeSelectedPiece(hoveredPlacement.move1)
         
 
         # --- [ DISPLAY ] ---
@@ -217,7 +238,7 @@ def analyze(positionDatabase, hzInt, hzString):
         buttons.display(c.screen)
         
         # Tetris board
-        analysisBoard.draw()
+        analysisBoard.draw(hoveredPlacement)
 
         # Evaluation Graph
         c.screen.blit(greysurface, [950, 970])
@@ -282,3 +303,4 @@ def analyze(positionDatabase, hzInt, hzString):
             
         c.handleWindowResize()
         pygame.display.update()
+        pygame.time.wait(3)

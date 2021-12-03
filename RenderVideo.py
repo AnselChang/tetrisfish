@@ -37,6 +37,24 @@ def drawProgressBar(screen,percent):
     # side
     pygame.draw.rect(screen, BLACK, [LEFT_X+WIDTH, CENTER_Y-BIG_R, SIDE_BUMP, BIG_R*2])
 
+# A version of getNextBox trying to be more resilient against interlacing
+# First, try getting regular next box. If it fails, increase color callibration until
+# it works
+def getNextBoxResilient(arr, nextBounds):
+    delta = 10
+    temp = c.COLOR_CALLIBRATION
+    for i in range(0, 150, delta):
+        if i != 0:
+            print("NEXT BOX FETCH FAILED. Retrying with color callibration {}".format(i))
+        c.COLOR_CALLIBRATION = temp + i
+        nextPiece = getNextBox(nextBounds.getMinos(arr))
+        if nextPiece != None:
+            c.COLOR_CALLIBRATION = temp
+            return nextPiece
+
+    return None # Completely unable to fetch next box.
+    
+    
 
 
 """ For very first piece, use first frame and remove current piece in initial location. Otherwise,
@@ -58,7 +76,8 @@ position of the previous piece.
 This function returns [updated isLineclear, boolean whether it's a start frame, frames moved ahead, isError]
 """
 # Given a 2d board, parse the board and update the position database
-def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prevMinosMain, minosMain, minosNext, isLineClear, vcap, bounds, finalCount):
+def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prevMinosMain,
+               minosMain, minosNext, isLineClear, vcap, bounds, finalCount, frame, nextBounds):
 
     global lineClears, transition, level, totalLineClears, score
 
@@ -116,7 +135,11 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
 
         # The starting board for the current piece is simply the frame before this one.  It is unecessary
         # to find the exact placement the current piece as we can simply use previous next box.
-        positionDatabase.append(Position(prevMinosMain,  positionDatabase[-1].nextPiece, getNextBox(minosNext), frame = frameCount,
+        nextbox = getNextBoxResilient(frame, nextBounds)
+        if nextbox == None:
+            print("Error: ", frameCount)
+            return [None,None,None,True]
+        positionDatabase.append(Position(prevMinosMain,  positionDatabase[-1].nextPiece, nextbox, frame = frameCount,
                                          level = level, lines = totalLineClears, currLines = lineClears, transition = transition, score = score))
 
         return [False, 0, finalCount, False] # not line clear
@@ -201,7 +224,11 @@ def parseBoard(hz, frameCount, isFirst, positionDatabase, count, prevCount, prev
 
         # Since we created this position previously during line clear, we didn't know the next box then. Now that
         # we are at a new frame, set the next box of the position.
-        positionDatabase[-1].nextPiece = getNextBox(minosNext)
+        nextbox = getNextBoxResilient(frame, nextBounds)
+        if nextbox == None:
+            print("Error: ", frameCount)
+            return [None,None,None,True]
+        positionDatabase[-1].nextPiece = nextbox
         positionDatabase[-1].frame = frameCount
         
         return [False, 0, finalCount, False] # we reset the isLineClear state
@@ -274,7 +301,7 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, hz):
 
         # Possibly update positionDatabase given the current frame.
         params = [hz, frameCount, frameCount == firstFrame, positionDatabase, count, prevCount, prevMinosMain,
-                  minosMain, minosNext, isLineClear, vcap, bounds, finalCount]  # lots of params!
+                  minosMain, minosNext, isLineClear, vcap, bounds, finalCount, frame, nextBounds]  # lots of params!
         isLineClear, frameDelta, finalCount, isGlitch = parseBoard(*params)
 
         if isGlitch:

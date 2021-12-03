@@ -522,6 +522,7 @@ def callibrate():
         c.COLOR_CALLIBRATION = 150*colorSlider.tick(c.screen, c.COLOR_CALLIBRATION/150, startPress, isPressed, mx, my)
         c.SCALAR = 0.5 + zoomSlider.tick(c.screen, c.SCALAR-0.5, startPress, isPressed, mx, my)
         hzNum = hzSlider.tick(c.screen, hzNum, startPress, isPressed, mx, my)
+        c.screen.blit(c.font.render(str(int(c.COLOR_CALLIBRATION)), True, WHITE), [1650, 900])
         
         # Draw video bounds sliders
         vidFrame[RIGHT_FRAME] = rightVideoSlider.tick(c.screen, vidFrame[RIGHT_FRAME] / (c.totalFrames-1), startPress, isPressed, mx, my,True)
@@ -571,3 +572,4 @@ def callibrate():
         c.handleWindowResize()
             
         pygame.display.update()
+        pygame.time.wait(3)
