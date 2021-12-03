@@ -289,7 +289,7 @@ class AnalysisBoard:
         
         self.hoverNum = 0
         self.isHoverPiece = False
-        self.isAdjustCurrent = False
+        self.isAdjustCurrent = type(self.position.placement) != np.ndarray
         self.placements = []
         self.hover = empty()
         self.ph = [-1,-1]
@@ -387,8 +387,6 @@ class AnalysisBoard:
 
         # Immediately be able to hover the next piece
         self.isAdjustCurrent = True
-
-        self.printHypo()
         
              
 

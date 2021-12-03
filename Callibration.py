@@ -1,11 +1,16 @@
 import pygame, sys, pickle
 import math, time
 import cv2
-from TetrisUtility import *
 from PieceMasks import *
+from TetrisUtility import *
+
 import config as c
 import PygameButton
 from colors import *
+import Evaluator
+from Position import Position
+from Analysis import analyze
+
 
 
 PygameButton.init(c.font)
@@ -324,17 +329,29 @@ class HzSlider(Slider):
         loc = clamp(round((mx - self.leftx) / INTERVAL), 0, 9)
         self.x = self.leftx + loc * INTERVAL
         return loc
+            
 
 
 # Initiates user-callibrated tetris field. Returns currentFrame, bounds, nextBounds for rendering
 def callibrate():
 
-    vcap = c.getVideo()
-    c.VIDEO_WIDTH = int(vcap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    c.VIDEO_HEIGHT = int(vcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    c.totalFrames = int(vcap.get(cv2.CAP_PROP_FRAME_COUNT))
-    c.fps = vcap.get(cv2.CAP_PROP_FPS)
-    print("fps: ", c.fps)
+    if c.isImage:
+        frame = cv2.imread(c.filename)
+        frame = np.flip(frame,2)
+
+        c.VIDEO_HEIGHT = len(frame[0])
+        c.VIDEO_WIDTH = len(frame)
+        
+    else:
+
+        vcap = c.getVideo()
+        c.VIDEO_WIDTH = int(vcap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        c.VIDEO_HEIGHT = int(vcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        c.totalFrames = int(vcap.get(cv2.CAP_PROP_FRAME_COUNT))
+        c.fps = vcap.get(cv2.CAP_PROP_FPS)
+        print("fps: ", c.fps)
+        print(vcap)
+
 
     print(c.VIDEO_WIDTH, c.VIDEO_HEIGHT)
 
@@ -350,11 +367,11 @@ def callibrate():
     buttons = PygameButton.ButtonHandler()
     buttons.addImage(B_CALLIBRATE, images[C_BOARD], 1724, 380, hydrantScale, img2 = images[C_BOARD2])
     buttons.addImage(B_NEXTBOX, images[C_NEXT], 1724, 600, hydrantScale, img2 = images[C_NEXT2])
-    
-    buttons.addImage(B_PLAY, images[C_PLAY], 134,1377, hydrantScale, img2 = images[C_PLAY2], alt = images[C_PAUSE], alt2 = images[C_PAUSE2])
 
-    buttons.addImage(B_LEFT, images[C_PREVF], 45, 1377, hydrantScale, img2 = images[C_PREVF2])
-    buttons.addImage(B_RIGHT, images[C_NEXTF], 207, 1377, hydrantScale, img2 = images[C_NEXTF2])
+    if not c.isImage:
+        buttons.addImage(B_PLAY, images[C_PLAY], 134,1377, hydrantScale, img2 = images[C_PLAY2], alt = images[C_PAUSE], alt2 = images[C_PAUSE2])
+        buttons.addImage(B_LEFT, images[C_PREVF], 45, 1377, hydrantScale, img2 = images[C_PREVF2])
+        buttons.addImage(B_RIGHT, images[C_NEXTF], 207, 1377, hydrantScale, img2 = images[C_NEXTF2])
     
     buttons.addImage(B_RENDER, images[C_RENDER], 1724, 1203, hydrantScale, img2 = images[C_RENDER2])
 
@@ -419,11 +436,12 @@ def callibrate():
     wasPressed = False
 
     errorMsg = None
+    errorText = ""
     
     # Get new frame from opencv
-    frame = c.goToFrame(vcap, 0)[0]
-
-    b = buttons.get(B_PLAY)
+    if not c.isImage:
+        frame = c.goToFrame(vcap, 0)[0]
+        b = buttons.get(B_PLAY)
 
     key = None # left/right pressed key
     keyshift = {pygame.K_COMMA : -1, pygame.K_PERIOD : 1, pygame.K_LEFT : -20, pygame. K_RIGHT : 20}
@@ -446,20 +464,21 @@ def callibrate():
         startPress = isPressed and not wasPressed
         buttons.updatePressed(mx,my,click)
 
-        b = buttons.get(B_PLAY)
-        if b.clicked:
-            b.isAlt = not b.isAlt
+        if not c.isImage:
+            b = buttons.get(B_PLAY)
+            if b.clicked:
+                b.isAlt = not b.isAlt
 
 
-        if key != None:
+        if not c.isImage and key != None:
             b.isAlt = False
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] + keyshift[key])
 
-        elif b.isAlt or buttons.get(B_RIGHT).clicked and vidFrame[currentEnd] < c.totalFrames - 1:
+        elif not c.isImage and (b.isAlt or buttons.get(B_RIGHT).clicked and vidFrame[currentEnd] < c.totalFrames - 1):
             
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] + 1)
                 
-        elif buttons.get(B_LEFT).clicked and vidFrame[currentEnd] > 0:
+        elif not c.isImage and (buttons.get(B_LEFT).clicked and vidFrame[currentEnd] > 0):
             # load previous frame
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] - 1)
 
@@ -475,22 +494,49 @@ def callibrate():
                 bounds.set()
 
         elif buttons.get(B_RENDER).clicked or enterKey:
+            
 
             # If not callibrated, do not allow render
             if bounds == None or nextBounds == None or bounds.notSet or nextBounds.notSet or getNextBox(minosNext) == None:
                 errorMsg = time.time()  # display error message by logging time to display for 3 seconds
-            
+                errorText = "You must finish callibrating and go to the first frame to be rendered."
+
             else:
+                board = bounds.getMinos(frame)
+                mask = extractCurrentPiece(board)
+                print(mask)
+                currPiece = getPieceMaskType(mask)
 
-                print2d(bounds.getMinos(frame))
-                print2d(nextBounds.getMinos(frame))
+                if currPiece == None:
+                    errorMsg = time.time()  # display error message by logging time to display for 3 seconds
+                    errorText = "The current piece must be near the top  with all four minos fully visible."
                 
-                # When everything done, release the capture
-                vcap.release()
+                else:
 
-                # Exit callibration, initiate rendering with returned parameters
-                print("Hz num: ", timelineNum[hzNum])
-                return vidFrame[LEFT_FRAME], vidFrame[RIGHT_FRAME], bounds, nextBounds, LEVEL, timeline[hzNum], timelineNum[hzNum]
+                    print2d(bounds.getMinos(frame))
+                    print2d(nextBounds.getMinos(frame))
+
+                    
+                    if c.isImage: # We directly call analysis on the single frame
+
+                        print("Rendering...")
+                        
+                        board -= mask # remove current piece from board to get pure board state
+                        print2d(board)
+                        nextPiece = getNextBox(minosNext)
+                        pos = Position(board, currPiece, nextPiece, level = LEVEL)
+                        analyze([pos], timelineNum[hzNum], timeline[hzNum])
+
+                        return None
+
+                        
+                    else:
+                        # When everything done, release the capture
+                        vcap.release()
+
+                        # Exit callibration, initiate rendering with returned parameters
+                        print("Hz num: ", timelineNum[hzNum])
+                        return vidFrame[LEFT_FRAME], vidFrame[RIGHT_FRAME], bounds, nextBounds, LEVEL, timeline[hzNum], timelineNum[hzNum]
 
         elif click:
             if bounds != None:
@@ -574,11 +620,12 @@ def callibrate():
         c.screen.blit(c.font.render(str(int(c.COLOR_CALLIBRATION)), True, WHITE), [1650, 900])
         
         # Draw video bounds sliders
-        vidFrame[RIGHT_FRAME] = rightVideoSlider.tick(c.screen, vidFrame[RIGHT_FRAME] / (c.totalFrames-1), startPress, isPressed, mx, my,True)
-        vidFrame[RIGHT_FRAME] = clamp(int(vidFrame[RIGHT_FRAME] * c.totalFrames),0,c.totalFrames)
-        
-        vidFrame[LEFT_FRAME]= leftVideoSlider.tick(c.screen, vidFrame[LEFT_FRAME] / (c.totalFrames-1), startPress and not rightVideoSlider.active, isPressed, mx, my,True)
-        vidFrame[LEFT_FRAME] = clamp(int(vidFrame[LEFT_FRAME] * c.totalFrames),0,c.totalFrames)
+        if not c.isImage:
+            vidFrame[RIGHT_FRAME] = rightVideoSlider.tick(c.screen, vidFrame[RIGHT_FRAME] / (c.totalFrames-1), startPress, isPressed, mx, my,True)
+            vidFrame[RIGHT_FRAME] = clamp(int(vidFrame[RIGHT_FRAME] * c.totalFrames),0,c.totalFrames)
+            
+            vidFrame[LEFT_FRAME]= leftVideoSlider.tick(c.screen, vidFrame[LEFT_FRAME] / (c.totalFrames-1), startPress and not rightVideoSlider.active, isPressed, mx, my,True)
+            vidFrame[LEFT_FRAME] = clamp(int(vidFrame[LEFT_FRAME] * c.totalFrames),0,c.totalFrames)
         
         # Update frame from video sliders
         if rightVideoSlider.active:
@@ -589,19 +636,24 @@ def callibrate():
             currentEnd = LEFT_FRAME
             rightVideoSlider.setAlt(False)
             leftVideoSlider.setAlt(True)
-            
-        frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
+
+        if not c.isImage:
+            frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
 
 
         # Draw timestamp
-        text = c.font.render(c.timestamp(vidFrame[currentEnd]), True, WHITE)
-        c.screen.blit(text, [300, 1383] )
+        if c.isImage:
+            text = c.font.render("[No video controls]", True, WHITE)
+            c.screen.blit(text, [80, 1373] )
+        else:
+            text = c.font.render(c.timestamp(vidFrame[currentEnd]), True, WHITE)
+            c.screen.blit(text, [300, 1383] )
         
 
         # Draw error message
         if errorMsg != None:
             if time.time() - errorMsg < ERROR_TIME:
-                text = c.font2.render("You must finish callibrating and go to the first frame to be rendered.", True, RED)
+                text = c.font2.render(errorText, True, RED)
                 c.screen.blit(text, [1700,1150] )
             else:
                 errorMsg = None
@@ -612,7 +664,8 @@ def callibrate():
         enterKey = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                vcap.release()
+                if not c.isImage:
+                    vcap.release()
                 pygame.display.quit()
                 sys.exit()
                 return True
@@ -623,7 +676,7 @@ def callibrate():
             elif event.type == pygame.KEYDOWN:
                 if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_COMMA, pygame.K_PERIOD]:
                     key = event.key
-                elif event.key == pygame.K_ENTER:
+                elif event.key == pygame.K_RETURN:
                     enterKey = True
 
             elif event.type == pygame.KEYUP:

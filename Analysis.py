@@ -201,11 +201,11 @@ def analyze(positionDatabase, hzInt, hzString):
 
         # For purposes of displaying eval, use the previous position if current position has not placed piece yet
         pos = analysisBoard.position
-        if type(pos.placement) != np.ndarray:
+        if type(pos.placement) != np.ndarray and pos.prev != None:
             #print("back one")
             pos = pos.prev
 
-        if not pos.evaluated:
+        if not pos.evaluated and type(pos.placement) == np.ndarray:
             print("ask API new position")
             Evaluator.evaluate(pos, hzString)
 

@@ -58,7 +58,7 @@ class PossibleMove:
 class Position:
 
     def __init__(self, board, currentPiece, nextPiece, placement = None, evaluation = 0, frame = None,
-                 level = None, lines = None, currLines = None, transition = None, score = None, evaluated = False):
+                 level = 18, lines = 0, currLines = 0, transition = 130, score = 0, evaluated = False):
         self.board = board
         self.currentPiece = currentPiece
         self.nextPiece = nextPiece

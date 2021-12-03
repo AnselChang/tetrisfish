@@ -23,6 +23,7 @@ KEY_INTERVAL = 100
 pygame.key.set_repeat(KEY_DELAY, KEY_INTERVAL)
 
 filename = None
+isImage = False
 fps = 30
 totalFrames = 2
 

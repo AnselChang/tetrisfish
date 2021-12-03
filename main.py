@@ -24,7 +24,7 @@ testingEval = False
 
 # Open a pygame window where you can drag a video into. Returns the filepath of the video.
 def dragFile():
-    spr_file_text = c.font.render("Drag a valid video file here!", True, WHITE)
+    spr_file_text = c.font.render("Drag a valid image or video file here!", True, WHITE)
     rect = spr_file_text.get_rect()
 
     spr_file_image = None
@@ -236,11 +236,15 @@ def main():
         print(filename)
         
         c.filename = filename
+
+        if ".png" in filename or ".jpeg" in filename or ".jpg" in filename:
+            print("Is image")
+            c.isImage = True
         
         output = callibrate()
         
         if output == None:
-            return # exit if pygame screen closed
+            return # exit if pygame screen closed. This also happens if it's an image an callibrate() directly calls analysis
         
         firstFrame, lastFrame, bounds, nextBounds, level, hz, hzInt = output
         print("Level: {}, hz: {}".format(level,hz))

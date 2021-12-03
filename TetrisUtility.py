@@ -193,3 +193,61 @@ def loadImages(fileFormat, nameList):
 
 def scaleImage(img, scale):
     return pygame.transform.smoothscale(img, [int(img.get_width() * scale), int(img.get_height() * scale)])
+
+
+# Return the type of piece from a 2d list piece mask. Used in conjunction with extractCurrentPiece()
+def getPieceMaskType(mask):
+    assert(np.count_nonzero(mask == 1) == 4)
+
+    # We first shrink the array by removing all trailing 0s of rows and columns
+    p = np.where(mask != 0)
+    maskSmall = mask[min(p[0]) : max(p[0]) + 1, min(p[1]) : max(p[1]) + 1]
+
+    print2d(maskSmall)
+
+    if len(maskSmall) > 4 or len(maskSmall[0]) > 4:
+        return None
+
+    for row in range(0, 5 - len(maskSmall)):
+        for col in range(0, 5 - len(maskSmall[0])):
+            # "Blit the mask to every possible position in a 4x4 matrix
+            arr = empty(rows = 4, cols = 4)
+            arr[row : row+len(maskSmall), col : col+len(maskSmall[0])] = maskSmall
+
+            # We look for the equivalent matrix in the list of pieces with all their rotations
+            for i in range(len(TETRONIMO_SHAPES)):
+                for rotArr in TETRONIMO_SHAPES[i]:
+                    if (arr == rotArr).all():
+                        print2d(arr)
+                        return TETRONIMOS[i]
+
+    return None
+
+
+
+# From a board, find the "floating" piece, defined to be with at least 3-cell separation from the rest of the board. We only look at the top half of the board.
+# Return the mask of the piece
+def extractCurrentPiece(board):
+    pieceMask = empty()
+
+    for col in range(len(board[0])):
+        temp = empty()
+        
+        row = 0
+        while row < 10 and board[row][col] == 0:
+            row += 1
+
+        if row >= 10:
+            continue
+        num = 0
+        while row <= 10 and board[row][col] == 1:
+            temp[row][col] = 1
+            num += 1
+            row += 1
+        if row >= 10 or num > 4:
+            continue
+        if board[row][col] == 0 and board[row+1][col] == 0:
+            pieceMask += temp
+
+    print2d(pieceMask)
+    return pieceMask

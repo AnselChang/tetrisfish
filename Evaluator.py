@@ -91,7 +91,10 @@ def makeAPICall(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots):
         b1Str, b2Str, currStr, nextStr, level, lines, TIMELINE_30_HZ)
         print("url 2 ", url)
         json = getJson(url)
-        playerNNB, playerFinal = float(json['playerMoveNoAdjustment']), float(json['playerMoveAfterAdjustment'])
+        try:
+            playerNNB, playerFinal = float(json['playerMoveNoAdjustment']), float(json['playerMoveAfterAdjustment'])
+        except:
+            playerNNB, playerFinal = -1, -1
         rapid = True
 
     return playerNNB, playerFinal, bestNNB, bestFinal, rapid, url
