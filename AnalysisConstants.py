@@ -19,7 +19,7 @@ adjustment = [NONE, MINOR_MISSED, MAJOR_MISSED]
 
 C_RAPID= [117,251,253]
 C_BEST = [3, 160, 98] # dark green
-C_MIST = [238,194,92] # orange
+C_MIST = [230,125,56] # orange
 C_BLUN = [187,65,57] # red
 C_EXCE = [159,230,91] # mid green
 C_INAC = [255, 255, 0] # yellow

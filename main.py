@@ -188,8 +188,8 @@ def main():
         print(levels)
         for i in range(0,len(levels)):
             positionDatabase.append(Position(testboard+testplacement+testplacement2, I_PIECE, I_PIECE,
-                                         placement = testplacement3, evaluation = random.uniform(0, 1), level = levels[i], lines = 2, currLines = 9,
-                                         transition = 10, score = 1500, evaluated = True, feedback = random.choice(AC.feedback)))
+                                         placement = testplacement3, evaluation = max(0,min(1,np.random.normal(loc=0.6,scale=0.5))), level = levels[i], lines = 2, currLines = 9,
+                                         transition = 10, score = 1500, evaluated = True, feedback = random.choice([AC.BEST,AC.EXCELLENT,random.choice(AC.feedback)])))
 
         for i in range(5):
             positionDatabase[0].possible.append(PossibleMove(43,testplacementa,testplacement2, S_PIECE, L_PIECE))

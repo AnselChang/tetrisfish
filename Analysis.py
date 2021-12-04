@@ -122,7 +122,7 @@ def analyze(positionDatabase, hzInt, hzString):
                     
 
     smallSize = 70
-    bigResolution = 8
+    bigResolution = 4
     width = 1300
 
     # Graph only accepts a minimum of 4 positions, otherwise interpolation doesn't work
@@ -284,7 +284,7 @@ def analyze(positionDatabase, hzInt, hzString):
         HT.blit("eval", evalBar.drawEval(), [20,20])
 
         # Text for level / lines / score
-        x1 = 1300
+        x1 = 1270
         x = 900
         c.screen.blit(c.font.render("Level: {}".format(pos.level), True, BLACK), [x1, 20])
         c.screen.blit(c.font.render("Lines: {}".format(pos.lines), True, BLACK), [x1, 100])
@@ -303,7 +303,7 @@ def analyze(positionDatabase, hzInt, hzString):
             feedbackColor = lighten(feedbackColor,0.7)
         c.screen.blit(c.fontbold.render(AC.feedbackString[pos.feedback], True, feedbackColor), [x3, 760])
         c.screen.blit(c.fontbold.render(AC.adjustmentString[pos.adjustment], True, feedbackColor), [x3, 860])
-        c.screen.blit(c.font.render("e: {}".format(pos.e), True, BLACK), [x1, 400])
+        c.screen.blit(c.font.render("e: {}".format(pos.e), True, BLACK), [1300, 400])
 
         # Text for position number
         text = c.font.render("Position: {}".format(analysisBoard.positionNum + 1), True, BLACK)

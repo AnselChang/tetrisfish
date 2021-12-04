@@ -68,6 +68,7 @@ class Graph:
 
         self.HORI_PADDING = 0
         self.VERT_PADDING = 40
+        self.VERT_OFFSET = 10
 
         assert(len(fullEvals) == len(levels) and len(fullEvals) == len(feedback))
 
@@ -126,15 +127,15 @@ class Graph:
         self.points = []
         currX = self.HORI_PADDING
         while currX < self.HORI_PADDING + (len(self.evals) - 1) * self.dist:
-            self.points.append([currX, self.f(currX)])
-            currX += 0.3
+            self.points.append([currX, self.f(currX)-self.VERT_OFFSET])
+            currX += 0.2
 
         # Calculate the boundary of each level change (specifically, 18, 19, 29, etc)
-        LEVEL_12 = [255, 179, 255]
-        LEVEL_15 = [179, 255, 224]
-        LEVEL_18 = [204,220,255] # blue
-        LEVEL_19 = [255, 229, 204] # orange
-        LEVEL_29 = [255,204,204] # red
+        LEVEL_12 = [156,76,147]
+        LEVEL_15 = [30,255,110]
+        LEVEL_18 = [25,80,250] # blue
+        LEVEL_19 = [255,130,30] # yellow
+        LEVEL_29 = [255,69,74] # red
         self.levelColors = {8 : LEVEL_18, 9 : LEVEL_19, 12 : LEVEL_12, 15 : LEVEL_15,
                             18 : LEVEL_18, 19 : LEVEL_19, 29 : LEVEL_29}
 
@@ -191,7 +192,7 @@ class Graph:
         x1,y1 = None,None
         for x2,y2 in self.points:
             x2 = int(x2)
-            y2 = int(y2)
+            y2 = int(y2)-self.VERT_OFFSET
             if x1 != None:
                 # https://stackoverflow.com/questions/30578068/pygame-draw-anti-aliased-thick-line
                 center_L1 = [(x1+x2) / 2, (y1+y2)/2]
@@ -292,7 +293,8 @@ class Graph:
 
         surf2 = pygame.Surface([self.right+self.intervalSize * self.resolution * self.dist, self.realheight]).convert_alpha()
 
-        width = 15 if self.isDetailed else 20
+        width = 15 if self.isDetailed else 15
+        color_at = 0.8
         # Draw color shading
         for level in self.levelBounds:
             x1,x2 = self.levelBounds[level]
@@ -300,12 +302,10 @@ class Graph:
                 continue
             assert(x2 != -1)
             shader = pygame.Surface([x2 - x1, self.realheight])
-            pygame.draw.rect(shader, self.levelColors[level], [0, self.realheight*0.8,shader.get_width(),self.realheight*0.2])
-            pygame.draw.rect(shader,lighten(DARK_GREY,1.7),[(x2-x1)-width,0,width,self.realheight])
+            pygame.draw.rect(shader, lighten(self.levelColors[level],1.5), [0, self.realheight*color_at,shader.get_width(),self.realheight*(1-color_at)])
+            pygame.draw.rect(shader,lighten(DARK_GREY,1.7),[(x2-x1)-width,0,width,self.realheight*color_at])
             surf2.blit(shader, [x1, 0])
 
-        # Draw piecewise cubic line fits!
-        surf2.blit(self.surfLines2 if self.hovering else self.surfLines,[0,0])
 
 
         i = round((mx - self.x) / self.dist)
@@ -317,12 +317,15 @@ class Graph:
         # Draw hover dot
         if self.hovering and self.showHover:
             cx = min(cx,self.right)
-            pygame.draw.circle(surf2, DARK_GREY, [cx, self.f([cx])[0]], HOVER_RADIUS)
+            pygame.draw.circle(surf2, DARK_GREY, [cx, self.f([cx])[0]-self.VERT_OFFSET], HOVER_RADIUS)
             
             hoverBox = pygame.Surface([self.dist, self.realheight])
             hoverBox.fill(BLACK)
-            hoverBox.set_alpha(30)
+            hoverBox.set_alpha(50)
             surf2.blit(hoverBox, [cx - self.dist / 2, 0])
+
+        # Draw piecewise cubic line fits!
+        surf2.blit(self.surfLines2 if self.hovering else self.surfLines,[0,0])
 
         # Graph feedback dots. Only show non-great moves and rather rapid in overall graph
         for fb, x, y in self.feedbackList:
@@ -332,9 +335,9 @@ class Graph:
                     size = self.dotSize[fb]
                 else:
                     size = self.fullDotSize[fb]
-                pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.8 if selected else 0.9), [x,y], size * (1.2 if selected else 1))
+                pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.8 if selected else 0.9), [x,y-2*self.VERT_OFFSET], size * (1.2 if selected else 1))
                 if selected:
-                    pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.6), [x,y], size * 1.3, width = 4)
+                    pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.6), [x,y-self.VERT_OFFSET], size * 1.3, width = 4)
 
         
         # Graph position markers

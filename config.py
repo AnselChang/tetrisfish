@@ -14,8 +14,8 @@ numEvaluatedPositions = 0
 
 pygame.init()
 pygame.font.init()
-font = pygame.font.Font('verdana.ttf', 40)
-fontbold = pygame.font.Font('verdanabold.ttf', 40)
+font = pygame.font.Font('verdana.ttf', 36)
+fontbold = pygame.font.Font('verdanabold.ttf', 36)
 font2 = pygame.font.Font('verdana.ttf', 25)
 fontbig = pygame.font.Font('verdana.ttf', 70)
 
