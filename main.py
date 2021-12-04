@@ -19,7 +19,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 
         
-testing = True
+testing = False
 testingEval = False
 #askFilePath = True # Testing, set to false if want to use same hardcoded filepath
 
