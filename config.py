@@ -14,9 +14,10 @@ numEvaluatedPositions = 0
 
 pygame.init()
 pygame.font.init()
-font = pygame.font.SysFont('Comic Sans MS', 60)
-font2 = pygame.font.SysFont('Comic Sans MS', 36)
-fontbig = pygame.font.SysFont('Comic Sans MS', 90)
+font = pygame.font.Font('verdana.ttf', 40)
+fontbold = pygame.font.Font('verdanabold.ttf', 40)
+font2 = pygame.font.Font('verdana.ttf', 25)
+fontbig = pygame.font.Font('verdana.ttf', 70)
 
 KEY_DELAY = 500
 KEY_INTERVAL = 100

@@ -76,8 +76,10 @@ def analyze(positionDatabase, hzInt, hzString):
     buttons = PygameButton.ButtonHandler()
     # Position buttons
     y = 800
-    buttons.addImage(B_LEFT, images[LEFTARROW], 950, y, 0.3, margin = 5, alt = images[LEFTARROW2])
-    buttons.addImage(B_RIGHT, images[RIGHTARROW], 1150, y, 0.3, margin = 5, alt = images[RIGHTARROW2])
+    buttons.addImage(B_MAXLEFT, images[LEFTARROW_MAX], 900, y, 0.3, margin = 5, alt = images[LEFTARROW2_MAX])
+    buttons.addImage(B_LEFT, images[LEFTARROW], 1100, y, 0.3, margin = 5, alt = images[LEFTARROW2])
+    buttons.addImage(B_RIGHT, images[RIGHTARROW], 1250, y, 0.3, margin = 5, alt = images[RIGHTARROW2])
+    buttons.addImage(B_MAXRIGHT, images[RIGHTARROW_MAX], 1400, y, 0.3, margin = 5, alt = images[RIGHTARROW2_MAX])
 
     # Hypothetical positon navigation buttons
     x = 910
@@ -109,10 +111,18 @@ def analyze(positionDatabase, hzInt, hzString):
     #    testFeedback[random.randint(0,len(levels)-1)] = random.choice(list(AC.feedbackColors))
 
     feedback = [p.feedback for p in positionDatabase]
+
+    # Index of very position that is an inaccuracy, mistake, or blunder
+    keyPositions = []
+    for i in range(len(feedback)):
+        if feedback[i] in [AC.INACCURACY, AC.MISTAKE, AC.BLUNDER]:
+            keyPositions.append(i)
+    keyPositions = np.array(keyPositions)
+    print("Key positions:", keyPositions)
                     
 
     smallSize = 70
-    bigResolution = 4
+    bigResolution = 8
     width = 1300
 
     # Graph only accepts a minimum of 4 positions, otherwise interpolation doesn't work
@@ -130,6 +140,9 @@ def analyze(positionDatabase, hzInt, hzString):
     wasPressed = False
 
     updatePosIndex = None
+
+    key = None
+
 
     while True:
 
@@ -165,15 +178,25 @@ def analyze(positionDatabase, hzInt, hzString):
                 analysisBoard.hypoRight()
 
         # Left/Right Buttons
-        if buttons.get(B_LEFT).clicked and analysisBoard.positionNum > 0:
+        if (buttons.get(B_LEFT).clicked or key == pygame.K_LEFT) and analysisBoard.positionNum > 0:
             analysisBoard.updatePosition(analysisBoard.positionNum-1)
             positionNum -= 1
             print(analysisBoard.position.url)
             
-        elif buttons.get(B_RIGHT).clicked and analysisBoard.positionNum < len(positionDatabase) - 1:
+        elif (buttons.get(B_RIGHT).clicked or key == pygame.K_RIGHT) and analysisBoard.positionNum < len(positionDatabase) - 1:
             analysisBoard.updatePosition(analysisBoard.positionNum+1)
             positionNum += 1
             print(analysisBoard.position.url)
+
+        elif (buttons.get(B_MAXLEFT).clicked or key == pygame.K_COMMA) and len(keyPositions[keyPositions < positionNum]) > 0:
+            # Go to previous key position
+            positionNum = keyPositions[keyPositions < positionNum].max()
+            analysisBoard.updatePosition(positionNum)
+
+        elif (buttons.get(B_MAXRIGHT).clicked or key == pygame.K_PERIOD) and len(keyPositions[keyPositions > positionNum]) > 0:
+            # Go to next key position
+            positionNum = keyPositions[keyPositions > positionNum].min()
+            analysisBoard.updatePosition(positionNum)
 
 
         # Update Graphs
@@ -192,6 +215,8 @@ def analyze(positionDatabase, hzInt, hzString):
             
         buttons.get(B_LEFT).isAlt = analysisBoard.positionNum == 0
         buttons.get(B_RIGHT).isAlt = analysisBoard.positionNum == len(positionDatabase) - 1
+        buttons.get(B_MAXLEFT).isAlt = len(keyPositions[keyPositions < positionNum]) == 0
+        buttons.get(B_MAXRIGHT).isAlt = len(keyPositions[keyPositions > positionNum]) == 0
 
         buttons.get(B_HYP_LEFT).isAlt = not analysisBoard.hasHypoLeft()
         buttons.get(B_HYP_MAXLEFT).isAlt = not analysisBoard.hasHypoLeft()
@@ -259,7 +284,7 @@ def analyze(positionDatabase, hzInt, hzString):
         HT.blit("eval", evalBar.drawEval(), [20,20])
 
         # Text for level / lines / score
-        x1 = 1250
+        x1 = 1300
         x = 900
         c.screen.blit(c.font.render("Level: {}".format(pos.level), True, BLACK), [x1, 20])
         c.screen.blit(c.font.render("Lines: {}".format(pos.lines), True, BLACK), [x1, 100])
@@ -270,19 +295,19 @@ def analyze(positionDatabase, hzInt, hzString):
         c.screen.blit(c.font.render("bestFinal: {}".format(pos.bestFinal), True, BLACK), [x, 620])
         c.screen.blit(c.font.render("RatherRapid: {}".format(pos.ratherRapid), True, BLACK), [x, 680])
         
-        x3 = 1650
-        c.screen.blit(c.fontbig.render("{} Hz Analysis".format(hzInt), True, BLACK), [x3, 760])
+        x3 = 2000
+        c.screen.blit(c.font.render("{} Hz Analysis".format(hzInt), True, BLACK), [1600, 860])
         if pos.feedback == AC.NONE:
             feedbackColor = DARK_GREY
         else:
             feedbackColor = lighten(feedbackColor,0.7)
-        c.screen.blit(c.fontbig.render(AC.feedbackString[pos.feedback], True, feedbackColor), [x3, 860])
-        c.screen.blit(c.fontbig.render(AC.adjustmentString[pos.adjustment], True, lighten(AC.feedbackColors[pos.adjustment],0.7)), [x3, 960])
-        c.screen.blit(c.fontbig.render("e: {}".format(pos.e), True, BLACK), [x1, 760])
+        c.screen.blit(c.fontbold.render(AC.feedbackString[pos.feedback], True, feedbackColor), [x3, 760])
+        c.screen.blit(c.fontbold.render(AC.adjustmentString[pos.adjustment], True, feedbackColor), [x3, 860])
+        c.screen.blit(c.font.render("e: {}".format(pos.e), True, BLACK), [x1, 400])
 
         # Text for position number
-        text = c.fontbig.render("Position: {}".format(analysisBoard.positionNum + 1), True, BLACK)
-        c.screen.blit(text, [1300,900])
+        text = c.font.render("Position: {}".format(analysisBoard.positionNum + 1), True, BLACK)
+        c.screen.blit(text, [1650,760])
 
         # Draw timestamp
         frameNum = analysisBoard.positionDatabase[analysisBoard.positionNum].frame
@@ -290,7 +315,7 @@ def analyze(positionDatabase, hzInt, hzString):
             text = c.font.render(c.timestamp(frameNum), True, BLACK)
             c.screen.blit(text, [1340,600] )
 
-        
+        key = None
         for event in pygame.event.get():
             if event.type == pygame.QUIT: 
                 pygame.display.quit()
@@ -301,17 +326,9 @@ def analyze(positionDatabase, hzInt, hzString):
                 
                 if event.key == pygame.K_t:
                     analysisBoard.toggle()
-                    
-                elif event.key == pygame.K_LEFT and analysisBoard.positionNum > 0:
-                    analysisBoard.updatePosition(analysisBoard.positionNum-1)
-                    positionNum -= 1
-                    print(analysisBoard.position.url)
-            
-                elif event.key == pygame.K_RIGHT and analysisBoard.positionNum < len(positionDatabase) - 1:
-                    analysisBoard.updatePosition(analysisBoard.positionNum+1)
-                    positionNum += 1
-                    print(analysisBoard.position.url)
-                    
+
+                elif event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_COMMA, pygame.K_PERIOD]:
+                    key = event.key    
                 
             elif event.type == pygame.VIDEORESIZE:
 

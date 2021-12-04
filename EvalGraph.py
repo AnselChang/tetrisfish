@@ -1,4 +1,5 @@
 import pygame, sys, random, math
+import pygame.gfxdraw
 import numpy as np
 from scipy import interpolate
 import math
@@ -88,6 +89,11 @@ class Graph:
 
         self.surf = None
 
+        self.dotSize = {AC.BEST : 9, AC.EXCELLENT : 9, AC.RAPID : 9, AC.MEDIOCRE : 9, AC.INACCURACY : 9,
+                        AC.MISTAKE : 9, AC.BLUNDER : 9}
+
+        self.fullDotSize = {AC.INACCURACY : 9 , AC.MISTAKE: 9, AC.BLUNDER : 9}
+
         # Scale the array to resolution
         self.posIndices = [resolution*i for i in range(1+int(len(fullEvals) / resolution))] # the position index of each element in self.evals
         self.grouped = np.array_split(fullEvals, self.posIndices[1:])
@@ -118,12 +124,10 @@ class Graph:
         self.f = interpolate.interp1d(x, self.evals, kind = 'cubic')
 
         self.points = []
-        self.points2 = []
         currX = self.HORI_PADDING
         while currX < self.HORI_PADDING + (len(self.evals) - 1) * self.dist:
-           self.points.append([currX, self.f(currX)])
-           self.points2.append([currX, self.f(currX)+2])
-           currX += 1
+            self.points.append([currX, self.f(currX)])
+            currX += 0.3
 
         # Calculate the boundary of each level change (specifically, 18, 19, 29, etc)
         LEVEL_12 = [255, 179, 255]
@@ -174,6 +178,40 @@ class Graph:
         self.dragLoc = -1
 
         self.bigInterval = -1
+
+
+        self.surfLines = pygame.Surface([self.right+self.intervalSize * self.resolution * self.dist, self.realheight]).convert_alpha()
+        self.surfLines2 = self.surfLines.copy()
+        self.drawLines(self.surfLines, self.points, 3)
+        self.drawLines(self.surfLines2, self.points, 5)
+
+
+    def drawLines(self,surf, points, thickness):
+
+        x1,y1 = None,None
+        for x2,y2 in self.points:
+            x2 = int(x2)
+            y2 = int(y2)
+            if x1 != None:
+                # https://stackoverflow.com/questions/30578068/pygame-draw-anti-aliased-thick-line
+                center_L1 = [(x1+x2) / 2, (y1+y2)/2]
+                angle = math.atan2(y1 - y2, x1 - x2)
+                length = math.sqrt((y2-y1)**2 + (x2-x1)**2)
+
+                UL = (center_L1[0] + (length/2.) * math.cos(angle) - (thickness/2.) * math.sin(angle),
+                      center_L1[1] + (thickness/2.) * math.cos(angle) + (length/2.) * math.sin(angle))
+                UR = (center_L1[0] - (length/2.) * math.cos(angle) - (thickness/2.) * math.sin(angle),
+                      center_L1[1] + (thickness/2.) * math.cos(angle) - (length/2.) * math.sin(angle))
+                BL = (center_L1[0] + (length/2.) * math.cos(angle) + (thickness/2.) * math.sin(angle),
+                      center_L1[1] - (thickness/2.) * math.cos(angle) + (length/2.) * math.sin(angle))
+                BR = (center_L1[0] - (length/2.) * math.cos(angle) + (thickness/2.) * math.sin(angle),
+                      center_L1[1] - (thickness/2.) * math.cos(angle) - (length/2.) * math.sin(angle))
+
+                pygame.gfxdraw.aapolygon(surf, (UL, UR, BR, BL), WHITE)
+                pygame.gfxdraw.filled_polygon(surf, (UL, UR, BR, BL), WHITE)
+            
+            x1 = x2
+            y1 = y2
 
     # absolutely fucking terrible code
     def update(self, positionIndex, mx, my, pressed, startPressed, click):
@@ -243,18 +281,18 @@ class Graph:
         
 
         HOVER_RADIUS = 7
-        FEEDBACK_RADIUS = 10 if self.isDetailed else 7
 
         # Check if mouse is hovering over line
         HOVER_MARGIN = 30
         
 
         self.surf = pygame.Surface([self.realwidth, self.realheight]).convert_alpha()
-        self.surf.fill(self.levelColors[getEquivalentLevel(self.levels[0])])
+        self.surf.fill(lighten(DARK_GREY,1.2))
         
 
         surf2 = pygame.Surface([self.right+self.intervalSize * self.resolution * self.dist, self.realheight]).convert_alpha()
 
+        width = 15 if self.isDetailed else 20
         # Draw color shading
         for level in self.levelBounds:
             x1,x2 = self.levelBounds[level]
@@ -262,13 +300,12 @@ class Graph:
                 continue
             assert(x2 != -1)
             shader = pygame.Surface([x2 - x1, self.realheight])
-            shader.fill(self.levelColors[level])
+            pygame.draw.rect(shader, self.levelColors[level], [0, self.realheight*0.8,shader.get_width(),self.realheight*0.2])
+            pygame.draw.rect(shader,lighten(DARK_GREY,1.7),[(x2-x1)-width,0,width,self.realheight])
             surf2.blit(shader, [x1, 0])
 
         # Draw piecewise cubic line fits!
-        pygame.draw.aalines(surf2, BLACK, False, self.points)
-        if self.hovering:
-            pygame.draw.aalines(surf2, BLACK, False, self.points2) # thicken line
+        surf2.blit(self.surfLines2 if self.hovering else self.surfLines,[0,0])
 
 
         i = round((mx - self.x) / self.dist)
@@ -287,13 +324,17 @@ class Graph:
             hoverBox.set_alpha(30)
             surf2.blit(hoverBox, [cx - self.dist / 2, 0])
 
-        # Graph feedback dots. Only show blunders in overall graph
+        # Graph feedback dots. Only show non-great moves and rather rapid in overall graph
         for fb, x, y in self.feedbackList:
-            if self.isDetailed or fb == AC.BLUNDER or fb == AC.BEST or fb == AC.RAPID:
+            if self.isDetailed or (fb != AC.BEST and fb != AC.EXCELLENT and fb != AC.MEDIOCRE and fb != AC.RAPID):
                 selected = (x == cx) and self.hovering
-                pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.8 if selected else 0.9), [x,y], FEEDBACK_RADIUS * (1.2 if selected else 1))
+                if self.isDetailed:
+                    size = self.dotSize[fb]
+                else:
+                    size = self.fullDotSize[fb]
+                pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.8 if selected else 0.9), [x,y], size * (1.2 if selected else 1))
                 if selected:
-                    pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.6), [x,y], FEEDBACK_RADIUS * 1.3, width = 4)
+                    pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.6), [x,y], size * 1.3, width = 4)
 
         
         # Graph position markers

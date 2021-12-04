@@ -38,4 +38,5 @@ There are various shortcuts that speed up the use of this program.
 - Alternatively from clicking "Render", press the enter key to render the program.
 ## During Analysis
 - Press "t" to rotate the piece while making a hypothetical placement.
-- Use the left and right arrows to navigate backwards or forwards through the positions.
+- Use the left and right arrows to navigate back or forward a position.
+- Use , and . to go to the previous or next key position.

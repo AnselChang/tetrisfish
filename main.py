@@ -1,11 +1,12 @@
 import numpy as np
-import pygame, sys
+import pygame, sys, random
 from PieceMasks import *
 import math
 import time
 import cProfile
 import os
 from colors import *
+import AnalysisConstants as AC
 
 
 from TetrisUtility import *
@@ -18,13 +19,13 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 
         
-testing = False
+testing = True
 testingEval = False
 #askFilePath = True # Testing, set to false if want to use same hardcoded filepath
 
 # Open a pygame window where you can drag a video into. Returns the filepath of the video.
 def dragFile():
-    spr_file_text = c.font.render("Drag a valid image or video file here!", True, WHITE)
+    spr_file_text = c.fontbold.render("Drag a valid image or video file here!", True, WHITE)
     rect = spr_file_text.get_rect()
 
     spr_file_image = None
@@ -187,8 +188,8 @@ def main():
         print(levels)
         for i in range(0,len(levels)):
             positionDatabase.append(Position(testboard+testplacement+testplacement2, I_PIECE, I_PIECE,
-                                         placement = testplacement3, evaluation = 0.1, level = levels[i], lines = 2, currLines = 9,
-                                         transition = 10, score = 1500, evaluated = True))
+                                         placement = testplacement3, evaluation = random.uniform(0, 1), level = levels[i], lines = 2, currLines = 9,
+                                         transition = 10, score = 1500, evaluated = True, feedback = random.choice(AC.feedback)))
 
         for i in range(5):
             positionDatabase[0].possible.append(PossibleMove(43,testplacementa,testplacement2, S_PIECE, L_PIECE))

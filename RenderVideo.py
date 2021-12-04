@@ -21,7 +21,7 @@ score = 0
 pool = None
 
 def drawProgressBar(screen,percent):
-    CENTER_Y = 30
+    CENTER_Y = 50
     SMALL_R = 5
     BIG_R = 13
     LEFT_X = 600

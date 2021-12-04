@@ -58,7 +58,7 @@ class PossibleMove:
 class Position:
 
     def __init__(self, board, currentPiece, nextPiece, placement = None, evaluation = 0, frame = None,
-                 level = 18, lines = 0, currLines = 0, transition = 130, score = 0, evaluated = False):
+                 level = 18, lines = 0, currLines = 0, transition = 130, score = 0, evaluated = False, feedback = AC.INVALID):
         self.board = board
         self.currentPiece = currentPiece
         self.nextPiece = nextPiece
@@ -92,7 +92,7 @@ class Position:
         self.evaluated = evaluated
         self.e = 0
         
-        self.feedback = AC.INVALID
+        self.feedback = feedback
         self.adjustment = AC.INVALID
 
         self.possible = [] # Best possible placements as found by SR
@@ -116,14 +116,9 @@ class Position:
         self.getFeedback()
 
     def getFeedback(self):
-        if self.level <= 18:
-            k = 0.33 # weight of NNB vs weight of adjusted
-        elif self.level < 29:
-            k = 0.66
-        else:
-            k = 1
 
-        e = (self.playerNNB - self.bestNNB) * k + (self.playerFinal - self.bestFinal) * (1-k)
+
+        e = self.playerFinal - self.bestFinal
         e = round(e,2)
         self.e = e
 
@@ -133,24 +128,23 @@ class Position:
         if self.evaluation == 0 and self.playerNNB == -1:
             self.feedback = AC.INVALID
         else:
-            if (self.level < 29 and self.playerFinal >= self.bestFinal - 2) or (self.level >= 29 and (e >= -1 or (self.playerFinal - self.bestFinal) >= -1)):
-                if self.ratherRapid:
-                    self.feedback = AC.RAPID
-                else:
-                    self.feedback = AC.BEST
-            elif self.playerFinal >= self.bestFinal - 3:
-                self.feedback = AC.EXCELLENT
-            elif self.playerFinal - self.bestFinal > -15: # usually this is true when the move is an adjustment of some sort
-                pass # decent move
-            elif e <= -50:
-                self.feedback = AC.BLUNDER
-            elif e <= -30:
-                self.feedback = AC.MISTAKE
-            elif e <= -18:
-                self.feedback = AC.INACCURACY
-
+            if e > 0 and self.ratherRapid:
+                self.feedback = AC.RAPID # better than engine move (fast)
+            elif e >= -1:
+                self.feedback = AC.BEST# 0 to 1
+            elif e >= -5:
+                self.feedback = AC.EXCELLENT # 2 to 5
+            elif e >= -12:
+                self.feedback = AC.MEDIOCRE # 6 to 12
+            elif e >= -25:
+                self.feedback = AC.INACCURACY # 13 to 25
+            elif e >= -50:
+                self.feedback = AC.MISTAKE # 26 to 40
+            else:
+                self.feedback = AC.BLUNDER # 41+
             
-            if self.bestNNB - self.playerNNB < 10 and k != -1: # NONE or higher
+            # If within 5 points of NNB engine move, look for missed adjustments
+            if self.bestNNB - self.playerNNB < 5:
                 f = self.bestFinal - self.playerFinal
                 if f >= 20:
                     self.adjustment  = AC.MAJOR_MISSED
