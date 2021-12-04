@@ -17,7 +17,11 @@ pygame.font.init()
 font = pygame.font.Font('verdana.ttf', 36)
 fontbold = pygame.font.Font('verdanabold.ttf', 36)
 font2 = pygame.font.Font('verdana.ttf', 25)
+font2bold = pygame.font.Font('verdanabold.ttf', 25)
 fontbig = pygame.font.Font('verdana.ttf', 70)
+
+fontnum = pygame.font.Font('numbers.ttf', 25)
+
 
 KEY_DELAY = 500
 KEY_INTERVAL = 100

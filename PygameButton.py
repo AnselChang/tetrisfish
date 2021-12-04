@@ -19,12 +19,18 @@ class ButtonHandler:
         # Use a hashtable for constant-time lookups
         self.buttons = {}
         self.displayPlacementRect = False
+        self.textboxes = []
 
     def addText(self, ID, text,x,y,width,height,buttonColor,textColor, margin = 0):
         self.buttons[ID] = TextButton(ID, text, x, y, width, height, buttonColor, textColor, margin)
 
     def addImage(self, ID, image, x, y, scale, margin = 0, alt = None, img2 = None, alt2 = None):
         self.buttons[ID] = ImageButton(ID, image, x, y, scale, margin, alt = alt, img2 = img2, alt2 = alt2)
+
+    def addTextBox(self,ID, x, y, width, height, maxDigits, defaultText = 0):
+        textbox = TextboxButton(ID, x, y, width, height, maxDigits, defaultText)
+        self.buttons[ID] = textbox
+        self.textboxes.append(textbox)
 
     def addPlacementButtons(self, num, x, firstY, dy, width, height):
         self.rectx = x
@@ -51,6 +57,23 @@ class ButtonHandler:
         
         for ID in self.buttons:
             self.buttons[ID].updatePressed(mx,my, click)
+
+    # Return true if the left or right arrow was used to move the cursor in the text box. False otherwise (so frame in video will be changed instead)
+    def updateTextboxes(self, key):
+        for textbox in self.textboxes:
+            if textbox.active:
+                if key == pygame.K_LEFT or key == pygame.K_RIGHT:
+                    textbox.changeCursor(-1 if key == pygame.K_LEFT else 1)
+                    return True
+                elif  key == pygame.K_RETURN:
+                    # Exit text box
+                    textbox.active = False
+                    return True
+                else:
+                    textbox.updateKey(key)
+
+        return False
+
 
     def display(self,screen):
 
@@ -95,6 +118,112 @@ class Button(ABC):
     @abstractmethod
     def get(self):
         pass
+
+
+# Type in numbers with backspace functionality for a textbox
+class TextboxButton(Button):
+    
+    def __init__(self,ID, x, y, width, height, maxDigits, defaultText = 0):
+        super().__init__(ID, x, y, width, height, 0) # last param is margin in pixels at top
+
+        self.color = MID_GREY
+        self.activeColor = [247,241,223]
+
+        self.text =str(defaultText)
+        self.textSurf = None
+        self.textX = -1
+
+        self.maxDigits = maxDigits
+        self.offset = 18
+        self.scale = 22
+
+        self.textMargin = 10
+        
+        self.active = False
+        self.cursor = -1 # index of the digit to the left of the cursor. -1 is when cursor is all the way left (can't delete anything)
+
+        self.keys = {pygame.K_0 : 0, pygame.K_1 : 1, pygame.K_2 : 2, pygame.K_3 : 3, pygame.K_4 : 4, pygame.K_5 : 5,
+                     pygame.K_6 : 6, pygame.K_7 : 7, pygame.K_8 : 8, pygame.K_9 : 9}
+
+        self.tick = 0
+        self.showCursor = False
+        self.BLINK_TIME = 10
+
+        self.updateTextSurf()
+
+    def updatePressed(self, mx, my, click):
+        super().updatePressed(mx, my, click)
+
+        # Handle enabling or disabling text box write depending on whether mouse is clicking on text box or something else
+        if click and self.pressed:
+            self.active  = True
+     
+            # move cursor to position closest to mouse
+            pos = round((mx - self.x - self.textX - self.offset) / self.scale)
+            self.cursor = min(len(self.text)-1, max(-1,pos))
+
+            
+            
+        elif click and not self.pressed:
+            self.active = False
+
+    # pygame key. Precondition is that textbox is active
+    def updateKey(self, key):
+        if key == pygame.K_BACKSPACE and len(self.text) > 0 and self.cursor != -1:
+            # delete element at cursor
+            self.text = self.text[ : self.cursor] + self.text[ self.cursor+1 : ]
+            self.cursor -= 1 # move cursor back one
+        elif key == pygame.K_BACKSPACE and self.cursor == -1:
+            self.text = self.text[1:]
+
+        elif len(self.text) < self.maxDigits and key in self.keys: # make sure key is a number key
+            
+            # Insert element at cursor
+            self.text = self.text[ : self.cursor + 1] + str(self.keys[key]) + self.text[ self.cursor+1 : ]
+
+            self.cursor += 1
+
+        self.updateTextSurf()
+
+    def updateTextSurf(self):
+        self.textSurf = c.fontnum.render(self.text, True, BLACK)
+        self.textX = self.width / 2 - self.textSurf.get_width() / 2
+
+    # Direction: left = -1, right = 1
+    def changeCursor(self, direction):
+        
+        self.cursor = min(len(self.text)-1,max(-1,self.cursor + direction)) # bound cursor to the width of the text
+
+    def get(self):
+
+
+        # handle cursor blink
+        self.tick = (self.tick + 1) % self.BLINK_TIME
+        if self.tick == 0:
+            self.showCursor = not self.showCursor
+
+        # Draw text box
+        surf = pygame.Surface([self.width,self.height])
+        if self.active:
+            surf.fill(self.activeColor)
+        else:
+            surf.fill(lighten(self.color, 1.3) if self.pressed else self.color)
+
+        # Draw centered text
+        surf.blit(self.textSurf, [self.textX, self.textMargin])
+        
+        # Add cursor
+        if self.active and self.showCursor:    
+            width = 3
+            pygame.draw.rect(surf, BRIGHT_RED, [self.textX + self.offset + self.cursor * self.scale, self.textMargin, width, self.textSurf.get_height()])
+            
+            
+        return surf, [self.x, self.y]
+
+    def value(self):
+        return int(self.text)
+        
+            
 
 # Possible moves button class during analysis
 class PlacementButton(Button):

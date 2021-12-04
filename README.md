@@ -9,6 +9,9 @@ TetrisFish is powered by StackRabbit, a tetris AI made by Gregory Cannon that th
 This project would not have been possible without...
 yobi9 - creator of NEStrisChamps and provided invaluable insight on developing the difficult and complex video processing algorithm.
 HydrantDude - a graphics artist who designed the sexy UI for callibration and analysis (in progress)
+Xenophilius - logo design and graphics consultant
+MegaTech - Tetris expert and tuning for rating categories
+Arb1t - early testing and bughunting
 and most importantly, countless beta testers to improve the robustness, ease of use, and design of this software. 
 
 # The callibration process

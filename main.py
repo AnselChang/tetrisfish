@@ -247,14 +247,13 @@ def main():
         if output == None:
             return # exit if pygame screen closed. This also happens if it's an image an callibrate() directly calls analysis
         
-        firstFrame, lastFrame, bounds, nextBounds, level, hz, hzInt = output
-        print("Level: {}, hz: {}".format(level,hz))
+        firstFrame, lastFrame, bounds, nextBounds, level, lines, score, hz, hzInt = output
+        print("Level: {}, Lines: {}, Score: {}, hz: {}".format(level,lines,score,hz))
 
         print("Successfully callibrated video.")
         print("First, last:", firstFrame, lastFrame)
         
-        lines = 0
-        score = 0
+
         positionDatabase = render(firstFrame, lastFrame, bounds, nextBounds, level, lines, score, hz)
         print("Num positions: ", len(positionDatabase))
         

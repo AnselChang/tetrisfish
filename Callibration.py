@@ -52,18 +52,6 @@ CALLIBRATION_IMAGES.extend([ C_LVIDEORED, C_LVIDEORED2, C_RVIDEORED, C_RVIDEORED
 images = loadImages("Images/Callibration/{}.png", CALLIBRATION_IMAGES)
 
 
-# 1 is none, 2 is hovered, 3 is clicked
-levelImages = {}
-
-def getLevel(level, hover):
-    return levelImages["Lv{}_{}".format(level, hover)]
-
-brighten = 40
-for level in START_LEVELS:
-    levelImages["Lv{}_2".format(level)] = pygame.image.load("Images/Callibration/LevelButtons/Lv{}_1.png".format(level)).convert_alpha()
-    levelImages["Lv{}_1".format(level)] = getLevel(level,2).copy()
-    levelImages["Lv{}_1".format(level)].fill((brighten, brighten, brighten), special_flags=pygame.BLEND_RGB_ADD)
-    levelImages["Lv{}_3".format(level)] = pygame.image.load("Images/Callibration/LevelButtons/Lv{}_3.png".format(level)).convert_alpha()
     
 
 
@@ -329,8 +317,8 @@ class HzSlider(Slider):
         loc = clamp(round((mx - self.leftx) / INTERVAL), 0, 9)
         self.x = self.leftx + loc * INTERVAL
         return loc
-            
-
+    
+    
 
 # Initiates user-callibrated tetris field. Returns currentFrame, bounds, nextBounds for rendering
 def callibrate():
@@ -375,14 +363,14 @@ def callibrate():
     
     buttons.addImage(B_RENDER, images[C_RENDER], 1724, 1203, hydrantScale, img2 = images[C_RENDER2])
 
-    x = 1725
-    y = 75
-    dx = 128
-    for level in START_LEVELS:
-        buttons.addImage("level{}".format(level), getLevel(level, 1), x, y, hydrantScale, img2 = getLevel(level, 2), alt = getLevel(level, 3), alt2 = getLevel(level, 3))
-        x += dx
 
-    LEVEL = 18
+    # Add text boxes
+    B_LEVEL = 7
+    B_LINES = 8
+    B_SCORE = 9
+    buttons.addTextBox(B_LEVEL, 1960, 40, 70, 50, 2, "18")
+    buttons.addTextBox(B_LINES, 2410, 40, 90, 50, 3, "0")
+    buttons.addTextBox(B_SCORE, 2150, 125, 170, 50, 7, "0")
     
     # Slider stuff
     SW = 680 # slider width
@@ -524,7 +512,8 @@ def callibrate():
                         board -= mask # remove current piece from board to get pure board state
                         print2d(board)
                         nextPiece = getNextBox(minosNext)
-                        pos = Position(board, currPiece, nextPiece, level = LEVEL)
+                        pos = Position(board, currPiece, nextPiece, level = buttons.get(B_LEVEL).value(),
+                                       lines = buttons.get(B_LINES).value(), score = buttons.get(B_SCORE).value())
                         analyze([pos], timelineNum[hzNum], timeline[hzNum])
 
                         return None
@@ -536,7 +525,8 @@ def callibrate():
 
                         # Exit callibration, initiate rendering with returned parameters
                         print("Hz num: ", timelineNum[hzNum])
-                        return vidFrame[LEFT_FRAME], vidFrame[RIGHT_FRAME], bounds, nextBounds, LEVEL, timeline[hzNum], timelineNum[hzNum]
+                        return [vidFrame[LEFT_FRAME], vidFrame[RIGHT_FRAME], bounds, nextBounds, buttons.get(B_LEVEL).value(),
+                                buttons.get(B_LINES).value(), buttons.get(B_SCORE).value(), timeline[hzNum], timelineNum[hzNum]]
 
         elif click:
             if bounds != None:
@@ -556,16 +546,6 @@ def callibrate():
             x = nextBounds.displayBounds(c.screen, nparray = frame)
             if isArray(x):
                 minosNext = x
-
-        # update button presses
-        for level in START_LEVELS:
-            b = buttons.get("level{}".format(level))
-            if b.clicked:
-                LEVEL = level
-            if level == LEVEL:
-                b.isAlt = True
-            else:
-                b.isAlt = False
 
         # Pickle callibration settings into file
         # Save hz, bounds, nextBounds, color callibration, zoom
@@ -648,6 +628,11 @@ def callibrate():
         else:
             text = c.font.render(c.timestamp(vidFrame[currentEnd]), True, WHITE)
             c.screen.blit(text, [300, 1383] )
+
+        # Draw Level/Lines/Score text
+        c.screen.blit(c.fontbold.render("Start Level:", True, WHITE), [1700, 40])
+        c.screen.blit(c.fontbold.render("Current Lines:", True, WHITE), [2100, 40])
+        c.screen.blit(c.fontbold.render("Current Score:", True, WHITE), [1830, 125])
         
 
         # Draw error message
@@ -674,9 +659,12 @@ def callibrate():
                 c.realscreen = pygame.display.set_mode(event.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
 
             elif event.type == pygame.KEYDOWN:
-                if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_COMMA, pygame.K_PERIOD]:
+
+                isTextBoxScroll = buttons.updateTextboxes(event.key)
+                
+                if not isTextBoxScroll and event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_COMMA, pygame.K_PERIOD]:
                     key = event.key
-                elif event.key == pygame.K_RETURN:
+                elif not isTextBoxScroll and event.key == pygame.K_RETURN:
                     enterKey = True
 
             elif event.type == pygame.KEYUP:

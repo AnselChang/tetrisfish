@@ -337,7 +337,7 @@ class Graph:
                     size = self.fullDotSize[fb]
                 pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.8 if selected else 0.9), [x,y-2*self.VERT_OFFSET], size * (1.2 if selected else 1))
                 if selected:
-                    pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.6), [x,y-self.VERT_OFFSET], size * 1.3, width = 4)
+                    pygame.draw.circle(surf2, lighten(AC.feedbackColors[fb], 0.6), [x,y-2*self.VERT_OFFSET], size * 1.3, width = 4)
 
         
         # Graph position markers
