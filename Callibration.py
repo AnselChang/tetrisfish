@@ -1,4 +1,4 @@
-import pygame, sys, pickle
+import pygame, sys, pickle, os
 import math, time
 import cv2
 from PieceMasks import *
@@ -45,9 +45,12 @@ C_LVIDEORED2 = "leftvideored2"
 C_RVIDEORED = "rightvideored"
 C_RVIDEORED2 = "rightvideored2"
 
+C_SAVE = "upload"
+C_LOAD = "download"
+
 CALLIBRATION_IMAGES = [C_BACKDROP, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2]
 CALLIBRATION_IMAGES.extend( [C_PREVF, C_PREVF2, C_NEXTF, C_NEXTF2, C_RENDER, C_RENDER2, C_SLIDER, C_SLIDER2, C_SLIDERF, C_SLIDER2F] )
-CALLIBRATION_IMAGES.extend([ C_LVIDEO, C_LVIDEO2, C_RVIDEO, C_RVIDEO2 ])
+CALLIBRATION_IMAGES.extend([ C_LVIDEO, C_LVIDEO2, C_RVIDEO, C_RVIDEO2, C_SAVE, C_LOAD ])
 CALLIBRATION_IMAGES.extend([ C_LVIDEORED, C_LVIDEORED2, C_RVIDEORED, C_RVIDEORED2 ])
 images = loadImages("Images/Callibration/{}.png", CALLIBRATION_IMAGES)
 
@@ -285,6 +288,7 @@ class Slider:
         
     # return float 0-1 indicating position on slider rect
     def tick(self, screen, value, startPress, isPressed, mx, my, animate = False):
+        
         self.hover = self.isHovering(mx,my)
         if startPress and self.hover:
             self.active = True
@@ -299,6 +303,10 @@ class Slider:
         self.draw(screen)
         
         return value
+
+    # percent 0-1
+    def overwrite(self, percent):
+        self.x = self.leftx + percent * self.sliderWidth
             
 
     def adjust(self,mx):
@@ -320,14 +328,17 @@ class Slider:
             else:
                 screen.blit(self.img1, [self.x, self.y])
 
-
+INTERVAL = 86
 class HzSlider(Slider):
     
     def adjust(self,mx):
-        INTERVAL = 86
+        
         loc = clamp(round((mx - self.leftx) / INTERVAL), 0, 9)
         self.x = self.leftx + loc * INTERVAL
         return loc
+
+    def overwrite(self, hzNum):
+        self.x = self.leftx + INTERVAL * hzNum
     
     
 
@@ -362,6 +373,8 @@ def callibrate():
     B_RENDER = 4
     B_LEFT = 5
     B_RIGHT = 6
+    B_SAVE = 12
+    B_LOAD = 13
 
     buttons = PygameButton.ButtonHandler()
     buttons.addImage(B_CALLIBRATE, images[C_BOARD], 1724, 380, hydrantScale, img2 = images[C_BOARD2])
@@ -374,11 +387,23 @@ def callibrate():
     
     buttons.addImage(B_RENDER, images[C_RENDER], 1724, 1203, hydrantScale, img2 = images[C_RENDER2])
 
+    scale = 0.26
+    save2 = images[C_SAVE].copy()
+    load2 = images[C_LOAD].copy()
+    addHueToSurface(save2,BLACK,0.2)
+    addHueToSurface(load2,BLACK,0.2)
+    load3 = images[C_LOAD].copy()
+    addHueToSurface(load3,BLACK,0.6)
+    print(load2)
+    buttons.addImage(B_SAVE, images[C_SAVE], 1470, 1370, scale, img2 = save2)
+    buttons.addImage(B_LOAD, images[C_LOAD], 1555, 1370, scale, img2 = load2, alt = load3, alt2 = load3)
+    print(buttons.get(B_SAVE).img2)
+
 
     # Add text boxes
-    B_LEVEL = 7
-    B_LINES = 8
-    B_SCORE = 9
+    B_LEVEL = 9
+    B_LINES = 10
+    B_SCORE = 11
     buttons.addTextBox(B_LEVEL, 1960, 40, 70, 50, 2, "18")
     buttons.addTextBox(B_LINES, 2410, 40, 90, 50, 3, "0")
     buttons.addTextBox(B_SCORE, 2150, 125, 170, 50, 7, "0")
@@ -402,7 +427,7 @@ def callibrate():
     hzNum = 0
     hzSlider = HzSlider(LEFT_X  + 12, 203, SW, hzNum, sliderImage, sliderImage2)
 
-    SW2 = 1090
+    SW2 = 922
     LEFT_X2 = 497
     Y = 1377
     leftVideoSlider = Slider(LEFT_X2, Y, SW2, 0, scaleImage(images[C_LVIDEO],hydrantScale), scaleImage(images[C_LVIDEO2],hydrantScale),
@@ -436,6 +461,7 @@ def callibrate():
 
     errorMsg = None
     errorText = ""
+    errorColor = BRIGHT_RED
     
     # Get new frame from opencv
     if not c.isImage:
@@ -500,6 +526,7 @@ def callibrate():
             if bounds == None or nextBounds == None or bounds.notSet or nextBounds.notSet or getNextBox(minosNext) == None:
                 errorMsg = time.time()  # display error message by logging time to display for 3 seconds
                 errorText = "You must finish callibrating and go to the first frame to be rendered."
+                errorColor = RED
 
             else:
                 board = bounds.getMinos(frame)
@@ -510,6 +537,7 @@ def callibrate():
                 if currPiece == None:
                     errorMsg = time.time()  # display error message by logging time to display for 3 seconds
                     errorText = "The current piece must be near the top  with all four minos fully visible."
+                    errorColor = RED
                 
                 else:
 
@@ -549,7 +577,6 @@ def callibrate():
         
         if bounds != None:
             delete = bounds.updateMouse(mx,my, click)
-            print(delete)
             if delete:
                 bounds = None
             else:
@@ -566,9 +593,12 @@ def callibrate():
                 if isArray(x):
                     minosNext = x
 
+        bload = buttons.get(B_LOAD)
+        bload.isAlt = not os.path.isfile("callibration_preset.p")
+
         # Pickle callibration settings into file
         # Save hz, bounds, nextBounds, color callibration, zoom
-        if False and savePreset:
+        if buttons.get(B_SAVE).clicked:
 
             # tetris board
             if bounds == None:
@@ -578,17 +608,21 @@ def callibrate():
 
             # next box
             if nextBounds == None:
-                bData = None
+                nData = None
             else:
-                bData = [nextBounds.x1, nextBounds.y1, nextBounds.x2, nextBounds.y2]
+                nData = [nextBounds.x1, nextBounds.y1, nextBounds.x2, nextBounds.y2]
 
             data = [hzNum, bData, nData, c.COLOR_CALLIBRATION, c.SCALAR]
             pickle.dump( data, open( "callibration_preset.p", "wb" ) )
 
-            print("Saved preset")
+            print("Saved preset", data)
+
+            errorMsg = time.time()  # display message by logging time to display for 3 seconds
+            errorText = "Callibration preset saved."
+            errorColor = WHITE
 
         # Unpickle callibration settings and update to those settings
-        if False and loadPreset:
+        if not bload.isAlt and bload.clicked:
 
             data = pickle.load( open( "callibration_preset.p", "rb" ) )
 
@@ -597,16 +631,25 @@ def callibrate():
                 bounds = None
             else:
                 bounds = Bounds(False, *data[1], mode = 0)
+                bounds.notSet = False
 
             if data[2] == None:
                 nextBounds = None
             else:
                 nextBounds = Bounds(True, *data[2], mode = 0)
+                nextBounds.notSet = False
 
             c.COLOR_CALLIBRATION = data[3]
             c.SCALAR = data[4]
+
+            colorSlider.overwrite(c.COLOR_CALLIBRATION/150)
+            zoomSlider.overwrite(c.SCALAR - 0.5)
+            hzSlider.overwrite(hzNum)
             
-            print("loaded preset")
+            print("loaded preset", data)
+            errorMsg = time.time()  # display message by logging time to display for 3 seconds
+            errorText = "Callibration preset loaded."
+            errorColor = WHITE
         
 
         # Draw buttons
@@ -657,8 +700,8 @@ def callibrate():
         # Draw error message
         if errorMsg != None:
             if time.time() - errorMsg < ERROR_TIME:
-                text = c.font2.render(errorText, True, RED)
-                c.screen.blit(text, [1700,1150] )
+                text = c.font2.render(errorText, True, errorColor)
+                c.screen.blit(text, [1670,1380] )
             else:
                 errorMsg = None
 
