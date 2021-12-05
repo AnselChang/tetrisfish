@@ -65,6 +65,8 @@ class Bounds:
 
     def __init__(self,isNextBox, x1,y1,x2,y2, mode = 1):
 
+        self.first = True
+
         self.isNB = isNextBox
         self.x1 = x1
         self.y1 = y1
@@ -108,12 +110,19 @@ class Bounds:
     def mouseOutOfBounds(self, mx, my):
         return mx < 0 or mx > c.X_MAX or my < 0 or my > c.Y_MAX
 
+    # return True to delete
     def updateMouse(self,mx,my, click):
 
         self.doNotDisplay = self.notSet and self.mouseOutOfBounds(mx, my)
 
         if self.doNotDisplay:
-            return
+            if click and not self.first:
+                return True
+            elif not click:
+                self.first = False
+                return False
+
+        self.first = False
         
         if self.callibration == 1:
             self.x1 = mx
@@ -123,6 +132,8 @@ class Bounds:
             self.x2 = mx
             self.y2 = my
             self.updateConversions()
+
+        return False
         
 
     def click(self, mx, my):
@@ -435,6 +446,9 @@ def callibrate():
     keyshift = {pygame.K_COMMA : -1, pygame.K_PERIOD : 1, pygame.K_LEFT : -20, pygame. K_RIGHT : 20}
     enterKey = False
     
+    startPress = False
+    click = False
+    
     while True:
 
         c.realscreen.fill([38,38,38])
@@ -448,8 +462,6 @@ def callibrate():
         # get mouse position
         mx,my =c.getScaledPos(*pygame.mouse.get_pos())
         isPressed =  pygame.mouse.get_pressed()[0]
-        click = wasPressed and not isPressed
-        startPress = isPressed and not wasPressed
         buttons.updatePressed(mx,my,click)
 
         if not c.isImage:
@@ -536,16 +548,23 @@ def callibrate():
             
         
         if bounds != None:
-            bounds.updateMouse(mx,my, click)
-            x = bounds.displayBounds(c.screen, nparray = frame)
-            if isArray(x):
-                minosMain = x
+            delete = bounds.updateMouse(mx,my, click)
+            print(delete)
+            if delete:
+                bounds = None
+            else:
+                x = bounds.displayBounds(c.screen, nparray = frame)
+                if isArray(x):
+                    minosMain = x
 
         if nextBounds != None:
-            nextBounds.updateMouse(mx,my, click)
-            x = nextBounds.displayBounds(c.screen, nparray = frame)
-            if isArray(x):
-                minosNext = x
+            delete = nextBounds.updateMouse(mx,my, click)
+            if delete:
+                nextBounds = None
+            else:
+                x = nextBounds.displayBounds(c.screen, nparray = frame)
+                if isArray(x):
+                    minosNext = x
 
         # Pickle callibration settings into file
         # Save hz, bounds, nextBounds, color callibration, zoom
@@ -647,6 +666,8 @@ def callibrate():
 
         key = None
         enterKey = False
+        startPress = False
+        click = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 if not c.isImage:
@@ -657,6 +678,12 @@ def callibrate():
                 
             elif event.type == pygame.VIDEORESIZE:
                 c.realscreen = pygame.display.set_mode(event.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                startPress = True
+
+            elif event.type == pygame.MOUSEBUTTONUP:
+                click = True
 
             elif event.type == pygame.KEYDOWN:
 

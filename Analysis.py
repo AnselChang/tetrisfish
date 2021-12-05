@@ -137,11 +137,13 @@ def analyze(positionDatabase, hzInt, hzString):
     greysurface.blit(images[STRIPES],[0,0])
     
 
-    wasPressed = False
 
     updatePosIndex = None
 
     key = None
+    
+    startPressed = False
+    click = False
 
 
     while True:
@@ -153,9 +155,7 @@ def analyze(positionDatabase, hzInt, hzString):
         # Mouse position
         mx,my = c.getScaledPos(*pygame.mouse.get_pos())
         pressed = pygame.mouse.get_pressed()[0]
-        click = not pressed and wasPressed
-        startPressed = pressed and not wasPressed
-        wasPressed = pressed
+
 
 
         # Update with mouse event information        
@@ -316,11 +316,19 @@ def analyze(positionDatabase, hzInt, hzString):
             c.screen.blit(text, [1340,600] )
 
         key = None
+        startPressed = False
+        click = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT: 
                 pygame.display.quit()
                 sys.exit()
                 return True
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                startPressed = True
+
+            elif event.type == pygame.MOUSEBUTTONUP:
+                click = True
 
             elif event.type == pygame.KEYDOWN:
                 
