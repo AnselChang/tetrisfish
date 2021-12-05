@@ -1,3 +1,7 @@
+# pyinstaller main.py --onefile --add-data="Images:Images"
+
+print("start")
+
 import numpy as np
 import pygame, sys, random
 from PieceMasks import *

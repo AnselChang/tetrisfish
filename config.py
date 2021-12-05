@@ -1,3 +1,17 @@
+import os, sys
+#https://pyinstaller.readthedocs.io/en/stable/runtime-information.html
+print(os.environ)
+def fp(filepath):
+    print("test", os.path.abspath(os.path.join(os.path.dirname(__file__), filepath)))
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        print('running in a PyInstaller bundle', sys._MEIPASS)
+        filepath = os.path.join(sys._MEIPASS, filepath)
+    else:
+        print('running in a normal Python process')
+        
+    print(filepath)
+    return filepath
+
 import pygame
 
 if pygame.get_sdl_version() < (2, 0, 0):
@@ -14,14 +28,14 @@ numEvaluatedPositions = 0
 
 pygame.init()
 pygame.font.init()
-font = pygame.font.Font('verdana.ttf', 36)
-fontbold = pygame.font.Font('verdanabold.ttf', 36)
-font2 = pygame.font.Font('verdana.ttf', 25)
-font2bold = pygame.font.Font('verdanabold.ttf', 25)
-fontbig = pygame.font.Font('verdana.ttf', 70)
-fontbigbold = pygame.font.Font('verdanabold.ttf', 70)
+font = pygame.font.Font(fp('Images/Fonts/verdana.ttf'), 36)
+fontbold = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 36)
+font2 = pygame.font.Font(fp('Images/Fonts/verdana.ttf'), 25)
+font2bold = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 25)
+fontbig = pygame.font.Font(fp('Images/Fonts/verdana.ttf'), 70)
+fontbigbold = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 70)
 
-fontnum = pygame.font.Font('numbers.ttf', 25)
+fontnum = pygame.font.Font(fp('Images/Fonts/numbers.ttf'), 25)
 
 
 KEY_DELAY = 500
@@ -66,6 +80,7 @@ realscreen = pygame.display.set_mode((REAL_WIDTH, REAL_HEIGHT), pygame.HWSURFACE
 #screen = pygame.Surface([1152, 685])
 screen = pygame.Surface([SCREEN_WIDTH, SCREEN_HEIGHT])
 pygame.display.set_caption('tetrisfish by Ansel, powered by StackRabbit')
+
 
 # Get timestamp at frame
 def timestamp(frame):

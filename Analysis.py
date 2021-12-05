@@ -52,12 +52,12 @@ def analyze(positionDatabase, hzInt, hzString):
     IMAGE_NAMES.extend( [LEFTARROW_MAX, RIGHTARROW_MAX, LEFTARROW2_MAX, RIGHTARROW2_MAX] )
 
     # Load all images.
-    images = loadImages("Images/Analysis/{}.png", IMAGE_NAMES)
+    images = loadImages(c.fp("Images/Analysis/{}.png"), IMAGE_NAMES)
 
     bigMinoImages = []
     # Load mino images for all levels
     for i in range(0,10):
-        bigMinoImages.append(loadImages("Images/Analysis/Minos/" + str(i) + "/{}.png", MINO_COLORS))
+        bigMinoImages.append(loadImages(c.fp("Images/Analysis/Minos/" + str(i) + "/{}.png"), MINO_COLORS))
     
     AnalysisBoard.init(images, bigMinoImages)
 
