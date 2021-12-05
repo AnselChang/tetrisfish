@@ -1,7 +1,7 @@
 import pygame, sys, math, time
 import AnalysisBoard
 import config as c
-from Position import Position
+from Position import Position, BLUNDER_THRESHOLD
 import PygameButton
 from colors import *
 from PieceMasks import *
@@ -119,8 +119,64 @@ def analyze(positionDatabase, hzInt, hzString):
             keyPositions.append(i)
     keyPositions = np.array(keyPositions)
     print("Key positions:", keyPositions)
-                    
 
+    # Calculate game summary. Get average loss for pre, post, killscreen.
+    preNum, preSum = 0, 0
+    postNum, postSum = 0, 0
+    ksNum, ksSum = 0, 0
+    pre = positionDatabase[0].level
+    for p in positionDatabase:
+
+        # Disregard unknown/invalid evaluations
+        if p.feedback == AC.INVALID:
+            continue
+
+        e = max(BLUNDER_THRESHOLD, p.playerFinal - p.bestFinal) # limit difference to -50
+        print(e)
+
+        if p.level >= 29:
+            print("ks")
+            ksNum += 1
+            ksSum += e
+        elif p.level >= 19 or p.level > pre:
+            print("post")
+            postNum += 1
+            postSum += e
+        else: # p.level == pre
+            print("pre")
+            preNum += 1
+            preSum += e
+
+    print("Summary: ",preNum,preSum,postNum,postSum,ksNum,ksSum)
+
+    def getAccuracy(num, summ):
+        if num == 0:
+            return "N/A"
+        print(num,summ)
+        avg = summ / num # probably some negative number. BLUNDER_THRESHHOLD = -50 at the moment
+        # scale BLUNDER_THRESHOLD to 0 -> 0% -> 100%
+
+         # can't get worse than 0% accuracy. Can go over 100% though... (rather rapid)
+        scaled = round(100 * max(avg - BLUNDER_THRESHOLD, 0) / (0-BLUNDER_THRESHOLD))
+        print(scaled)
+
+        # scaled is now a number 0-100(+)
+        return "{}%".format(scaled)
+
+    def blitCenterText(surface, font, string, color, y):
+        text = font.render(string, True, color)
+        surface.blit(text, [surface.get_width()/2 - text.get_width()/2, y])
+
+    # Generate game summary surface
+    summary = pygame.Surface([300,400]).convert_alpha()
+    blitCenterText(summary, c.fontbold, "Accuracy", BLACK, 0)
+    blitCenterText(summary, c.fontbigbold, getAccuracy(preNum+postNum+ksNum/2, preSum+postSum+ksSum/2), BLACK, 50)
+    blitCenterText(summary, c.fontbold, "Pre - " + getAccuracy(preNum, preSum), BLACK, 150)
+    blitCenterText(summary, c.fontbold, "Post - " + getAccuracy(postNum, postSum), BLACK, 200)
+    blitCenterText(summary, c.fontbold, "KS - " + getAccuracy(ksNum, ksSum), BLACK, 250)
+    
+    
+        
     smallSize = 70
     bigResolution = 4
     width = 1300
@@ -303,7 +359,7 @@ def analyze(positionDatabase, hzInt, hzString):
             feedbackColor = lighten(feedbackColor,0.7)
         c.screen.blit(c.fontbold.render(AC.feedbackString[pos.feedback], True, feedbackColor), [x3, 760])
         c.screen.blit(c.fontbold.render(AC.adjustmentString[pos.adjustment], True, feedbackColor), [x3, 860])
-        c.screen.blit(c.font.render("e: {}".format(pos.e), True, BLACK), [1300, 400])
+        c.screen.blit(c.font.render("e: {}".format(pos.e), True, BLACK), [1300, 300])
 
         # Text for position number
         text = c.font.render("Position: {}".format(analysisBoard.positionNum + 1), True, BLACK)
@@ -313,7 +369,10 @@ def analyze(positionDatabase, hzInt, hzString):
         frameNum = analysisBoard.positionDatabase[analysisBoard.positionNum].frame
         if frameNum != None:
             text = c.font.render(c.timestamp(frameNum), True, BLACK)
-            c.screen.blit(text, [1340,600] )
+            c.screen.blit(text, [1340,730] )
+
+        # Game summary
+        c.screen.blit(summary, [1240, 400])
 
         key = None
         startPressed = False

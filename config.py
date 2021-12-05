@@ -19,6 +19,7 @@ fontbold = pygame.font.Font('verdanabold.ttf', 36)
 font2 = pygame.font.Font('verdana.ttf', 25)
 font2bold = pygame.font.Font('verdanabold.ttf', 25)
 fontbig = pygame.font.Font('verdana.ttf', 70)
+fontbigbold = pygame.font.Font('verdanabold.ttf', 70)
 
 fontnum = pygame.font.Font('numbers.ttf', 25)
 

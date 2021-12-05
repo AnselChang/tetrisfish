@@ -3,6 +3,8 @@ from PieceMasks import *
 from TetrisUtility import print2d
 import AnalysisConstants as AC
 
+BLUNDER_THRESHOLD = -50
+
 # A possible move is defined by the possible current piece placement followed by the possible next piece placement.
 # The next piece placement should NOT be preceded by a line clear calculation for the current piece. This may be tricky
 class PossibleMove:
@@ -138,10 +140,10 @@ class Position:
                 self.feedback = AC.MEDIOCRE # 6 to 12
             elif e >= -25:
                 self.feedback = AC.INACCURACY # 13 to 25
-            elif e >= -50:
+            elif e > BLUNDER_THRESHOLD:
                 self.feedback = AC.MISTAKE # 26 to 40
             else:
-                self.feedback = AC.BLUNDER # 41+
+                self.feedback = AC.BLUNDER # 50+
             
             # If within 5 points of NNB engine move, look for missed adjustments
             if self.bestNNB - self.playerNNB < 5:

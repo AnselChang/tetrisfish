@@ -627,6 +627,14 @@ def callibrate():
             data = pickle.load( open( "callibration_preset.p", "rb" ) )
 
             hzNum = data[0]
+            c.COLOR_CALLIBRATION = data[3]
+            c.SCALAR = data[4]
+
+            colorSlider.overwrite(c.COLOR_CALLIBRATION/150)
+            zoomSlider.overwrite(c.SCALAR - 0.5)
+            hzSlider.overwrite(hzNum)
+
+            
             if data[1] == None:
                 bounds = None
             else:
@@ -638,13 +646,6 @@ def callibrate():
             else:
                 nextBounds = Bounds(True, *data[2], mode = 0)
                 nextBounds.notSet = False
-
-            c.COLOR_CALLIBRATION = data[3]
-            c.SCALAR = data[4]
-
-            colorSlider.overwrite(c.COLOR_CALLIBRATION/150)
-            zoomSlider.overwrite(c.SCALAR - 0.5)
-            hzSlider.overwrite(hzNum)
             
             print("loaded preset", data)
             errorMsg = time.time()  # display message by logging time to display for 3 seconds

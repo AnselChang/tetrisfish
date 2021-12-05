@@ -7,12 +7,13 @@ Please join the active discord to follow the development, bug fixing, and releas
 TetrisFish is powered by StackRabbit, a tetris AI made by Gregory Cannon that this program communicates with. I am grateful Greg was open to this idea and worked with me to create an API endpoint for this software. Refer to this link for more information: https://github.com/GregoryCannon/StackRabbit
 
 This project would not have been possible without...
-yobi9 - creator of NEStrisChamps and provided invaluable insight on developing the difficult and complex video processing algorithm.
-HydrantDude - a graphics artist who designed the sexy UI for callibration and analysis (in progress)
-Xenophilius - logo design and graphics consultant
-MegaTech - Tetris expert and tuning for rating categories
-Arb1t - early testing and bughunting
-and most importantly, countless beta testers to improve the robustness, ease of use, and design of this software. 
+- yobi9: creator of NEStrisChamps and provided invaluable insight on developing the difficult and complex video processing algorithm
+- HydrantDude: a graphics artist who designed the sexy UI for callibration and analysis (in progress)
+- Xenophilius: logo design and graphics consultant
+- MegaTech: Tetris expert and tuning for rating categories
+- Arb1t - early testing and bughunting
+
+and last but not least, countless beta testers to improve the robustness, ease of use, and design of this software. 
 
 # The callibration process
 1. Drag a tetris video into the display. This does not have to be in any particular format, provided the quality is somewhat decent.
