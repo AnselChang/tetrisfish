@@ -1,5 +1,6 @@
 import numpy as np
-import pygame
+import pygame, time
+from collections import deque
 import math
 import PieceMasks as PM
 
@@ -24,6 +25,10 @@ def avg(array):
 
 def print2d(array):
 
+    if type(array) != np.ndarray:
+        print("[None array]")
+        return
+
     # prints faster at loss of aesthetic
     for row in range(len(array)):
         print(array[row])
@@ -34,7 +39,7 @@ def clamp(n,smallest,largest):
 
 # return empty 20x10 array
 def empty(rows = 20, cols = 10):
-    return np.array([[0 for _ in range(cols)] for _ in range(rows)])
+    return np.zeros([rows,cols], dtype = int)
 
 def isEmpty(arr):
     return not np.any(arr)
@@ -196,9 +201,12 @@ def scaleImage(img, scale):
 
 
 # Return the type of piece from a 2d list piece mask. Used in conjunction with extractCurrentPiece()
-def getPieceMaskType(mask):
+# We can specify a specific piece we're looking for (from previous NB)
+def getPieceMaskType(mask, piece = None):
     if np.count_nonzero(mask == 1) != 4:
         return None
+
+    print("piecemask", piece)
 
     # We first shrink the array by removing all trailing 0s of rows and columns
     p = np.where(mask != 0)
@@ -209,6 +217,13 @@ def getPieceMaskType(mask):
     if len(maskSmall) > 4 or len(maskSmall[0]) > 4:
         return None
 
+    if piece == None:
+        shapes = PM.TETRONIMO_SHAPES
+        pieces = PM.TETRONIMOS
+    else:
+        shapes = [PM.TETRONIMO_SHAPES[piece]] # a single element consisting of the shape we're looking ofr
+        pieces = [piece]
+
     for row in range(0, 5 - len(maskSmall)):
         for col in range(0, 5 - len(maskSmall[0])):
             # "Blit the mask to every possible position in a 4x4 matrix
@@ -216,39 +231,101 @@ def getPieceMaskType(mask):
             arr[row : row+len(maskSmall), col : col+len(maskSmall[0])] = maskSmall
 
             # We look for the equivalent matrix in the list of pieces with all their rotations
-            for i in range(len(PM.TETRONIMO_SHAPES)):
-                for rotArr in PM.TETRONIMO_SHAPES[i]:
+            for i in range(len(shapes)):
+                for rotArr in shapes[i]:
                     if (arr == rotArr).all():
                         print2d(arr)
-                        return PM.TETRONIMOS[i]
+                        print("p",pieces[i])
+                        return pieces[i]
 
+    print("return none")
     return None
 
+# perform bfs from specified node. Returns true if the connected component has size of exactly four.
+adjacent = [
+    [1,0],
+    [0,1],
+    [0,-1]] # left, right, down is adjacent
+def _bfs(board, visited, startRow, startCol):
 
+    # No component at this location.
+    if board[startRow][startCol] == 0:
+        return False
 
-# From a board, find the "floating" piece, defined to be with at least 3-cell separation from the rest of the board. We only look at the top half of the board.
+    count = 0
+    queue = deque()
+
+    queue.append([startRow, startCol])
+    visited[startRow][startCol] = 1
+
+    while len(queue) > 0:
+
+        count += 1
+        row, col = queue.popleft()
+
+        for dr, dc in adjacent:
+            r = row + dr
+            c = col + dc
+            if r >= 0 and r < 10 and c >= 0 and c < 10 and board[r][c] == 1 and visited[r][c] == 0:
+                queue.append([r,c])
+                visited[r][c] = 1
+
+    return count == 4
+
+        
+    
+
+# From a board, find the "floating" piece, defined to be a four-cell connected component. We only look at the top half of the board.
 # Return the mask of the piece
 def extractCurrentPiece(board):
-    pieceMask = empty()
+    print("extract")
+    
+    visited = empty(10,10) # 0 indicates empty. Otherwise, stores id of the connected component.
 
-    for col in range(len(board[0])):
-        temp = empty()
-        
-        row = 0
-        while row < 10 and board[row][col] == 0:
-            row += 1
+    for row in range(len(visited)):
+        for col in range(len(visited[row])):
+            # traverse left-right, then top-bottom
+            
+            if _bfs(board, visited, row, col):
+                # The component at [row,col] is a connected component of size 4
+                piecemask = empty(20,10)
 
-        if row >= 10:
-            continue
-        num = 0
-        while row <= 10 and board[row][col] == 1:
-            temp[row][col] = 1
-            num += 1
-            row += 1
-        if row >= 10 or num > 4:
-            continue
-        if board[row][col] == 0 and board[row+1][col] == 0:
-            pieceMask += temp
+                # Reperform bfs on the array but instead of passing in visited, have it write the mino bits to piecemask
+                _bfs(board, piecemask, row, col)
+                return piecemask
+            
+    return None                
+            
 
-    print2d(pieceMask)
-    return pieceMask
+if __name__ == "__main__":
+    testboard = np.array([
+                  [0, 1, 0, 1, 1, 1, 0, 0, 0, 0,],
+                  [0, 1, 0, 1, 0, 0, 0, 0, 0, 0,],
+                  [0, 1, 0, 0, 1, 1, 0, 1, 0, 0,],
+                  [0, 1, 1, 0, 0, 0, 0, 1, 0, 0,],
+                  [0, 0, 1, 0, 0, 0, 1, 1, 0, 0,],
+                  [0, 0, 0, 1, 0, 0, 0, 0, 0, 0,],
+                  [0, 0, 0, 0, 0, 1, 0, 0, 0, 1,],
+                  [1, 0, 0, 1, 0, 0, 1, 1, 1, 1,],
+                  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
+                  [1, 1, 1, 1, 0, 0, 0, 0, 1, 1,],
+                  [1, 1, 1, 1, 1, 0, 0, 0, 1, 1,],
+                  [1, 1, 1, 1, 0, 1, 1, 1, 1, 1,]
+                  ])
+    start = time.time()
+    piece = extractCurrentPiece(testboard)
+    print(time.time() - start)
+    print2d(piece)
+    start = time.time()
+    piece = getPieceMaskType(piece, PM.L_PIECE)
+    print(time.time() - start)
+    print(piece)
+    

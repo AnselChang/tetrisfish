@@ -132,18 +132,14 @@ def analyze(positionDatabase, hzInt, hzString):
             continue
 
         e = max(BLUNDER_THRESHOLD, p.playerFinal - p.bestFinal) # limit difference to -50
-        print(e)
 
         if p.level >= 29:
-            print("ks")
             ksNum += 1
             ksSum += e
         elif p.level >= 19 or p.level > pre:
-            print("post")
             postNum += 1
             postSum += e
         else: # p.level == pre
-            print("pre")
             preNum += 1
             preSum += e
 

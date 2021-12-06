@@ -186,9 +186,7 @@ def main():
        # positionDatabase.append(Position(testboard+testplacement, L_PIECE, I_PIECE, placement = testplacement2,
          #                                evaluation = 0.5, level = 19, lines = 0, currLines = 0, transition = 10, score = 0, evaluated = True))
         positionDatabase = []
-        levels = [8]*50
-        for i in range(9,34):
-            levels.extend([i]*10)
+        levels = [8]*30
         print(levels)
         for i in range(0,len(levels)):
             positionDatabase.append(Position(testboard+testplacement+testplacement2, I_PIECE, I_PIECE,
@@ -202,7 +200,7 @@ def main():
             
             
 
-            numPos = 500
+            numPos = 150
             positions = [positionDatabase[0]] * numPos
             hzs = [timeline[2]] * numPos
             print([p.evaluation for p in positions])

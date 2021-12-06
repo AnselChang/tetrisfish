@@ -329,6 +329,8 @@ class Graph:
 
         # Graph feedback dots. Only show non-great moves and rather rapid in overall graph
         for fb, x, y in self.feedbackList:
+            if fb == AC.INVALID:
+                continue
             if self.isDetailed or (fb != AC.BEST and fb != AC.EXCELLENT and fb != AC.MEDIOCRE and fb != AC.RAPID):
                 selected = (x == cx) and self.hovering
                 if self.isDetailed:

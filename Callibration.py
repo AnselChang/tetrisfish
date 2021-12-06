@@ -76,7 +76,7 @@ class Bounds:
         self.x2 = x2
         self.y2 = y2
         self.callibration = mode # 1 = setting top-left point, 2 = setting bottom-right point, 0 = already set
-        self.r = 2 if isNextBox else 4
+        self.r = 2 if isNextBox else 3
 
         self.notSet = True
 
@@ -423,7 +423,7 @@ def callibrate():
     rect2.fill([193,193,193])
     
     colorSlider = Slider(LEFT_X+2, 875, SW+50, c.COLOR_CALLIBRATION/255, rect, rect2)
-    zoomSlider = Slider(LEFT_X, 1104, SW, c.SCALAR - 0.5, sliderImage3, sliderImage4)
+    zoomSlider = Slider(LEFT_X, 1104, SW, c.SCALAR/3, sliderImage3, sliderImage4)
     hzNum = 0
     hzSlider = HzSlider(LEFT_X  + 12, 203, SW, hzNum, sliderImage, sliderImage2)
 
@@ -658,7 +658,7 @@ def callibrate():
 
         # Draw sliders
         c.COLOR_CALLIBRATION = 150*colorSlider.tick(c.screen, c.COLOR_CALLIBRATION/150, startPress, isPressed, mx, my)
-        c.SCALAR = 0.5 + zoomSlider.tick(c.screen, c.SCALAR-0.5, startPress, isPressed, mx, my)
+        c.SCALAR = 3*zoomSlider.tick(c.screen, c.SCALAR/3, startPress, isPressed, mx, my)
         hzNum = hzSlider.tick(c.screen, hzNum, startPress, isPressed, mx, my)
         c.screen.blit(c.font.render(str(int(c.COLOR_CALLIBRATION)), True, WHITE), [1650, 900])
         
