@@ -265,8 +265,6 @@ class Graph:
         self.prevMouseCoords = [mx,my]
         #print(self.active)
 
-        if newPosition != None:
-            print("New position: ", newPosition)
         return newPosition
                     
 

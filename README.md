@@ -42,5 +42,7 @@ There are various shortcuts that speed up the use of this program.
 - Alternatively from clicking "Render", press the enter key to render the program.
 ## During Analysis
 - Press "t" to rotate the piece while making a hypothetical placement.
+- Press the spacebar to toggle live mode for changing the plcaement of the piece.
 - Use the left and right arrows to navigate back or forward a position.
+- Use the Z and X keys to navigate back or forward a hypothetical line.
 - Use , and . to go to the previous or next key position.

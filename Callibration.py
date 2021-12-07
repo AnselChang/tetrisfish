@@ -77,6 +77,8 @@ class Bounds:
         self.y2 = y2
         self.callibration = mode # 1 = setting top-left point, 2 = setting bottom-right point, 0 = already set
         self.r = 2 if isNextBox else 3
+        self.dragRadius = 10
+        self.dragMode = 0
 
         self.notSet = True
 
@@ -91,7 +93,7 @@ class Bounds:
             [0,-1] ]
 
         if self.isNB:
-            self.color = BLUE
+            self.color = PURE_BLUE
             self.horizontal = 8
             self.vertical = 4
             self.Y_TOP = 0.406
@@ -114,26 +116,35 @@ class Bounds:
         return mx < 0 or mx > c.X_MAX or my < 0 or my > c.Y_MAX
 
     # return True to delete
-    def updateMouse(self,mx,my, click):
+    def updateMouse(self,mx,my, pressDown, pressUp):
 
         self.doNotDisplay = self.notSet and self.mouseOutOfBounds(mx, my)
 
         if self.doNotDisplay:
-            if click and not self.first:
+            if pressUp and not self.first:
                 return True
-            elif not click:
+            elif not pressUp:
                 self.first = False
                 return False
 
         self.first = False
+
+        if pressDown and distance(mx,my,self.x1,self.y1) <= self.dragRadius*3:
+            self.dragMode = 1
+        elif pressDown and distance(mx,my,self.x2,self.y2) <= self.dragRadius*3:
+            self.dragMode = 2
+
+        if pressUp:
+            self.dragMode = 0
+
         
-        if self.callibration == 1:
-            self.x1 = mx
-            self.y1 = my
+        if self.callibration == 1 or self.dragMode == 1:
+            self.x1 = min(mx, self.x2 - 50)
+            self.y1 = min(my, self.y2 - 50)
             self.updateConversions()
-        elif self.callibration == 2:
-            self.x2 = mx
-            self.y2 = my
+        elif self.callibration == 2 or self.dragMode == 2:
+            self.x2 = max(mx, self.x1 + 50)
+            self.y2 = max(my, self.y1 + 50)
             self.updateConversions()
 
         return False
@@ -239,8 +250,16 @@ class Bounds:
         if type(minos) != np.ndarray:
             minos = self.getMinos(nparray)
         
-        # draw Red bounds
-        pygame.draw.rect(surface, self.color, [self.x1, self.y1 + dy, self.x2-self.x1, self.y2-self.y1], width = 2)
+        # draw bounds rect
+        x1 = self.x1s * c.SCALAR + c.VIDEO_X
+        y1 = self.y1s * c.SCALAR + c.VIDEO_Y
+        x2 = self.x2s * c.SCALAR + c.VIDEO_X
+        y2 = self.y2s * c.SCALAR + c.VIDEO_Y
+        pygame.draw.rect(surface, self.color, [x1, y1 + dy, x2-x1, y2-y1], width = 3)
+
+        # Draw draggable bounds dots
+        pygame.draw.circle(surface, self.color, [x1,y1], self.dragRadius)
+        pygame.draw.circle(surface, self.color, [x2,y2], self.dragRadius)
 
         #  Draw cell callibration markers. Start on the center of the first cell
 
@@ -387,7 +406,6 @@ def callibrate():
     
     buttons.addImage(B_RENDER, images[C_RENDER], 1724, 1203, hydrantScale, img2 = images[C_RENDER2])
 
-    scale = 0.26
     save2 = images[C_SAVE].copy()
     load2 = images[C_LOAD].copy()
     addHueToSurface(save2,BLACK,0.2)
@@ -395,8 +413,8 @@ def callibrate():
     load3 = images[C_LOAD].copy()
     addHueToSurface(load3,BLACK,0.6)
     print(load2)
-    buttons.addImage(B_SAVE, images[C_SAVE], 1470, 1370, scale, img2 = save2)
-    buttons.addImage(B_LOAD, images[C_LOAD], 1555, 1370, scale, img2 = load2, alt = load3, alt2 = load3)
+    buttons.addImage(B_LOAD, images[C_LOAD], 1462, 1364, 0.063, img2 = load2, alt = load3, alt2 = load3)
+    buttons.addImage(B_SAVE, images[C_SAVE], 1555, 1364, 0.27, img2 = save2)
     print(buttons.get(B_SAVE).img2)
 
 
@@ -422,7 +440,7 @@ def callibrate():
     rect.fill(WHITE)
     rect2.fill([193,193,193])
     
-    colorSlider = Slider(LEFT_X+2, 875, SW+50, c.COLOR_CALLIBRATION/255, rect, rect2)
+    colorSlider = Slider(LEFT_X+2, 875, SW+50, c.COLOR_CALLIBRATION/150, rect, rect2)
     zoomSlider = Slider(LEFT_X, 1104, SW, c.SCALAR/3, sliderImage3, sliderImage4)
     hzNum = 0
     hzSlider = HzSlider(LEFT_X  + 12, 203, SW, hzNum, sliderImage, sliderImage2)
@@ -576,7 +594,7 @@ def callibrate():
             
         
         if bounds != None:
-            delete = bounds.updateMouse(mx,my, click)
+            delete = bounds.updateMouse(mx,my, startPress, click)
             if delete:
                 bounds = None
             else:
@@ -585,7 +603,7 @@ def callibrate():
                     minosMain = x
 
         if nextBounds != None:
-            delete = nextBounds.updateMouse(mx,my, click)
+            delete = nextBounds.updateMouse(mx,my, startPress, click)
             if delete:
                 nextBounds = None
             else:
@@ -631,7 +649,7 @@ def callibrate():
             c.SCALAR = data[4]
 
             colorSlider.overwrite(c.COLOR_CALLIBRATION/150)
-            zoomSlider.overwrite(c.SCALAR - 0.5)
+            zoomSlider.overwrite(c.SCALAR/3)
             hzSlider.overwrite(hzNum)
 
             
@@ -658,7 +676,7 @@ def callibrate():
 
         # Draw sliders
         c.COLOR_CALLIBRATION = 150*colorSlider.tick(c.screen, c.COLOR_CALLIBRATION/150, startPress, isPressed, mx, my)
-        c.SCALAR = 3*zoomSlider.tick(c.screen, c.SCALAR/3, startPress, isPressed, mx, my)
+        c.SCALAR = 3* zoomSlider.tick(c.screen, c.SCALAR/3, startPress, isPressed, mx, my)
         hzNum = hzSlider.tick(c.screen, hzNum, startPress, isPressed, mx, my)
         c.screen.blit(c.font.render(str(int(c.COLOR_CALLIBRATION)), True, WHITE), [1650, 900])
         

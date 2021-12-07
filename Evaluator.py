@@ -9,7 +9,7 @@ import Evaluator
 
 
 # Given current position, generate analysis from StackRabbit call
-def evaluate(position, x_and_dots):
+def evaluate(position, x_and_dots, session = None):
 
     with c.lock:
         number = c.numEvaluatedPositions
@@ -52,7 +52,7 @@ def evaluate(position, x_and_dots):
             if position.level < 16:
                 x_and_dots = TIMELINE_30_HZ
         
-        result = makeAPICall(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots)
+        result = makeAPICall(session, b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots)
         print("Finish eval ", number)
         position.setEvaluation(*result)
         print("Set eval ", number)
@@ -61,43 +61,54 @@ def evaluate(position, x_and_dots):
         traceback.print_exc()
         print(number, e, type(e))
 
-def getJson(url):
+def getJson(session, url):
+    
     # try request up to 3 times for internet connection things
-    for i in range(3):
+    tries = 10
+    for i in range(tries):
         try:
-            return requests.get(url).json()
+            if session == None:
+                return requests.get(url).json()
+            else:
+                return session.get(url).json()
         except:
-            print("Internet connection attempt {}/3 failed".format(i))
+            print("Internet connection attempt {}/{} failed.".format(i+1,tries))
+    print("Failed to establish API response. URL was {}".format(url))
         
     
-def makeAPICall(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots):
+def makeAPICall(session, b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots):
     
     url = "https://stackrabbit.herokuapp.com/rate-move-nb/{}/{}/{}/{}/{}/{}/0/0/0/0/21/{}/false".format(
         b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots)
-    print(url)
-    json = getJson(url)
-    #print(r.status_code)
+    #print(url)
+    json = getJson(session, url)
 
-    
-    playerNNB, playerFinal, bestNNB, bestFinal = json['playerMoveNoAdjustment'], json['playerMoveAfterAdjustment'], float(json['bestMoveNoAdjustment']), float(json['bestMoveAfterAdjustment'])
+    isFailed = False
+
+    if json != None:
+        playerNNB, playerFinal, bestNNB, bestFinal = json['playerMoveNoAdjustment'], json['playerMoveAfterAdjustment'], float(json['bestMoveNoAdjustment']), float(json['bestMoveAfterAdjustment'])
+    else:
+        playerNNB, playerFinal, bestNNB, bestFinal  = -1,-1,-1,-1
+        isFailed = True
 
     try: # The player move is found in SF
         playerNNB = float(playerNNB)
         playerFinal = float(playerFinal)
         rapid = False
     except: # Player made a move faster than inputted hz. In this case, compare with 30hz StackRabbit and determine whether "rather rapid" should be awarded
-        print("rapid")
+        #print("rapid")
         url = "https://stackrabbit.herokuapp.com/rate-move-nb/{}/{}/{}/{}/{}/{}/0/0/0/0/21/{}/false".format(
-        b1Str, b2Str, currStr, nextStr, level, lines, TIMELINE_30_HZ)
-        print("url 2 ", url)
-        json = getJson(url)
+            b1Str, b2Str, currStr, nextStr, level, lines, TIMELINE_30_HZ)
+        #print("url 2 ", url)
+        json = getJson(session, url)
         try:
             playerNNB, playerFinal = float(json['playerMoveNoAdjustment']), float(json['playerMoveAfterAdjustment'])
+            rapid = True
         except:
             playerNNB, playerFinal = -1, -1
-        rapid = True
+            isFailed = True
 
-    return playerNNB, playerFinal, bestNNB, bestFinal, rapid, url
+    return playerNNB, playerFinal, bestNNB, bestFinal, rapid, url, isFailed
     
 
     

@@ -8,6 +8,9 @@ import PieceMasks as PM
 def intersection(arr1, arr2):
     return 2 in (arr1 + arr2)
 
+def distance(x1,y1,x2,y2):
+    return math.sqrt( ((x1-x2)**2)+((y1-y2)**2) )
+
 
 def lighten(color, amount, doThis = True):
     if doThis:
@@ -266,7 +269,7 @@ def _bfs(board, visited, startRow, startCol):
         for dr, dc in adjacent:
             r = row + dr
             c = col + dc
-            if r >= 0 and r < 10 and c >= 0 and c < 10 and board[r][c] == 1 and visited[r][c] == 0:
+            if r >= 0 and r < 20 and c >= 0 and c < 10 and board[r][c] == 1 and visited[r][c] == 0:
                 queue.append([r,c])
                 visited[r][c] = 1
 
@@ -280,9 +283,9 @@ def _bfs(board, visited, startRow, startCol):
 def extractCurrentPiece(board):
     print("extract")
     
-    visited = empty(10,10) # 0 indicates empty. Otherwise, stores id of the connected component.
+    visited = empty(20,10) # 0 indicates empty. Otherwise, stores id of the connected component.
 
-    for row in range(len(visited)):
+    for row in range(10):
         for col in range(len(visited[row])):
             # traverse left-right, then top-bottom
             

@@ -1,4 +1,5 @@
 # pyinstaller main.py --onefile --add-data="Images:Images"
+# tar -czf tetrisfish_debug_mac.tgz main
 
 print("start")
 

@@ -391,7 +391,7 @@ class AnalysisBoard:
              
 
     # Update mouse-related events - namely, hover
-    def update(self, mx, my, click):
+    def update(self, mx, my, click, spacePressed):
         
         # Update mouse events for current and next boxes
        # self.currentBox.updateBoard(mx, my, click)
@@ -432,10 +432,10 @@ class AnalysisBoard:
             newAdjust = True
 
         # If current piece clicked, enter placement selection mode
-        elif click and self.touchingCurrent(r,c1) and not self.isAdjustCurrent:
+        elif (spacePressed or click and self.touchingCurrent(r,c1)) and not self.isAdjustCurrent:
             self.isAdjustCurrent = True
             newAdjust = True
-        elif click and (len(self.placements) == 0 and r != -1  or HT.none(mx,my)):
+        elif spacePressed or click and (len(self.placements) == 0 and r != -1  or HT.none(mx,my)):
 
             # Only reset placement selection if there is a default piece placement already
             if type(self.position.placement) == np.ndarray:

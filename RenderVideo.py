@@ -1,4 +1,4 @@
-import pygame, sys, time, cv2
+import pygame, sys, time, cv2, requests
 from multiprocessing.dummy import Pool as ThreadPool
 import numpy as np
 
@@ -73,7 +73,7 @@ def forwardToDistinct(vcap, bounds, currentMinos):
     global frameCount
     
     for i in range(100):
-        print("forward")
+        #print("forward")
         ret, frame = vcap.read()
         frameCount += 1
         minos = bounds.getMinos(frame)
@@ -105,7 +105,7 @@ stableCount = 0
 first = True
 # stableCount indicates the number of minos at previous position (when no line clear), or the manual calculation after line clear
 # prevMinosMain is the board the frame right before this one
-def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, prevMinosMain, hz):
+def parseBoard(session, vcap, positionDatabase, frame, bounds, nextBounds, minosMain, prevMinosMain, hz):
 
     global frameCount, wasLineClear, stableCount, first
 
@@ -115,7 +115,7 @@ def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, pre
 
     # we count the number of minos in the current board 2d array
     count = np.count_nonzero(minosMain)
-    print("count:",count)
+    #print("count:",count)
 
     # We initialize stableCount to be the number of minos without the current piece on the first frame.
     # This is guaranteed to be a reliable frame because callibration double checks that the current piece is fully present.
@@ -173,7 +173,9 @@ def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, pre
 
     # A 2+ decrease in minos from stable position means either interlacing error, piece at top hidden at rotation, or start of line clear.
     # If it's a line clear, we want to find the first frame it starts, as the frame before that is the locking frame where we can get the final piece placement.
-    elif count <= stableCount - 2:
+    #  Sometimes it's possible it can detect double line clear during the animation. This is way we make sure that there can't be two line clears in a row
+    # (must wait until new piece spawns before looking for line clears again)
+    elif not wasLineClear and count <= stableCount - 2:
 
         # To check that it really is the start of the line clear, we go forward to the next DISTINCT (keep going to next frame until frame is different)
         # frame and make sure there is at least a 2+ mino decrease there as well
@@ -256,6 +258,11 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP, hz
 
     startTime = time.time()
 
+    session = requests.Session()
+    print(session)
+    testurl = "https://stackrabbit.herokuapp.com/rate-move-nb/00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000001100011101110001110111000111111110011111111001111111110/00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010000000101100011111110001111111000111111110011111111001111111110/I/Z/28/139/0/0/0/0/21/X../false"
+    print("session test with url {}: {}".format(testurl, session.get(testurl)))
+
      # Start vcap at specified frame from callibration
     global frameCount
     vcap.set(cv2.CAP_PROP_POS_FRAMES, firstFrame)
@@ -277,12 +284,12 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP, hz
 
 
         # Possibly update positionDatabase given the current frame.
-        error = parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, prevMinosMain, hz)
+        error = parseBoard(session, vcap, positionDatabase, frame, bounds, nextBounds, minosMain, prevMinosMain, hz)
 
         if error != None:
             print(error)
             if True or frameCount - firstFrame >= (lastFrame - firstFrame) * 0.5:
-                print("Render failure, but 50% or more done so just roll with it")
+                print("Render failure, but analyzing working portion")
                 break
             else:
                 assert(False) # Rendering failure

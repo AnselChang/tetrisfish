@@ -72,7 +72,7 @@ class Position:
         self.transition = transition
         self.score = score
 
-        self.frame = None
+        self.frame = frame
 
         # Number from 0 to 1
         #self.evaluation = evaluation
@@ -105,9 +105,9 @@ class Position:
         print2d(self.placement)
         print()
 
-    def setEvaluation(self, playerNNB, playerFinal, bestNNB, bestFinal, ratherRapid, url):
+    def setEvaluation(self, playerNNB, playerFinal, bestNNB, bestFinal, ratherRapid, url, isFailed):
         self.evaluated = True
-        print("\tNNB\tFinal\nPlayer: {} {}\nBest: {} {}\nRather Rapid: {}".format(playerNNB, playerFinal, bestNNB, bestFinal, ratherRapid))
+        #print("\tNNB\tFinal\nPlayer: {} {}\nBest: {} {}\nRather Rapid: {}".format(playerNNB, playerFinal, bestNNB, bestFinal, ratherRapid))
         self.playerNNB, self.playerFinal, self.bestNNB, self.bestFinal = playerNNB, playerFinal, bestNNB, bestFinal
         self.ratherRapid = ratherRapid
         self.url = url
@@ -115,9 +115,9 @@ class Position:
         # https://www.desmos.com/calculator/x6427u0ygb
         self.evaluation = min(1,max(0,1.008 ** (self.playerFinal - 50)))
 
-        self.getFeedback()
+        self.getFeedback(isFailed)
 
-    def getFeedback(self):
+    def getFeedback(self, isFailed):
 
 
         e = self.playerFinal - self.bestFinal
@@ -127,7 +127,7 @@ class Position:
         self.feedback = AC.NONE
         self.adjustment = AC.NONE
 
-        if self.evaluation == 0 and self.playerNNB == -1:
+        if self.evaluation == 0 and self.playerNNB == -1 or isFailed:
             self.feedback = AC.INVALID
         else:
             if e > 0 and self.ratherRapid:

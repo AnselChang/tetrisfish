@@ -166,7 +166,7 @@ def analyze(positionDatabase, hzInt, hzString):
     # Generate game summary surface
     summary = pygame.Surface([300,400]).convert_alpha()
     blitCenterText(summary, c.fontbold, "Accuracy", BLACK, 0)
-    blitCenterText(summary, c.fontbigbold, getAccuracy(preNum+postNum+ksNum/2, preSum+postSum+ksSum/2), BLACK, 50)
+    blitCenterText(summary, c.fontbigbold, getAccuracy(preNum+postNum, preSum+postSum), BLACK, 50)
     blitCenterText(summary, c.fontbold, "Pre - " + getAccuracy(preNum, preSum), BLACK, 150)
     blitCenterText(summary, c.fontbold, "Post - " + getAccuracy(postNum, postSum), BLACK, 200)
     blitCenterText(summary, c.fontbold, "KS - " + getAccuracy(ksNum, ksSum), BLACK, 250)
@@ -212,15 +212,15 @@ def analyze(positionDatabase, hzInt, hzString):
 
         # Update with mouse event information        
         buttons.updatePressed(mx, my, click)
-        analysisBoard.update(mx, my, click)
+        analysisBoard.update(mx, my, click, key == pygame.K_SPACE)
         
         c.realscreen.fill(MID_GREY)
         c.screen.fill(MID_GREY)
 
         # Hypothetical buttons
-        if buttons.get(B_HYP_LEFT).clicked and analysisBoard.hasHypoLeft():
+        if (buttons.get(B_HYP_LEFT).clicked or key == pygame.K_z) and analysisBoard.hasHypoLeft():
             analysisBoard.hypoLeft()
-        elif buttons.get(B_HYP_RIGHT).clicked and analysisBoard.hasHypoRight():
+        elif (buttons.get(B_HYP_RIGHT).clicked or key == pygame.K_x) and analysisBoard.hasHypoRight():
             analysisBoard.hypoRight()
         elif buttons.get(B_HYP_MAXLEFT).clicked:
             while analysisBoard.hasHypoLeft():
@@ -233,12 +233,10 @@ def analyze(positionDatabase, hzInt, hzString):
         if (buttons.get(B_LEFT).clicked or key == pygame.K_LEFT) and analysisBoard.positionNum > 0:
             analysisBoard.updatePosition(analysisBoard.positionNum-1)
             positionNum -= 1
-            print(analysisBoard.position.url)
             
         elif (buttons.get(B_RIGHT).clicked or key == pygame.K_RIGHT) and analysisBoard.positionNum < len(positionDatabase) - 1:
             analysisBoard.updatePosition(analysisBoard.positionNum+1)
             positionNum += 1
-            print(analysisBoard.position.url)
 
         elif (buttons.get(B_MAXLEFT).clicked or key == pygame.K_COMMA) and len(keyPositions[keyPositions < positionNum]) > 0:
             # Go to previous key position
@@ -390,8 +388,7 @@ def analyze(positionDatabase, hzInt, hzString):
                 if event.key == pygame.K_t:
                     analysisBoard.toggle()
 
-                elif event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_COMMA, pygame.K_PERIOD]:
-                    key = event.key    
+                key = event.key    
                 
             elif event.type == pygame.VIDEORESIZE:
 
