@@ -66,7 +66,7 @@ def main():
     if testing:
 
         testboard = np.array([
-                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                  [1, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
@@ -187,12 +187,12 @@ def main():
        # positionDatabase.append(Position(testboard+testplacement, L_PIECE, I_PIECE, placement = testplacement2,
          #                                evaluation = 0.5, level = 19, lines = 0, currLines = 0, transition = 10, score = 0, evaluated = True))
         positionDatabase = []
-        levels = [8]*30
+        levels = [8]*25
         print(levels)
         for i in range(0,len(levels)):
             positionDatabase.append(Position(testboard+testplacement+testplacement2, I_PIECE, I_PIECE,
                                          placement = testplacement3, evaluation = max(0,min(1,np.random.normal(loc=0.6,scale=0.5))), level = levels[i], lines = 2, currLines = 9,
-                                         transition = 10, score = 1500, evaluated = True, feedback = random.choice([AC.BEST,AC.EXCELLENT,random.choice(AC.feedback)])))
+                                         transition = 10, score = 1500, evaluated = True, adjustment = random.choice(AC.adjustment),feedback = random.choice([AC.BEST,AC.EXCELLENT,random.choice(AC.feedback)])))
 
         for i in range(5):
             positionDatabase[0].possible.append(PossibleMove(43,testplacementa,testplacement2, S_PIECE, L_PIECE))

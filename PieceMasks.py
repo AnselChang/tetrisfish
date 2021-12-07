@@ -214,12 +214,17 @@ CURRENT = "current"
 NEXT = "next"
 LEFTARROW = "leftarrow"
 RIGHTARROW = "rightarrow"
-LEFTARROW2 = "leftarrowgrey"
-RIGHTARROW2 = "rightarrowgrey"
-LEFTARROW_MAX = "leftarrowfast"
-RIGHTARROW_MAX = "rightarrowfast"
-LEFTARROW2_MAX = "leftarrowfastgrey"
-RIGHTARROW2_MAX = "rightarrowfastgrey"
+
+LEFTARROW_FAST= "leftarrowfast"
+RIGHTARROW_FAST= "rightarrowfast"
+LEFTARROW_FAST2= "leftarrowfast2"
+RIGHTARROW_FAST2= "rightarrowfast2"
+
+LEFTARROW_MAX = "prevframe"
+RIGHTARROW_MAX = "nextframe"
+LEFTARROW2_MAX = "prevframe2"
+RIGHTARROW2_MAX = "nextframe2"
+
 PANEL = "panel"
 STRIPES = "stripes"
 

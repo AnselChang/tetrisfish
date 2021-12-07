@@ -49,7 +49,7 @@ def init(imagesParam, bigMinoImgs):
 
 # Return surface with tetris board. 0 = empty, 1/-1 =  white, 2/-2 = red, 3/-3 = blue, negative = transparent
 # Used for: main tetris board, next box, next box piece selection panel
-def drawGeneralBoard(level, board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MARGIN, hover = None, small = False, percent = 1):
+def drawGeneralBoard(level, board, hover = None, small = False, percent = 1):
 
     
     # colors are same for all levels with same last digit
@@ -64,19 +64,14 @@ def drawGeneralBoard(level, board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MARG
 
     offset = int(minoScale * (MINO_SIZE + MINO_OFFSET))
 
-    b_width = image.get_width() * B_SCALE
-    b_height = image.get_height() * B_SCALE*hscale
-    b = pygame.transform.smoothscale(image, [b_width , b_height])
+    surf = pygame.Surface([offset*len(board[0]),offset*len(board)]).convert_alpha()
     
-    surf = pygame.Surface([b_width,int(b_height*percent)]).convert_alpha()
-    
-    surf.blit(b, [0,0])
+    #surf.blit(b, [0,0])
 
-    y = TOP_MARGIN
+    y = 0
     r = 0
     for row in board:
-        x = LEFT_MARGIN
-        y += offset
+        x = 0
         c = 0
         for mino in row:
             if mino != EMPTY:
@@ -92,6 +87,7 @@ def drawGeneralBoard(level, board, image, B_SCALE, hscale, LEFT_MARGIN, TOP_MARG
             x += offset
             c += 1
         r += 1
+        y += offset
             
     return surf
 
@@ -133,17 +129,14 @@ class PieceBoard:
 
         # Shift half-mino to the left for 3-wide pieces to fit into nextbox
         offset = MINO_SIZE + MINO_OFFSET
-        xoffset = 0 if (piece == O_PIECE or piece == I_PIECE) else (0 - offset/2)
-        yoffset = offset/2 if piece == I_PIECE else 0
-        self.xPieceOffset = 60 + xoffset
-        self.yPieceOffset = 50 + yoffset
+        self.xaddoffset = 0 if (piece == O_PIECE or piece == I_PIECE) else (0 - offset/2)
+        self.yaddoffset = offset/2 if piece == I_PIECE else 0
 
     # To be called before any function is run
     def updatePiece(self, piece):
 
         self.piece = piece
-
-        self.updatePieceOffset(piece)
+        self.updatePieceOffset(self.piece)
 
         self.hover = False
         self.showPanel = False
@@ -160,16 +153,17 @@ class PieceBoard:
         returnValue  = None
 
         
-        x1 = self.offsetx + 0
-        y1 = self.offsety + 63
+        x1 = self.offsetx + self.xaddoffset
+        y1 = self.offsety + self.yaddoffset
 
-        x = mx - x1 - self.xPieceOffset
-        y = my - y1 - self.yPieceOffset
+        x = mx - x1
+        y = my - y1
 
-        length = 250
+        delta = MINO_SIZE+MINO_OFFSET
         
-        col = int( x / length * 4)
-        row = int( y / length * 4+1)
+        col = int( x / delta + 1)
+        row = int( y / delta +1)
+        col -= 1
         if (row < 1 or row > 2 or col < 0 or col > 3):
             row = 0
             col = 0
@@ -245,13 +239,13 @@ class PieceBoard:
     def blit(self, level):
 
         minos = colorMinos(TETRONIMO_SHAPES[self.piece][0][1:], self.piece)
-        board = drawGeneralBoard(level, minos, self.image, self.IMAGE_SCALE, 1, self.xPieceOffset, self.yPieceOffset, hover = self.hover)
-        HT.blit(self.ID, board, [self.offsetx, self.offsety])
+        board = drawGeneralBoard(level, minos, hover = self.hover)
+        HT.blit(self.ID, board, [self.offsetx + self.xaddoffset, self.offsety + self.yaddoffset])
 
         if self.panelPercent > 0.01:
 
             # Draw pieces onto panel
-            surf = drawGeneralBoard(level, panelColors,images[PANEL], self.IMAGE_SCALE, 1, 56, 22, small = True, percent = self.panelPercent, hover = self.panelHover)
+            surf = drawGeneralBoard(level, panelColors, small = True, percent = self.panelPercent, hover = self.panelHover)
 
             # Blit panel onto screen
             HT.blit("panel", surf, [self.offsetx,self.offsety + self.image.get_height()*self.IMAGE_SCALE - 2])
@@ -263,13 +257,10 @@ class AnalysisBoard:
 
     def __init__(self, positionDatabase):
 
-        self.x = 160
-        self.y = 20
-        self.xoffset = 45
-        self.yoffset = -12
+        self.x = 300
+        self.y = 75
 
-        #self.currentBox = PieceBoard(CURRENT, images[CURRENT], 445, 14)
-        self.nextBox = PieceBoard(NEXT, images[NEXT], 890, 25) # originally y = 170
+        self.nextBox = PieceBoard(NEXT, images[NEXT], 1063, 687)
 
         self.positionDatabase = positionDatabase
         self.positionNum = 0 # the index of the position in the rendered positionDatabase
@@ -411,10 +402,10 @@ class AnalysisBoard:
             self.position.next = None
 
                     
-        x1 = 198
-        y1 = 62
-        width = 842-x1
-        height = 1355-y1
+        x1 = self.x
+        y1 = self.y
+        width = (MINO_SIZE + MINO_OFFSET)*10
+        height = (MINO_SIZE + MINO_OFFSET)*20
 
         # Calculate row and col where mouse is hovering. Truncate to nearest cell
         if mx >= x1 and mx < x1 + width and my >= y1 and my <= y1 + height:
@@ -594,7 +585,7 @@ class AnalysisBoard:
                 
             finalHoverArray = self.hover
         
-        surf = drawGeneralBoard(self.position.level, board, images[BOARD], 1.294, 0.995, self.xoffset, self.yoffset, hover = finalHoverArray)
+        surf = drawGeneralBoard(self.position.level, board, hover = finalHoverArray)
 
         if hoveredPlacement != None:
             addHueToSurface(surf, MID_GREY, 0.23)

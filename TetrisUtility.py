@@ -297,7 +297,40 @@ def extractCurrentPiece(board):
                 _bfs(board, piecemask, row, col)
                 return piecemask
             
-    return None                
+    return None
+
+def getPlacementStr(placement, piece):
+
+    columns = np.where(placement.any(axis=0))[0] # generate a list of columns the piece occupies
+    columns = (columns + 1) % 10 # start counting from 1, and 10 -> 0
+
+    # Only the pieces of T, L and J are described with u, d, l, r because the other pieces don't need their
+    # orientation described as that can be inferred by the right side of the notation
+
+    def index(arr, i):
+        return np.where(arr==i)[0][0]
+
+    if piece in [PM.T_PIECE, PM.L_PIECE, PM.J_PIECE]:
+        if len(columns) == 2:
+            # left/right
+            s = placement.sum(axis = 0)
+            if index(s,3) < index(s,1):
+                orientation = "r"
+            else:
+                orientation = "l"
+        else:
+             # up/down
+            s = placement.sum(axis = 1)
+            if index(s,3) < index(s,1):
+                orientation = "d"
+            else:
+                orientation = "u"
+    else:
+        orientation = ""
+
+    
+    string = "{}{}-{}".format(PM.TETRONIMO_LETTER[piece], orientation, "".join(map(str,columns)))
+    return string
             
 
 if __name__ == "__main__":

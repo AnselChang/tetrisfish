@@ -28,12 +28,14 @@ numEvaluatedPositions = 0
 
 pygame.init()
 pygame.font.init()
-font = pygame.font.Font(fp('Images/Fonts/verdana.ttf'), 36)
-fontbold = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 36)
+font = pygame.font.Font(fp('Images/Fonts/verdana.ttf'), 34)
+fontbold = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 34)
 font2 = pygame.font.Font(fp('Images/Fonts/verdana.ttf'), 25)
 font2bold = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 25)
 fontbig = pygame.font.Font(fp('Images/Fonts/verdana.ttf'), 70)
 fontbigbold = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 70)
+fontbigbold2 = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 56)
+fontbigbold3 = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 50)
 
 fontnum = pygame.font.Font(fp('Images/Fonts/numbers.ttf'), 25)
 
@@ -88,12 +90,12 @@ def timestamp(frame):
 
 # Display screen and handle events, keeping ratio when resizing window
 # Returns true if exited
-def handleWindowResize():
+def handleWindowResize(scale = 1):
 
     # Resize window, keep aspect ratio
     rs = realscreen.get_rect()
     ratio = (screen.get_rect().h / screen.get_rect().w)
-    realscreen.blit(pygame.transform.smoothscale(screen, [rs.w, rs.w * ratio]), (0, 0))
+    realscreen.blit(pygame.transform.smoothscale(screen, [scale*rs.w, scale*rs.w * ratio]), (0, 0))
     #realscreen.blit(screen, [0,0])
 
  # Open video from opencv

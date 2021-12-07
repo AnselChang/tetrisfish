@@ -25,10 +25,51 @@ C_EXCE = [159,230,91] # mid green
 C_INAC = [255, 255, 0] # yellow
 C_MEDI = [167*0.8, 227*0.8, 201*0.8]
 
+
+# From a score of 0-100, return a color
+def scoreToColor(score, isKs):
+
+    if score == -1:
+        return WHITE
+    
+    if isKs:
+        if score > 100:
+            return C_RAPID
+        elif score >= 80:
+            return C_BEST
+        elif score >= 65:
+            return C_EXCELLENT
+        elif score >= 50:
+            return C_MEDI
+        elif score >= 35:
+            return C_INAC
+        elif score >= 20:
+            return C_MIST
+        else:
+            return C_BLUN
+
+        
+    if score > 100:
+        return C_RAPID
+    elif score >= 93:
+        return C_BEST
+    elif score >= 90:
+        return C_EXCELLENT
+    elif score >= 87:
+        return C_MEDI
+    elif score >= 84:
+        return C_INAC
+    elif score >= 81:
+        return C_MIST
+    else:
+        return C_BLUN
+    
+    
+
 feedbackColors = {RAPID: C_RAPID, BEST : C_BEST, EXCELLENT : C_EXCE, INACCURACY : C_INAC,
                   MISTAKE : C_MIST, BLUNDER : C_BLUN, NONE : WHITE, MAJOR_MISSED : C_BLUN,
                   MINOR_MISSED : C_INAC, INVALID : DARK_GREY, INVALID : WHITE, MEDIOCRE : C_MEDI}
-feedbackString = {MEDIOCRE : "Mediocre", RAPID : "Rather Rapid", BEST : "Best Move", EXCELLENT : "Excellent Move", NONE : "Decent Move",
-                  INACCURACY : "Inaccuracy", MISTAKE : "Mistake", BLUNDER : "Blunder", INVALID : "Unable to process"}
+feedbackString = {MEDIOCRE : "Mediocre", RAPID : "Rather Rapid", BEST : "Best Move", EXCELLENT : "Excellent", NONE : "ERROR",
+                  INACCURACY : "Inaccuracy", MISTAKE : "Mistake", BLUNDER : "Blunder", INVALID : "ERROR"}
 
-adjustmentString = {INVALID : "Invalid", MAJOR_MISSED : "Major Missed Adjust.", MINOR_MISSED : "Minor Missed Adjust.", NONE : ""}
+adjustmentString = {INVALID : "Invalid", MAJOR_MISSED : "Major Missed Adj.", MINOR_MISSED : "Minor Missed Adj.", NONE : ""}

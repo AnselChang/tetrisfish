@@ -1,6 +1,6 @@
 import random
 from PieceMasks import *
-from TetrisUtility import print2d
+from TetrisUtility import print2d, getPlacementStr
 import AnalysisConstants as AC
 
 BLUNDER_THRESHOLD = -50
@@ -13,54 +13,19 @@ class PossibleMove:
     def __init__(self, evaluation, move1, move2, currentPiece, nextPiece):
         
         self.evaluation = evaluation
-        self.move1Str = self.getPlacementStr(move1, currentPiece)
-        self.move2Str = self.getPlacementStr(move2, nextPiece)
+        self.move1Str = getPlacementStr(move1, currentPiece)
+        self.move2Str = getPlacementStr(move2, nextPiece)
         
         self.move1 = move1
         self.move2 = move2
-
-    def getPlacementStr(self, placement, piece):
-
-        columns = np.where(placement.any(axis=0))[0] # generate a list of columns the piece occupies
-        columns = (columns + 1) % 10 # start counting from 1, and 10 -> 0
-
-        # Only the pieces of T, L and J are described with u, d, l, r because the other pieces don't need their
-        # orientation described as that can be inferred by the right side of the notation
-
-        def index(arr, i):
-            return np.where(arr==i)[0][0]
-
-        if piece in [T_PIECE, L_PIECE, J_PIECE]:
-            if len(columns) == 2:
-                # left/right
-                s = placement.sum(axis = 0)
-                print(s)
-                if index(s,3) < index(s,1):
-                    orientation = "r"
-                else:
-                    orientation = "l"
-            else:
-                 # up/down
-                s = placement.sum(axis = 1)
-                print(s)
-                if index(s,3) < index(s,1):
-                    orientation = "d"
-                else:
-                    orientation = "u"
-        else:
-            orientation = ""
-
-        
-        string = "{}{}-{}".format(TETRONIMO_LETTER[piece], orientation, "".join(map(str,columns)))
-        print(string)
-        return string
     
 
 # Store a complete postion, including both frames, the current piece, and lookahead. (eventually evaluation as well)
 class Position:
 
     def __init__(self, board, currentPiece, nextPiece, placement = None, evaluation = 0, frame = None,
-                 level = 18, lines = 0, currLines = 0, transition = 130, score = 0, evaluated = False, feedback = AC.INVALID):
+                 level = 18, lines = 0, currLines = 0, transition = 130, score = 0, evaluated = False, feedback = AC.INVALID,
+                 adjustment = AC.INVALID):
         self.board = board
         self.currentPiece = currentPiece
         self.nextPiece = nextPiece
@@ -95,7 +60,7 @@ class Position:
         self.e = 0
         
         self.feedback = feedback
-        self.adjustment = AC.INVALID
+        self.adjustment = adjustment
 
         self.possible = [] # Best possible placements as found by SR
 

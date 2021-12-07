@@ -45,12 +45,6 @@ class ButtonHandler:
             button = PlacementButton(ID, i, x, firstY + i*(dy+height), width, height)
             self.buttons[ID] = button
             self.placementButtons.append(button)
-            
-        self.placementRect = pygame.Surface([width + self.margin*2, num * height + (num-1) * dy + self.margin*2])
-        self.placementRect.fill([64,69,73]) # greyish color
-        loading = c.fontbig.render("Loading...", True, WHITE)
-        self.placementRect.blit(loading, [self.placementRect.get_width()/2-loading.get_width()/2,
-                                          self.placementRect.get_height()/2 - loading.get_height()/2])
         
 
     def updatePressed(self, mx, my, click):
@@ -77,8 +71,6 @@ class ButtonHandler:
 
     def display(self,screen):
 
-        if self.displayPlacementRect:
-            HT.blit("placement rect", self.placementRect, [self.rectx - self.margin, self.recty - self.margin])
 
         for ID in self.buttons:
             if not (isinstance(self.buttons[ID], PlacementButton) and not self.buttons[ID].show):
@@ -252,7 +244,7 @@ class PlacementButton(Button):
         pygame.draw.rect(self.basesurface, B_COLOR, [mid1*width,0,(mid2-mid1)*width,height])
         pygame.draw.rect(self.basesurface, C_COLOR, [mid2*width,0,(1-mid2)*width,height])
 
-        self.font = c.font
+        self.font = c.font2bold
 
         # center of texts
         text = self.font.render("{})".format(i + 1), True, self.TEXT_COLOR) # start with "1)"
