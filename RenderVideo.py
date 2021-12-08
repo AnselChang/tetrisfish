@@ -90,7 +90,7 @@ def forwardToDistinct(vcap, bounds, currentMinos):
 
 
 # The number of workers in the pool (parallel-ness)
-poolSize = 16
+poolSize = 100
 pool = None
     
 totalLineClears = 0
@@ -125,7 +125,7 @@ def parseBoard(session, vcap, positionDatabase, frame, bounds, nextBounds, minos
 
     # Means either new piece has spawned, or terrible terrible interlacing.
     if count == stableCount + 4:
-        print("possible piece spawn")
+        #print("possible piece spawn")
 
         # we check if there is an actual piece that spawned with extractCurrentPiece()
         currentMask = extractCurrentPiece(minosMain)
@@ -143,10 +143,10 @@ def parseBoard(session, vcap, positionDatabase, frame, bounds, nextBounds, minos
         if currentP != None:
 
             board = minosMain - currentMask # To get the board at this position, we simply remove "extract" the piecemask of the current piece
-            print("piece spawn")
-            print2d(minosMain)
-            print2d(currentMask)
-            print2d(board)
+            #print("piece spawn")
+            #print2d(minosMain)
+            #print2d(currentMask)
+            #print2d(board)
             # If true, the previous move was a regular placement. So the difference between the previous board and this board (after extracting piece) will
             # yield the final placement of the previous position. Of course, we only do this if it's not the very first position of the game.
             if not wasLineClear and len(positionDatabase) > 0:
@@ -154,11 +154,11 @@ def parseBoard(session, vcap, positionDatabase, frame, bounds, nextBounds, minos
                 numMinos = np.count_nonzero(positionDatabase[-1].placement)
                 if numMinos != 4:
                     return "Error, A placement mask has {} minos".format(numMinos)
-                pool.apply_async(Evaluator.evaluate, (positionDatabase[-1], hz)) # We send the full position asynchronously to the evaluator
+                pool.apply_async(Evaluator.evaluate, (positionDatabase[-1], hz, session)) # We send the full position asynchronously to the evaluator
 
             # This position has a stable count. When the count gets bigger than this and extract() fruitful, then the next position will have started
             stableCount = count
-            print(stableCount)
+            #print(stableCount)
 
             # This is a stable frame. We can get the next box here and create our new position object
             nextP = getNextBoxResilient(vcap, nextBounds)
@@ -187,16 +187,16 @@ def parseBoard(session, vcap, positionDatabase, frame, bounds, nextBounds, minos
         # This is now the new distinct frame. If this frame has also 2+ decreasing number of minos, then it's confirmed to be a line clear.
         if np.count_nonzero(minos) <= stableCount - 4:
             # The frame before the start of of the line clear is the locking frame. We use this to get final piece placement.
-            print("line clear")
-            print2d(prevMinosMain)
-            print2d(minosMain)
-            print2d(minos)
-            print2d(positionDatabase[-1].board)
+            #print("line clear")
+            #print2d(prevMinosMain)
+            #print2d(minosMain)
+            #print2d(minos)
+            #print2d(positionDatabase[-1].board)
             positionDatabase[-1].placement = prevMinosMain - positionDatabase[-1].board
             numMinos = np.count_nonzero(positionDatabase[-1].placement)
             if numMinos != 4:
                 return "Error, B placement mask has {} minos".format(numMinos)
-            pool.apply_async(Evaluator.evaluate, (positionDatabase[-1], hz)) # We send the full position asynchronously to the evaluator
+            pool.apply_async(Evaluator.evaluate, (positionDatabase[-1], hz, session)) # We send the full position asynchronously to the evaluator
 
             # Now, we must find stableCount for the state post-line-clear but pre-piece-spawn. We can count the number of filled rows to do this.
             # We DON'T need to manually compute line clear.
@@ -206,7 +206,7 @@ def parseBoard(session, vcap, positionDatabase, frame, bounds, nextBounds, minos
 
             # A filled row = 10 less minos.
             stableCount -= numFilledRows * 10
-            print(stableCount)
+            #print(stableCount)
 
             # This is important because, when the next piece spawns, we'll know not to calculate the final position for this current position
             # because we've already done it here (and it's not possible anyways because line clear will mess it up)

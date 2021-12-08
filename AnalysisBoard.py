@@ -74,6 +74,8 @@ def drawGeneralBoard(level, board, hover = None, small = False, percent = 1):
         x = 0
         c = 0
         for mino in row:
+            if mino >= 5:
+                continue
             if mino != EMPTY:
                 surf.blit(minoImages[mino], [x,y])
             if (type(hover) != np.ndarray and mino != EMPTY and hover == True) or (type(hover) == np.ndarray and hover[r][c] == 1):
@@ -419,14 +421,17 @@ class AnalysisBoard:
 
         # If true, we have placed the piece at some location. We enter a hypothetical situation and a new piece spawns
         if click and self.isAdjustCurrent and np.count_nonzero(self.hover) > 1:
+            print("place new piece")
             self.placeSelectedPiece()
             newAdjust = True
 
         # If current piece clicked, enter placement selection mode
         elif (spacePressed or click and self.touchingCurrent(r,c1)) and not self.isAdjustCurrent:
+            print("enter placement selection mode")
             self.isAdjustCurrent = True
             newAdjust = True
         elif spacePressed or click and (len(self.placements) == 0 and r != -1  or HT.none(mx,my)):
+            print("reset piece")
 
             # Only reset placement selection if there is a default piece placement already
             if type(self.position.placement) == np.ndarray:
@@ -560,9 +565,12 @@ class AnalysisBoard:
 
         # When mouse is hovering over a possible placement
         if hoveredPlacement != None:
+
+            if type(self.position.placement) != np.ndarray:
+                board = self.position.prev.board.copy()
             
-            board += colorMinos(hoveredPlacement.move1, curr)
-            board += colorMinos(hoveredPlacement.move2, self.position.nextPiece)
+            board += colorMinos(hoveredPlacement.move1, curr, white2 = True)
+            board += colorMinos(hoveredPlacement.move2, self.position.nextPiece, white2 = True)
 
             # Next box ideal placement is displayed transparently
             finalHoverArray = hoveredPlacement.move2

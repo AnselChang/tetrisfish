@@ -457,7 +457,7 @@ def callibrate():
     LEFT_FRAME = 0
     RIGHT_FRAME = 1
     vidFrame[LEFT_FRAME] = 0
-    vidFrame[RIGHT_FRAME] = c.totalFrames - 1
+    vidFrame[RIGHT_FRAME] = c.totalFrames - 100
     currentEnd = LEFT_FRAME
     rightVideoSlider.setAlt(False)
     leftVideoSlider.setAlt(True)
@@ -500,7 +500,6 @@ def callibrate():
         # draw backgound
         c.screen.blit(background,[0,0])
         #c.screen.blit(pygame.transform.smoothscale(background,[c.SCREEN_WIDTH, c.SCREEN_HEIGHT]), [0,0])
-        
         surf = c.displayTetrisImage(frame)
 
         # get mouse position
@@ -517,14 +516,17 @@ def callibrate():
         if not c.isImage and key != None:
             b.isAlt = False
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] + keyshift[key])
+            assert(type(frame) == np.ndarray)
 
-        elif not c.isImage and (b.isAlt or buttons.get(B_RIGHT).clicked and vidFrame[currentEnd] < c.totalFrames - 1):
+        elif not c.isImage and (b.isAlt or buttons.get(B_RIGHT).clicked and vidFrame[currentEnd] < c.totalFrames - 100):
             
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] + 1)
+            assert(type(frame) == np.ndarray)
                 
         elif not c.isImage and (buttons.get(B_LEFT).clicked and vidFrame[currentEnd] > 0):
             # load previous frame
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] - 1)
+            assert(type(frame) == np.ndarray)
 
         
         if buttons.get(B_CALLIBRATE).clicked:
@@ -683,23 +685,24 @@ def callibrate():
         # Draw video bounds sliders
         if not c.isImage:
             vidFrame[RIGHT_FRAME] = rightVideoSlider.tick(c.screen, vidFrame[RIGHT_FRAME] / (c.totalFrames-1), startPress, isPressed, mx, my,True)
-            vidFrame[RIGHT_FRAME] = clamp(int(vidFrame[RIGHT_FRAME] * c.totalFrames),0,c.totalFrames)
+            vidFrame[RIGHT_FRAME] = clamp(int(vidFrame[RIGHT_FRAME] * c.totalFrames),0,c.totalFrames-100)
             
             vidFrame[LEFT_FRAME]= leftVideoSlider.tick(c.screen, vidFrame[LEFT_FRAME] / (c.totalFrames-1), startPress and not rightVideoSlider.active, isPressed, mx, my,True)
-            vidFrame[LEFT_FRAME] = clamp(int(vidFrame[LEFT_FRAME] * c.totalFrames),0,c.totalFrames)
+            vidFrame[LEFT_FRAME] = clamp(int(vidFrame[LEFT_FRAME] * c.totalFrames),0,c.totalFrames-100)
         
         # Update frame from video sliders
         if rightVideoSlider.active:
             rightVideoSlider.setAlt(True)
             leftVideoSlider.setAlt(False)
             currentEnd = RIGHT_FRAME
+            frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
         elif leftVideoSlider.active:
             currentEnd = LEFT_FRAME
             rightVideoSlider.setAlt(False)
             leftVideoSlider.setAlt(True)
-
-        if not c.isImage:
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
+
+
 
 
         # Draw timestamp
@@ -766,6 +769,8 @@ def callibrate():
                         currentEnd = LEFT_FRAME
                         rightVideoSlider.setAlt(False)
                         leftVideoSlider.setAlt(True)
+                    frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
+                    assert(type(frame) == np.ndarray)
 
         c.handleWindowResize()
             

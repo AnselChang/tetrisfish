@@ -18,6 +18,15 @@ class PossibleMove:
         
         self.move1 = move1
         self.move2 = move2
+
+    def __str__(self):
+        return "Possible move with eval {}: {}, {}".format(self.evaluation, self.move1Str, self.move2Str)
+
+    # equality is defined if the current piece position is the same
+    def __eq__(self, other):
+        if other == None:
+            return False
+        return (self.move1 == other.move1).all()
     
 
 # Store a complete postion, including both frames, the current piece, and lookahead. (eventually evaluation as well)
@@ -63,6 +72,15 @@ class Position:
         self.adjustment = adjustment
 
         self.possible = [] # Best possible placements as found by SR
+
+    # add if only no duplicate first piece location. Return false if duplicate
+    def addPossible(self,evaluation, move1, move2, currentPiece, nextPiece):
+        move = PossibleMove(evaluation, move1, move2, currentPiece, nextPiece)
+        if move in self.possible:
+            return False
+        else:
+            self.possible.append(move)
+            return True
 
     def print(self):
         print("Current: ", TETRONIMO_NAMES[self.currentPiece])

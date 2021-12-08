@@ -38,7 +38,7 @@ def scoreToColor(score, isKs):
         elif score >= 80:
             return C_BEST
         elif score >= 65:
-            return C_EXCELLENT
+            return C_EXCE
         elif score >= 50:
             return C_MEDI
         elif score >= 35:
@@ -54,7 +54,7 @@ def scoreToColor(score, isKs):
     elif score >= 93:
         return C_BEST
     elif score >= 90:
-        return C_EXCELLENT
+        return C_EXCE
     elif score >= 87:
         return C_MEDI
     elif score >= 84:

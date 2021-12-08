@@ -124,6 +124,8 @@ def goToFrame(vcap, framecount, frame = None):
     ret, newframe = vcap.read()
     if type(newframe) == np.ndarray:
         frame = np.flip(newframe,2)
+    else:
+        assert(False)
     return frame, framecount
 
 # Scale real (x,y) to scaled (x,y) for screen surface

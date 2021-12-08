@@ -66,7 +66,7 @@ def main():
     if testing:
 
         testboard = np.array([
-                  [1, 0, 0, 0, 0, 0, 0, 0, 0, 1,],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
@@ -187,45 +187,48 @@ def main():
        # positionDatabase.append(Position(testboard+testplacement, L_PIECE, I_PIECE, placement = testplacement2,
          #                                evaluation = 0.5, level = 19, lines = 0, currLines = 0, transition = 10, score = 0, evaluated = True))
         positionDatabase = []
-        levels = [8]*25
+        levels = [8]*3
         print(levels)
         for i in range(0,len(levels)):
             positionDatabase.append(Position(testboard+testplacement+testplacement2, I_PIECE, I_PIECE,
                                          placement = testplacement3, evaluation = max(0,min(1,np.random.normal(loc=0.6,scale=0.5))), level = levels[i], lines = 2, currLines = 9,
                                          transition = 10, score = 1500, evaluated = True, adjustment = random.choice(AC.adjustment),feedback = random.choice([AC.BEST,AC.EXCELLENT,random.choice(AC.feedback)])))
 
-        for i in range(5):
-            positionDatabase[0].possible.append(PossibleMove(43,testplacementa,testplacement2, S_PIECE, L_PIECE))
 
         if testingEval:
             
             
-
-            numPos = 150
+            
+            numPos = 3
             positions = [positionDatabase[0]] * numPos
             hzs = [timeline[2]] * numPos
             print([p.evaluation for p in positions])
 
+            def call():
+                url = "https://stackrabbit.herokuapp.com/rate-move-nb/00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000010000000001100000000/00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000010001000001101110000/T/O/19/0/0/0/0/0/21/X..../false"
+                r =requests.get(url)
+                print("test", r.text)
+
             start = time.time()
             
-            workers = 16
+            workers = 20
             pool = ThreadPool(workers)
-            for i in range(len(positions)):
-                pool.apply_async(Evaluator.evaluate, (positions[i],hzs[i]))
+            for i in range(100):
+                pool.apply_async(call, ())
                 
 
             pool.close()
             pool.join()
-            print([p.evaluation for p in positions])
+            #print([p.evaluation for p in positions])
 
-            print("Time for {} workers for {} positions: {} seconds".format(workers, numPos, time.time() - start))
+            print("Time for {} workers for {} positions: {} seconds".format(workers, 100, time.time() - start))
             
             
             return
         else:
             # analysis testing
-            #for p in positionDatabase:
-            #    Evaluator.evaluate(p, "X.")
+            for p in positionDatabase:
+                Evaluator.evaluate(p, "X.")
             analyze(positionDatabase, 30, "X.")
             
 

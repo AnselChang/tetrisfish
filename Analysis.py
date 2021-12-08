@@ -231,7 +231,7 @@ def analyze(positionDatabase, hzInt, hzString):
 
     acc4T, acc4 = getAccuracy(ksNum, ksSum) 
     blitCenterText(summary, c.fontbold, "KS - ", WHITE, 220, s = 1)
-    blitCenterText(summary, c.fontbold,  acc4T, AC.scoreToColor(acc4, False), 220, s = 0)
+    blitCenterText(summary, c.fontbold,  acc4T, AC.scoreToColor(acc4, True), 220, s = 0)
     
     
         

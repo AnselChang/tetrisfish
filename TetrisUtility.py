@@ -331,37 +331,24 @@ def getPlacementStr(placement, piece):
     
     string = "{}{}-{}".format(PM.TETRONIMO_LETTER[piece], orientation, "".join(map(str,columns)))
     return string
-            
 
-if __name__ == "__main__":
-    testboard = np.array([
-                  [0, 1, 0, 1, 1, 1, 0, 0, 0, 0,],
-                  [0, 1, 0, 1, 0, 0, 0, 0, 0, 0,],
-                  [0, 1, 0, 0, 1, 1, 0, 1, 0, 0,],
-                  [0, 1, 1, 0, 0, 0, 0, 1, 0, 0,],
-                  [0, 0, 1, 0, 0, 0, 1, 1, 0, 0,],
-                  [0, 0, 0, 1, 0, 0, 0, 0, 0, 0,],
-                  [0, 0, 0, 0, 0, 1, 0, 0, 0, 1,],
-                  [1, 0, 0, 1, 0, 0, 1, 1, 1, 1,],
-                  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 0, 0,],
-                  [1, 1, 1, 1, 0, 0, 0, 0, 1, 1,],
-                  [1, 1, 1, 1, 1, 0, 0, 0, 1, 1,],
-                  [1, 1, 1, 1, 0, 1, 1, 1, 1, 1,]
-                  ])
-    start = time.time()
-    piece = extractCurrentPiece(testboard)
-    print(time.time() - start)
-    print2d(piece)
-    start = time.time()
-    piece = getPieceMaskType(piece, PM.L_PIECE)
-    print(time.time() - start)
-    print(piece)
+def pieceOnBoard(piece, rotation, shiftRight, shiftDown,*test):
+
+    shape = PM.TETRONIMO_SHAPES[piece][rotation]
+
+
+    if piece == PM.I_PIECE and rotation == 1:
+        shiftDown -= 1 # a weird thing in greg's code where longbar is shifted one too low
+    
+    board = empty()
+    for row in range(4):
+        for col in range(4):
+            if shape[row][col] == 1:
+                r = row - 1 + shiftDown
+                c = col + 3 + shiftRight
+                if r >= 0 and r < 20 and c >= 0 and c < 20:
+                    board[r][c] = 1
+
+    return board
+    
     

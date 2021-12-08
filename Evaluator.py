@@ -2,7 +2,7 @@ import requests, traceback
 import config as c
 from PieceMasks import *
 from numpy import ndarray
-from TetrisUtility import lineClear
+from TetrisUtility import lineClear, pieceOnBoard
 
 from multiprocessing.dummy import Pool as ThreadPool
 import Evaluator
@@ -51,8 +51,10 @@ def evaluate(position, x_and_dots, session = None):
             # For levels lower than 18 speeds, just assume 30hz movement (unlimited piece range)
             if position.level < 16:
                 x_and_dots = TIMELINE_30_HZ
+
+        makeAPICallPossible(session, position, b1Str, currStr, nextStr, level, lines, x_and_dots)
         
-        result = makeAPICall(session, b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots)
+        result = makeAPICallEvaluation(session, b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots)
         print("Finish eval ", number)
         position.setEvaluation(*result)
         print("Set eval ", number)
@@ -60,6 +62,7 @@ def evaluate(position, x_and_dots, session = None):
     except Exception as e:
         traceback.print_exc()
         print(number, e, type(e))
+
 
 def getJson(session, url):
     
@@ -74,10 +77,40 @@ def getJson(session, url):
         except:
             print("Internet connection attempt {}/{} failed.".format(i+1,tries))
     print("Failed to establish API response. URL was {}".format(url))
+    
+
+def makeAPICallPossible(session, position, b1Str, currStr, nextStr, level, lines, x_and_dots):
+ # API call for possible moves
+    url = "https://stackrabbit.herokuapp.com/engine-movelist-nb/{}/{}/{}/{}/{}/0/0/0/21/0/{}/true".format(
+        b1Str, currStr, nextStr, level, lines, x_and_dots)
+    print(url)
+
+    json = getJson(session, url)
+    print(json)
+
+    i = 0
+    for data in json:
+        
+        if i == 5:
+            break
+        
+        currData = data[0]
+        nextData = data[1]
+
+        currMask = pieceOnBoard(position.currentPiece, *currData["placement"])
+        nextMask = pieceOnBoard(position.nextPiece, *nextData["placement"])
+
+        unique = position.addPossible(float(currData["totalValue"]), currMask, nextMask, position.currentPiece, position.nextPiece)
+
+        if unique:
+            i += 1
         
     
-def makeAPICall(session, b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots):
+
     
+def makeAPICallEvaluation(session, b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots):
+ 
+    # API call for evaluations
     url = "https://stackrabbit.herokuapp.com/rate-move-nb/{}/{}/{}/{}/{}/{}/0/0/0/0/21/{}/false".format(
         b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots)
     #print(url)
@@ -107,6 +140,7 @@ def makeAPICall(session, b1Str, b2Str, currStr, nextStr, level, lines, x_and_dot
         except:
             playerNNB, playerFinal = -1, -1
             isFailed = True
+            rapid = False
 
     return playerNNB, playerFinal, bestNNB, bestFinal, rapid, url, isFailed
     

@@ -42,7 +42,7 @@ class ButtonHandler:
         self.placementButtons = []
         for i in range(0,num):
             ID = "placement{}".format(i)
-            button = PlacementButton(ID, i, x, firstY + i*(dy+height), width, height)
+            button = PlacementButton(ID, i, x, firstY + i*(dy+height), width, height, dy if i < num - 1 else 0)
             self.buttons[ID] = button
             self.placementButtons.append(button)
         
@@ -98,9 +98,9 @@ class Button(ABC):
         self.clicked = False
 
     # mouse (mx,my), click is true if mouse released on that frame
-    def updatePressed(self, mx, my, click):
+    def updatePressed(self, mx, my, click, dy = 0):
         if HT.at(mx,my) == self.ID:
-            self.pressed = ( mx - self.margin > self.x and mx + self.margin < self.x+self.width and my - self.margin> self.y and my + self.margin < self.y+self.height )
+            self.pressed = ( mx - self.margin > self.x and mx + self.margin < self.x+self.width and my - self.margin> self.y and my + self.margin < self.y+self.height + dy)
         else:
             self.pressed = False
 
@@ -220,9 +220,10 @@ class TextboxButton(Button):
 # Possible moves button class during analysis
 class PlacementButton(Button):
 
-    def __init__(self, ID, i, x, y, width, height):
+    def __init__(self, ID, i, x, y, width, height, dy):
 
         self.i = i
+        self.dy = dy
 
         mid1 = 0.4 # ratio between eval and first piece notation
         mid2 = 0.75 # ratio between first and second piece notation
@@ -237,7 +238,7 @@ class PlacementButton(Button):
         
         super().__init__(ID, x, y, width, height, 0)
 
-        self.basesurface = pygame.Surface([self.width, height]).convert_alpha()
+        self.basesurface = pygame.Surface([self.width, height+dy]).convert_alpha()
         
         # Draw colors
         pygame.draw.rect(self.basesurface, A_COLOR, [0,0,mid1*width,height])
@@ -255,6 +256,9 @@ class PlacementButton(Button):
         self.centerC = ((1+mid2)/2)*width
 
         self.show = False
+
+    def updatePressed(self, mx, my, click):
+        super().updatePressed(mx, my, click, self.dy)
 
     def update(self, evalStr, currentStr, nextStr, isGreen):
         
@@ -274,7 +278,7 @@ class PlacementButton(Button):
         self.surface.blit(self.textC, [self.centerC - self.textC.get_width()/2, self.textHeight])
 
         if isGreen:
-            addHueToSurface(self.surface, BRIGHT_GREEN, 0.25)
+            addHueToSurface(self.surface, BRIGHT_GREEN, 0.15)
 
         self.darksurface = self.surface.copy()
         addHueToSurface(self.darksurface, BLACK, 0.15)
