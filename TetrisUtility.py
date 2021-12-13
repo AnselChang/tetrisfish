@@ -18,8 +18,10 @@ def lighten(color, amount, doThis = True):
     else:
         return color
 
-def addHueToSurface(surf, color, percent):
-    dark = pygame.Surface(surf.get_size()).convert_alpha()
+def addHueToSurface(surf, color, percent, dim = None):
+    if dim == None:
+        dim = surf.get_size()
+    dark = pygame.Surface(dim).convert_alpha()
     dark.fill((*color, percent*255))
     surf.blit(dark, (0, 0))
 
@@ -209,13 +211,13 @@ def getPieceMaskType(mask, piece = None):
     if np.count_nonzero(mask == 1) != 4:
         return None
 
-    print("piecemask", piece)
+    #print("piecemask", piece)
 
     # We first shrink the array by removing all trailing 0s of rows and columns
     p = np.where(mask != 0)
     maskSmall = mask[min(p[0]) : max(p[0]) + 1, min(p[1]) : max(p[1]) + 1]
 
-    print2d(maskSmall)
+    #print2d(maskSmall)
 
     if len(maskSmall) > 4 or len(maskSmall[0]) > 4:
         return None
@@ -237,11 +239,10 @@ def getPieceMaskType(mask, piece = None):
             for i in range(len(shapes)):
                 for rotArr in shapes[i]:
                     if (arr == rotArr).all():
-                        print2d(arr)
-                        print("p",pieces[i])
+                        #print2d(arr)
                         return pieces[i]
 
-    print("return none")
+    #print("return none")
     return None
 
 # perform bfs from specified node. Returns true if the connected component has size of exactly four.
@@ -281,7 +282,7 @@ def _bfs(board, visited, startRow, startCol):
 # From a board, find the "floating" piece, defined to be a four-cell connected component. We only look at the top half of the board.
 # Return the mask of the piece
 def extractCurrentPiece(board):
-    print("extract")
+    #print("extract")
     
     visited = empty(20,10) # 0 indicates empty. Otherwise, stores id of the connected component.
 

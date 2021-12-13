@@ -27,14 +27,22 @@ class PossibleMove:
         if other == None:
             return False
         return (self.move1 == other.move1).all()
-    
+
 
 # Store a complete postion, including both frames, the current piece, and lookahead. (eventually evaluation as well)
 class Position:
+    
+    numPos = 0
 
     def __init__(self, board, currentPiece, nextPiece, placement = None, evaluation = 0, frame = None,
                  level = 18, lines = 0, currLines = 0, transition = 130, score = 0, evaluated = False, feedback = AC.INVALID,
                  adjustment = AC.INVALID):
+
+        self.id = Position.numPos
+        Position.numPos += 1
+
+        self.save = None
+        
         self.board = board
         self.currentPiece = currentPiece
         self.nextPiece = nextPiece
@@ -48,12 +56,6 @@ class Position:
 
         self.frame = frame
 
-        # Number from 0 to 1
-        #self.evaluation = evaluation
-
-        # RANDOM FOR NOW. AWAITING STACKRABBIT API
-        #self.evaluation =  random.uniform(0, 1)
-
 
         # Position is actually a Linked list. PositionDatabase stores a list of first nodes.
         # Each first node by default has no previous or next node.
@@ -66,12 +68,37 @@ class Position:
         self.url = "Invalid"
         self.evaluation = evaluation
         self.evaluated = evaluated
+
+        self.startEvaluation = False # whether api call has been made for current position for evaluation
+        self.startPossible = False # whether api call has been made for current position for possible moves
+        
         self.e = 0
         
         self.feedback = feedback
         self.adjustment = adjustment
 
         self.possible = [] # Best possible placements as found by SR
+
+    def reset(self, includePossible = False):
+        self.startEvaluation = False
+        self.evaluated = False
+        self.evaluation = 0
+        self.playerNNB, self.playerFinal, self.bestNNB, self.bestFinal = -1,-1,-1,-1
+        self.e = 0
+        self.feedback = AC.INVALID
+        self.adjustment = AC.INVALID
+
+        if includePossible:
+            self.possible = []
+            self.startPossible = False
+
+    def distToRoot(self):
+        count = 0
+        node = self
+        while node.prev != None:
+            node = node.prev
+            count += 1
+        return count
 
     # add if only no duplicate first piece location. Return false if duplicate
     def addPossible(self,evaluation, move1, move2, currentPiece, nextPiece):
@@ -81,6 +108,9 @@ class Position:
         else:
             self.possible.append(move)
             return True
+
+    def hasPossible(self):
+        return len(self.possible) > 0
 
     def print(self):
         print("Current: ", TETRONIMO_NAMES[self.currentPiece])
@@ -124,7 +154,7 @@ class Position:
             elif e >= -25:
                 self.feedback = AC.INACCURACY # 13 to 25
             elif e > BLUNDER_THRESHOLD:
-                self.feedback = AC.MISTAKE # 26 to 40
+                self.feedback = AC.MISTAKE # 26 to 50
             else:
                 self.feedback = AC.BLUNDER # 50+
             
@@ -133,5 +163,5 @@ class Position:
                 f = self.bestFinal - self.playerFinal
                 if f >= 20:
                     self.adjustment  = AC.MAJOR_MISSED
-                elif f >= 10:
+                elif f >= 5:
                     self.adjustment = AC.MINOR_MISSED

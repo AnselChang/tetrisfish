@@ -225,10 +225,10 @@ class PlacementButton(Button):
         self.i = i
         self.dy = dy
 
-        mid1 = 0.4 # ratio between eval and first piece notation
-        mid2 = 0.75 # ratio between first and second piece notation
+        mid1 = 0.35 # ratio between eval and first piece notation
+        mid2 = 0.675 # ratio between first and second piece notation
         text1a = 0.07 # 1), 2) etc
-        text1b = 0.25 # the actual eval
+        text1b = 0.15 # the actual eval
         
         A_COLOR = [143, 143, 143] # eval
         B_COLOR = [71, 156, 220] # first piece notation
@@ -251,7 +251,7 @@ class PlacementButton(Button):
         text = self.font.render("{})".format(i + 1), True, self.TEXT_COLOR) # start with "1)"
         self.textHeight = height/2 - text.get_height() / 2
         self.basesurface.blit(text, [text1a*width - text.get_width()/2, self.textHeight])
-        self.centerA = (mid1/2)*width
+        self.centerA = text1b*width
         self.centerB = ((mid1+mid2)/2)*width
         self.centerC = ((1+mid2)/2)*width
 
@@ -278,7 +278,7 @@ class PlacementButton(Button):
         self.surface.blit(self.textC, [self.centerC - self.textC.get_width()/2, self.textHeight])
 
         if isGreen:
-            addHueToSurface(self.surface, BRIGHT_GREEN, 0.15)
+            addHueToSurface(self.surface, BRIGHT_GREEN, 0.15, dim = [self.width, self.height])
 
         self.darksurface = self.surface.copy()
         addHueToSurface(self.darksurface, BLACK, 0.15)

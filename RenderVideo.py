@@ -90,7 +90,6 @@ def forwardToDistinct(vcap, bounds, currentMinos):
 
 
 # The number of workers in the pool (parallel-ness)
-poolSize = 100
 pool = None
     
 totalLineClears = 0
@@ -105,13 +104,9 @@ stableCount = 0
 first = True
 # stableCount indicates the number of minos at previous position (when no line clear), or the manual calculation after line clear
 # prevMinosMain is the board the frame right before this one
-def parseBoard(session, vcap, positionDatabase, frame, bounds, nextBounds, minosMain, prevMinosMain, hz):
+def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, prevMinosMain):
 
     global frameCount, wasLineClear, stableCount, first
-
-    # Maxout club tetris flash. Ignore frame
-    if minosMain.all():
-        return
 
     # we count the number of minos in the current board 2d array
     count = np.count_nonzero(minosMain)
@@ -154,7 +149,8 @@ def parseBoard(session, vcap, positionDatabase, frame, bounds, nextBounds, minos
                 numMinos = np.count_nonzero(positionDatabase[-1].placement)
                 if numMinos != 4:
                     return "Error, A placement mask has {} minos".format(numMinos)
-                pool.apply_async(Evaluator.evaluate, (positionDatabase[-1], hz, session)) # We send the full position asynchronously to the evaluator
+                positionDatabase[-1].startEvaluation = True
+                pool.apply_async(Evaluator.evaluate, (positionDatabase[-1],)) # We send the full position asynchronously to the evaluator
 
             # This position has a stable count. When the count gets bigger than this and extract() fruitful, then the next position will have started
             stableCount = count
@@ -196,7 +192,8 @@ def parseBoard(session, vcap, positionDatabase, frame, bounds, nextBounds, minos
             numMinos = np.count_nonzero(positionDatabase[-1].placement)
             if numMinos != 4:
                 return "Error, B placement mask has {} minos".format(numMinos)
-            pool.apply_async(Evaluator.evaluate, (positionDatabase[-1], hz, session)) # We send the full position asynchronously to the evaluator
+            positionDatabase[-1].startEvaluation = True
+            pool.apply_async(Evaluator.evaluate, (positionDatabase[-1],)) # We send the full position asynchronously to the evaluator
 
             # Now, we must find stableCount for the state post-line-clear but pre-piece-spawn. We can count the number of filled rows to do this.
             # We DON'T need to manually compute line clear.
@@ -217,13 +214,14 @@ def parseBoard(session, vcap, positionDatabase, frame, bounds, nextBounds, minos
             
 
 # Update: render everything through numpy (no conversion to lists at all)
-def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP, hz):
+def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
     print("Beginning render...")
 
     c.numEvaluatedPositions = 0
 
     global pool
-    pool = ThreadPool(poolSize)
+    pool = ThreadPool(c.poolSize)
+    
 
     global lineClears, transition, level, totalLineClears, score
 
@@ -258,10 +256,9 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP, hz
 
     startTime = time.time()
 
-    session = requests.Session()
-    print(session)
+    print(c.session)
     testurl = "https://stackrabbit.herokuapp.com/rate-move-nb/00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000001100011101110001110111000111111110011111111001111111110/00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010000000101100011111110001111111000111111110011111111001111111110/I/Z/28/139/0/0/0/0/21/X../false"
-    print("session test with url {}: {}".format(testurl, session.get(testurl)))
+    print("session test with url {}: {}".format(testurl, c.session.get(testurl)))
 
      # Start vcap at specified frame from callibration
     global frameCount
@@ -278,13 +275,17 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP, hz
         if type(frame) != np.ndarray:
             break
             
-
         prevMinosMain = minosMain
         minosMain = bounds.getMinos(frame)
+        
+        # Maxout club tetris flash. Ignore frame.
+        if minosMain.all():
+            minosMain = prevMinosMain
+            continue
 
 
         # Possibly update positionDatabase given the current frame.
-        error = parseBoard(session, vcap, positionDatabase, frame, bounds, nextBounds, minosMain, prevMinosMain, hz)
+        error = parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, prevMinosMain)
 
         if error != None:
             print(error)

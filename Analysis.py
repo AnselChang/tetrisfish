@@ -1,4 +1,6 @@
 import pygame, sys, math, time
+from multiprocessing.dummy import Pool as ThreadPool
+import threading
 import AnalysisBoard
 import config as c
 from Position import Position, BLUNDER_THRESHOLD
@@ -12,6 +14,7 @@ import AnalysisConstants as AC
 
 MS_PER_FRAME = 25
 
+
 class EvalBar:
 
     def __init__(self):
@@ -20,10 +23,13 @@ class EvalBar:
         self.currentColor = WHITE
 
     def tick(self, target, targetColor):
-        self.targetPercent = target
 
-        # "Approach" the targetPercent with a cool slow-down animation
-        self.currentPercent += math.tanh((self.targetPercent - self.currentPercent))*0.2
+        # If invalid, don't move slider
+        if targetColor != AC.INVALID_COLOR:
+            self.targetPercent = target
+            # "Approach" the targetPercent with a cool slow-down animation
+            self.currentPercent += math.tanh((self.targetPercent - self.currentPercent))*0.2
+            
         self.currentColor = [(current + (target-current)*0.2) for (current, target) in zip(self.currentColor, targetColor)]
 
     # percent 0-1, 1 is filled
@@ -46,12 +52,31 @@ def blitCenterText(surface, font, string, color, y, cx = None, s = 0.5):
         
     text = font.render(string, True, color)
     surface.blit(text, [cx - text.get_width()*s, y])
+
+def plus(num):
+    return ("+" if num > 0 else "") + str(num)
+
+def handleAPICalls(positionDatabase):
+    print("Started pool")
+    pool = ThreadPool(c.poolSize)
+    for pos in positionDatabase:
+        pos.startPossible = True
+    pool.map(Evaluator.makeAPICallPossible, positionDatabase)
+    pool.close()
+    pool.join()
+    c.done = True
+    print("Ended pool")
     
-def analyze(positionDatabase, hzInt, hzString):
+    
+def analyze(positionDatabase, hzInt):
     global realscreen
 
     print("START ANALYSIS")
 
+    # Get started with possible placements api calls in the background
+    thread = threading.Thread(target=handleAPICalls, args=(positionDatabase,)).start()
+
+    print("startanalysis2")
 
     A_BACKDROP = "AnalysisUI"
     
@@ -175,7 +200,7 @@ def analyze(positionDatabase, hzInt, hzString):
         if p.feedback == AC.INVALID:
             continue
 
-        e = max(BLUNDER_THRESHOLD, p.playerFinal - p.bestFinal) # limit difference to -50
+        e = min(120,max(BLUNDER_THRESHOLD, p.playerFinal - p.bestFinal)) # limit difference to -50, rather rapid max 120
 
         if p.level >= 29:
             ksNum += 1
@@ -263,6 +288,7 @@ def analyze(positionDatabase, hzInt, hzString):
     
     startPressed = False
     click = False
+    rightClick = False
 
 
     while True:
@@ -281,7 +307,7 @@ def analyze(positionDatabase, hzInt, hzString):
 
         # Update with mouse event information        
         buttons.updatePressed(mx, my, click)
-        analysisBoard.update(mx, my, click, key == pygame.K_SPACE)
+        analysisBoard.update(mx, my, startPressed, key == pygame.K_SPACE, rightClick)
 
         # Hypothetical buttons
         if (buttons.get(B_HYP_LEFT).clicked or key == pygame.K_z) and analysisBoard.hasHypoLeft():
@@ -340,15 +366,21 @@ def analyze(positionDatabase, hzInt, hzString):
         buttons.get(B_HYP_MAXRIGHT).isAlt = not analysisBoard.hasHypoRight()
 
 
-        # For purposes of displaying eval, use the previous position if current position has not placed piece yet
+        
         pos = analysisBoard.position
-        if type(pos.placement) != np.ndarray and pos.prev != None:
-            #print("back one")
-            pos = pos.prev
 
-        if not pos.evaluated and type(pos.placement) == np.ndarray:
-            print("ask API new position")
-            Evaluator.evaluate(pos, hzString)
+        # Possible moves API call on the CURRENT position only (regardless of placement status)
+        if not pos.startPossible:
+            print("Make possibleMoves API call")
+            pos.startPossible = True
+            threading.Thread(target = Evaluator.makeAPICallPossible, args = (pos,)).start()
+
+
+        # Evaluation API call on the current position if there's a placement, or the previous position if there's no placement yet
+        if not pos.startEvaluation and type(pos.placement) == np.ndarray:
+            print("Make evaluation API call")
+            pos.startEvaluation = True
+            threading.Thread(target = Evaluator.evaluate, args = (pos,)).start()
 
         # Update possible moves
         bs = buttons.placementButtons
@@ -358,7 +390,7 @@ def analyze(positionDatabase, hzInt, hzString):
             else:
                 bs[i].show = True
                 pm = pos.possible[i]
-                bs[i].update(str(pm.evaluation), pm.move1Str, pm.move2Str, (pos.placement == pm.move1).all())
+                bs[i].update(plus(round(pm.evaluation,1)), pm.move1Str, pm.move2Str, (pos.placement == pm.move1).all())
 
         # Check mouse hovering over possible moves
         hoveredPlacement = None # stores the PossibleMove object the mouse is hovering on
@@ -369,6 +401,7 @@ def analyze(positionDatabase, hzInt, hzString):
 
         # If a possible placement is clicked, make that move
         if hoveredPlacement != None and click:
+            print("press possible move")
             analysisBoard.placeSelectedPiece(hoveredPlacement.move1)
         
 
@@ -389,6 +422,13 @@ def analyze(positionDatabase, hzInt, hzString):
         
         # Tetris board
         analysisBoard.draw(hoveredPlacement)
+
+        # Possible moves processing % text
+        if not c.done:
+            percent = round(100*c.possibleCount / (len(positionDatabase) - 1))
+            blitCenterText(c.screen, c.font2, "Processing... {}/{} positions ({}%)".format(
+                c.possibleCount, len(positionDatabase)-1,percent), BRIGHT_RED, 100, cx = 370, s = 0)
+    
 
         # Evaluation Graph
         if showGraphs:
@@ -412,39 +452,40 @@ def analyze(positionDatabase, hzInt, hzString):
         # Text for position number
         text = c.font.render("#{}".format(analysisBoard.positionNum + 1), True, WHITE)
         c.screen.blit(text, [2000,787])
-        
-        x = 900
-        #c.screen.blit(c.font.render("playerNNB: {}".format(pos.playerNNB), True, BLACK), [x, 460])
-        #c.screen.blit(c.font.render("bestNNB: {}".format(pos.bestNNB), True, BLACK), [x, 520])
-        #c.screen.blit(c.font.render("playerFinal: {}".format(pos.playerFinal), True, BLACK), [x, 580])
-        #c.screen.blit(c.font.render("bestFinal: {}".format(pos.bestFinal), True, BLACK), [x, 620])
-        #c.screen.blit(c.font.render("RatherRapid: {}".format(pos.ratherRapid), True, BLACK), [x, 680])
-        
-        x3 = 2000
-        #c.screen.blit(c.font.render("{} Hz Analysis".format(hzInt), True, BLACK), [1600, 860])
-        if pos.feedback == AC.NONE:
-            feedbackColor = DARK_GREY
-        else:
-            feedbackColor = lighten(feedbackColor,0.7)
-
-        cx = 1190
-
-        def plus(num):
-            return ("+" if num > 0 else "") + str(num)
-
-        color = AC.feedbackColors[pos.feedback]
-        text = "{} -> {}".format(getPlacementStr(pos.placement, pos.currentPiece), plus(round(pos.playerFinal)))
-        blitCenterText(c.screen, c.fontbold, text, color, 250, cx = cx)
-        blitCenterText(c.screen, c.fontbigbold3 if pos.feedback == AC.INACCURACY else c.fontbigbold2, AC.feedbackString[pos.feedback], color, 300, cx = cx)
-        blitCenterText(c.screen, c.fontbold, AC.adjustmentString[pos.adjustment], color, 385, cx = cx)
-        blitCenterText(c.screen, c.font2bold, "NNB: {} ({})".format(plus(pos.playerNNB), plus(pos.bestNNB)), WHITE, 470, cx = cx)
-        
 
         # Draw timestamp
         frameNum = analysisBoard.positionDatabase[analysisBoard.positionNum].frame
         if frameNum != None:
-            text = c.font.render(c.timestamp(frameNum), True, BLACK)
-            #c.screen.blit(text, [1340,730] )
+            text = c.font.render(c.timestamp(frameNum), True, WHITE)
+            c.screen.blit(text, [2100,787] )
+
+        # Display hz
+        c.screen.blit(c.font.render("({} Hz)".format(hzInt), True, WHITE), [1785, 88])
+
+        # Display loading... if possible placements have not been loaded
+        if not analysisBoard.position.hasPossible():
+            c.screen.blit(c.fontbold.render("Loading...", True, WHITE), [1590, 300])
+
+        
+
+        cx = 1190
+
+        if pos.evaluated:
+            color = AC.feedbackColors[pos.feedback]
+            text = "{} -> {}".format(getPlacementStr(pos.placement, pos.currentPiece), plus(round(pos.playerFinal,1)))
+            blitCenterText(c.screen, c.fontbold, text, color, 250, cx = cx)
+            blitCenterText(c.screen, c.fontbigbold3 if pos.feedback == AC.INACCURACY else c.fontbigbold2, AC.feedbackString[pos.feedback], color, 300, cx = cx)
+            blitCenterText(c.screen, c.fontbold, AC.adjustmentString[pos.adjustment], color, 385, cx = cx)
+            try:
+                playerNNB = plus(round(pos.playerNNB,1))
+                bestNNB = plus(round(pos.bestNNB,1))
+            except:
+                playerNNB = "N/A"
+                bestNNB = "N/A"
+            blitCenterText(c.screen, c.font2bold, "NNB: {} ({})".format(playerNNB, bestNNB), WHITE, 470, cx = cx)
+        else:
+            blitCenterText(c.screen, c.fontbold, "Loading...", WHITE, 250, cx = cx)
+        
 
         # Game summary
         c.screen.blit(gsummary, [1980, 140])
@@ -453,17 +494,23 @@ def analyze(positionDatabase, hzInt, hzString):
         key = None
         startPressed = False
         click = False
+        rightClick = False
         for event in pygame.event.get():
-            if event.type == pygame.QUIT: 
+            if event.type == pygame.QUIT:
                 pygame.display.quit()
                 sys.exit()
                 return True
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                startPressed = True
+                if event.button == 3 or (event.button == 1 and pygame.key.get_pressed()[pygame.K_LCTRL]):
+                    # right click
+                    rightClick = True
+                elif event.button == 1:
+                    startPressed = True
 
             elif event.type == pygame.MOUSEBUTTONUP:
-                click = True
+                if event.button == 1 and not pygame.key.get_pressed()[pygame.K_LCTRL]:
+                    click = True
 
             elif event.type == pygame.KEYDOWN:
                 
@@ -475,6 +522,8 @@ def analyze(positionDatabase, hzInt, hzString):
             elif event.type == pygame.VIDEORESIZE:
 
                 c.realscreen = pygame.display.set_mode(event.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+
+        #print("c",analysisBoard.position.distToRoot())
             
         c.handleWindowResize(1.06)
         pygame.display.update()

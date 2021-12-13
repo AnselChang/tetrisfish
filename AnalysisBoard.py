@@ -1,4 +1,4 @@
-import pygame
+import pygame, random
 import numpy as np
 from TetrisUtility import *
 from PieceMasks import *
@@ -14,38 +14,18 @@ PANEL_MINO_SCALE = 0.5
 
 images = None
 bigMinoImages = None
-
-# To be displayed on panel. Each number represents tetronimo type in PieceMasks.py
-# NONE = 7, I = 0, L = 1, Z = 2, S = 3, J = 4, T = 5, O = 6
-# Constants defined in PieceMasks.py
-panelArray = np.array([
-    [4,7,7,7,7,7,3,3],
-    [4,4,4,7,7,3,3,7],
-    [7,7,7,7,7,7,7,7],
-    [7,7,1,7,7,2,2,7],
-    [1,1,1,7,7,7,2,2],
-    [7,7,7,7,7,7,7,7],
-    [7,6,6,7,7,7,5,7],
-    [7,6,6,7,7,5,5,5],
-    [7,7,7,7,7,7,7,7],
-    [7,7,0,0,0,0,7,7]
-])
-
-EMPTY_PANEL = empty(rows = len(panelArray), cols = len(panelArray[0]))
-
-# Cache a 2d array of panel colors as well
-panelColors = colorOfPieces(panelArray)
 smallMinoImages = []
 
-
 def init(imagesParam, bigMinoImgs):
-    global images, smallMinoImages, bigMinoImages
+    global images, bigMinoImages
     images = imagesParam
     bigMinoImages = bigMinoImgs
-    
+
     # Cache "small" variants of minos. both bigMinoImages and smallMinoImages will be a list of dictionaries.
     for i in range(0,10):
         smallMinoImages.append({name : scaleImage(image, PANEL_MINO_SCALE) for (name, image) in bigMinoImages[i].items()})
+    
+
 
 # Return surface with tetris board. 0 = empty, 1/-1 =  white, 2/-2 = red, 3/-3 = blue, negative = transparent
 # Used for: main tetris board, next box, next box piece selection panel
@@ -55,12 +35,8 @@ def drawGeneralBoard(level, board, hover = None, small = False, percent = 1):
     # colors are same for all levels with same last digit
     level = level % 10
 
-    if small:
-        minoImages = smallMinoImages[level]
-        minoScale = PANEL_MINO_SCALE
-    else:
-        minoImages = bigMinoImages[level]
-        minoScale = 1
+    minoImages = smallMinoImages[level] if small else bigMinoImages[level]
+    minoScale = PANEL_MINO_SCALE if small else 1
 
     offset = int(minoScale * (MINO_SIZE + MINO_OFFSET))
 
@@ -117,22 +93,21 @@ def getHoles(array):
 # Handle display of the current/next box and panel
 class PieceBoard:
 
-    def __init__(self, ID, image, offsetx, offsety):
+    def __init__(self, ID, offsetx, offsety, scale = 1):
 
         self.ID = ID
         self.offsetx = offsetx
         self.offsety = offsety
-        self.image = image
+        self.hover = False
 
-        self.IMAGE_SCALE = 1.7
+        self.delta = (MINO_SIZE+MINO_OFFSET) * scale
 
 
     def updatePieceOffset(self,piece):
 
         # Shift half-mino to the left for 3-wide pieces to fit into nextbox
-        offset = MINO_SIZE + MINO_OFFSET
-        self.xaddoffset = 0 if (piece == O_PIECE or piece == I_PIECE) else (0 - offset/2)
-        self.yaddoffset = offset/2 if piece == I_PIECE else 0
+        self.xaddoffset = 0 if (piece == O_PIECE or piece == I_PIECE) else (0 - self.delta/2)
+        self.yaddoffset = self.delta/2 if piece == I_PIECE else 0
 
     # To be called before any function is run
     def updatePiece(self, piece):
@@ -141,18 +116,14 @@ class PieceBoard:
         self.updatePieceOffset(self.piece)
 
         self.hover = False
-        self.showPanel = False
-        self.panelHover = EMPTY_PANEL
 
-        self.panelPercent = 0
-        self.prevPanelR = -1
-        self.prevPanelC = -1
-    
+    def updatePos(self, x, y):
+        self.offsetx = x
+        self.offsety = y
+
 
     # Update box hover given mouse coords
-    def updateBoard(self, mx, my, click):
-
-        returnValue  = None
+    def updateBoard(self, mx, my, click, placementIsNone):
 
         
         x1 = self.offsetx + self.xaddoffset
@@ -161,96 +132,30 @@ class PieceBoard:
         x = mx - x1
         y = my - y1
 
-        delta = MINO_SIZE+MINO_OFFSET
         
-        col = int( x / delta + 1)
-        row = int( y / delta +1)
+        
+        col = int( x / self.delta + 1)
+        row = int( y / self.delta +1)
         col -= 1
         if (row < 1 or row > 2 or col < 0 or col > 3):
             row = 0
             col = 0
 
         # Set boolean value for whether mouse is hovering over next piece
-        self.hover = (TETRONIMO_SHAPES[self.piece][0][row][col] == 1)
-
-        # display next box choices if clicked
-        if self.hover and click:
-            self.showPanel = not self.showPanel
-            if not self.showPanel:
-                self.panelHover = EMPTY_PANEL
-
-        if click and HT.none(mx,my):
-            self.showPanel = False
-            self.panelHover = EMPTY_PANEL
+        self.hover = (TETRONIMO_SHAPES[self.piece][0][row][col] == 1) and not placementIsNone
             
-
-        amount = 0.02
-
-        # Update panel animation
-        if self.showPanel:
-            self.panelPercent += math.sqrt(max(0,(1 - self.panelPercent) * amount))
-
-            # Update panel hover
-            returnValue = self.updatePanelHover(mx, my, click)
-            
-        else:
-            self.panelPercent -= math.sqrt(max(0,self.panelPercent * amount))
-
-        return returnValue
-
-    def updatePanelHover(self, mx, my, click):
-        x = mx - self.offsetx - 58
-        y = my - self.offsety - self.image.get_height()*self.IMAGE_SCALE - 53
-        width = 248
-        height = 319
-
-        # Weird thing because int(-0.1) = 0, when we want < 0
-        if y/height < 0 or x/height < 0:
-            y -= 50
-        
-        row = int(len(panelArray) * y/height)
-        col = int(len(panelArray[0]) * x/width)
-        
-        # new panel cell selected
-        if row != self.prevPanelR or col != self.prevPanelC:
-
-            if row < 0 or col < 0 or row >= len(panelArray) or col >= len(panelArray[0]):
-                 self.panelHover = EMPTY_PANEL
-            else:
-                piece = panelArray[row][col]
-                if piece == NO_PIECE:
-                    self.panelHover = EMPTY_PANEL
-                else:
-                    # numpy trick to get a mask (2d array) with element = 1 if it equals the piece number
-                    self.panelHover = (panelArray == piece).astype(int)
-
-        self.prevPanelR = row
-        self.prevPanelC = col
-
-        # New piece from dropdown selected.
-        if click and not isEmpty(self.panelHover) and panelArray[row][col] != self.piece:
-            self.piece = panelArray[row][col]
-            self.showPanel = False
-            self.updatePieceOffset(self.piece)
-            return self.piece
-        else:
-            return None
-
 
     # Blit surface from current/next box to screen
     def blit(self, level):
 
         minos = colorMinos(TETRONIMO_SHAPES[self.piece][0][1:], self.piece)
-        board = drawGeneralBoard(level, minos, hover = self.hover)
-        HT.blit(self.ID, board, [self.offsetx + self.xaddoffset, self.offsety + self.yaddoffset])
+        if self.ID == None: # mousePiece
+            board = drawGeneralBoard(level, minos, hover = True, small = True)
+            c.screen.blit(board, [self.offsetx + self.xaddoffset, self.offsety + self.yaddoffset])
+        else: # nextBox
+            board = drawGeneralBoard(level, minos, hover = self.hover)
+            HT.blit(self.ID, board, [self.offsetx + self.xaddoffset, self.offsety + self.yaddoffset])
 
-        if self.panelPercent > 0.01:
-
-            # Draw pieces onto panel
-            surf = drawGeneralBoard(level, panelColors, small = True, percent = self.panelPercent, hover = self.panelHover)
-
-            # Blit panel onto screen
-            HT.blit("panel", surf, [self.offsetx,self.offsety + self.image.get_height()*self.IMAGE_SCALE - 2])
 
 
 # ---------------------------------------------------------
@@ -262,14 +167,20 @@ class AnalysisBoard:
         self.x = 300
         self.y = 75
 
-        self.nextBox = PieceBoard(NEXT, images[NEXT], 1063, 687)
+        self.nextBox = PieceBoard(NEXT, 1063, 687)
+        self.mousePiece = PieceBoard(None, 0, 0, PANEL_MINO_SCALE)
+
+        self.isHoverPiece = False
 
         self.positionDatabase = positionDatabase
         self.positionNum = 0 # the index of the position in the rendered positionDatabase
         self.updatePosition(0)
 
+        
+
     # Change the position by index amount delta
     def updatePosition(self, delta):
+        print("updatePosition")
         
         self.positionNum = delta
         assert(self.positionNum >= 0 and self.positionNum < len(self.positionDatabase))
@@ -277,15 +188,16 @@ class AnalysisBoard:
         self.position = self.positionDatabase[self.positionNum]
         
         self.init()
+        self.newAdjust = True
 
     def init(self):
         
         self.hoverNum = 0
-        self.isHoverPiece = False
-        self.isAdjustCurrent = type(self.position.placement) != np.ndarray
         self.placements = []
         self.hover = empty()
         self.ph = [-1,-1]
+
+        self.newAdjust = True
 
         # Change current and nextbox pieces
         #self.currentBox.updatePiece(self.position.currentPiece)
@@ -310,22 +222,26 @@ class AnalysisBoard:
     def hypoLeft(self):
         self.position = self.position.prev
         self.init()
+        self.newAdjust = True
+        print("left")
 
          # Immediately be able to hover the next piece
 
     def hypoRight(self):
         self.position = self.position.next
         self.init()
-
-        if self.position.next == None:
-            # Immediately be able to hover the next piece
-            self.isAdjustCurrent = True
+        self.newAdjust = True
+        print("right")
 
     # Toggle hover piece
     def toggle(self):
-        if len(self.placements) > 0:
-            self.hoverNum  += 1
-            self.hover = self.placements[self.hoverNum % len(self.placements)]
+        if self.isHoverPiece:
+            print("toggle", len(self.placements))
+            if len(self.placements) > 0:
+                self.hoverNum  += 1
+                self.hover = self.placements[self.hoverNum % len(self.placements)]
+                print(self.hoverNum)
+                #print2d(self.hover)
 
     # Create a duplicate version of the original position, so that the new version is modifiable (to retain original position data)
     def startHypothetical(self):
@@ -334,8 +250,10 @@ class AnalysisBoard:
                                       lines = self.position.lines, currLines = self.position.currLines, transition = self.position.transition, score = self.position.score)
         self.position.next.prev = self.position
         self.position = self.position.next
+        assert(self.position.next == None)
 
     def placeSelectedPiece(self, placement = None):
+        print("place selected piece")
         
         if not isArray(placement):
             placement = self.hover
@@ -347,16 +265,41 @@ class AnalysisBoard:
         # and not overwrite the original position's placement
         if self.position.prev == None:
             self.startHypothetical()
-            self.isAdjustCurrent = False
 
         # Store the current "hypothetical" placement into the position
         self.position.placement = placement.copy()
 
+        self.position.reset()
+        
+        self.init()
+        self.isHoverPiece = False
+        #print2d(self.position.placement)
+
+
+    def newNextBox(self):
+        print("new next box")
+        if self.position.prev == None:
+            self.startHypothetical()
+            self.position.placement = self.position.prev.placement.copy()
+
+        # Update nextbox
+        piece = TETRONIMOS[(TETRONIMOS.index(self.position.nextPiece) + 1) % len(TETRONIMOS)]
+        self.position.nextPiece = piece
+        self.nextBox.updatePiece(piece)
+
+        # If there were saved hypothetical positions afterwards, delete these as they are now outdated
+        self.position.next = None
+        self.position.reset(True)
+
+    def createNewPosition(self):
+        # create new position with placed piece
+        print("drop next piece")
+        
         # Calculate resulting position after piece placement and line claer
-        newBoard, addLines = lineClear(self.position.board + placement)
+        newBoard, addLines = lineClear(self.position.board + self.position.placement)
 
         # Update lines and levels
-        totalLines = self.position.lines + addLines
+        lines = self.position.lines + addLines
         currLines = self.position.currLines + addLines
         transition = self.position.transition
         level = self.position.level
@@ -368,41 +311,26 @@ class AnalysisBoard:
         if addLines > 0:
             score += getScore(level, addLines) # Increment score. cruicial this is done after level update, as in the original NES
 
-        self.position.evaluated = False
-
-        # Create a new position after making move. Store a refererence to current position as previous node
-        self.position.next = Position(newBoard, self.position.nextPiece, randomPiece(), level = level, lines = totalLines,
-                                      currLines = currLines, transition = transition, score = score)
+        index = self.positionNum + self.position.distToRoot() + 1
+        if index < len(self.positionDatabase):
+            nextPiece = self.positionDatabase[index].nextPiece
+        else:
+            nextPiece = random.choice(TETRONIMOS)
+        self.nextBox.updatePiece(nextPiece)
+        self.position.next = Position(newBoard, self.position.nextPiece, nextPiece, placement = None, level = level, lines = lines, currLines = currLines,
+                                      transition = transition, score = score)
         self.position.next.prev = self.position
         self.position = self.position.next
-        
-        self.init()
-
-        # Immediately be able to hover the next piece
-        self.isAdjustCurrent = True
-        
-             
-
-    # Update mouse-related events - namely, hover
-    def update(self, mx, my, click, spacePressed):
-        
-        # Update mouse events for current and next boxes
-       # self.currentBox.updateBoard(mx, my, click)
-        # new Piece is a piece if the next box was changed this frame, or None otherwise
-        newPiece = self.nextBox.updateBoard(mx, my, click)
-
-        if newPiece != None:
+        self.isHoverPiece = True
             
-            if self.position.prev == None:
-                self.startHypothetical()
-                self.position.placement = self.position.prev.placement
+        
+    # Update mouse-related events - namely, hover
+    def update(self, mx, my, click, spacePressed, rightClick):
+        
+        self.nextBox.updateBoard(mx, my, click, type(self.position.placement) != np.ndarray)
 
-            # Update nextbox
-            self.position.nextPiece = newPiece
-
-            # If there were saved hypothetical positions afterwards, delete these as they are now outdated
-            self.position.next = None
-
+        delta = (MINO_SIZE+MINO_OFFSET) * PANEL_MINO_SCALE
+        self.mousePiece.updatePos(mx - delta*2, my - delta)
                     
         x1 = self.x
         y1 = self.y
@@ -417,47 +345,23 @@ class AnalysisBoard:
             r = -1
             c1 = -1
 
-        newAdjust = False
-
-        # If true, we have placed the piece at some location. We enter a hypothetical situation and a new piece spawns
-        if click and self.isAdjustCurrent and np.count_nonzero(self.hover) > 1:
-            print("place new piece")
-            self.placeSelectedPiece()
-            newAdjust = True
-
-        # If current piece clicked, enter placement selection mode
-        elif (spacePressed or click and self.touchingCurrent(r,c1)) and not self.isAdjustCurrent:
-            print("enter placement selection mode")
-            self.isAdjustCurrent = True
-            newAdjust = True
-        elif spacePressed or click and (len(self.placements) == 0 and r != -1  or HT.none(mx,my)):
-            print("reset piece")
-
-            # Only reset placement selection if there is a default piece placement already
-            if type(self.position.placement) == np.ndarray:
-                # Reset placement selection if clicking empty square that is not piece-placeable
-                self.isAdjustCurrent = False
-                self.isHoverPiece = False
-                newAdjust = True
-
-    
         # If mouse is now hovering on a different tile
-        if [r,c1] != self.ph or newAdjust:
-
+        if [r,c1] != self.ph or self.newAdjust:
+            self.newAdjust = False
+            print("new square", r, c1)
             self.ph = [r,c1]
 
 
             # Many piece placements are possible from hovering at a tile. We sort this list by relevance,
             # and hoverNum is the index of that list. When we change tile, we reset and go to best (first) placement
-            if self.position.currentPiece != I_PIECE:
+            if self.position.currentPiece not in [I_PIECE, S_PIECE, Z_PIECE]:
                 self.hoverNum = 0
             self.placements = self.getHoverMask(r,c1)
 
             
-            if not self.isAdjustCurrent or len(self.placements) == 0:
+            if not self.isHoverPiece:
                 
                 # If piece selection inactive or no possible piece selections, hover over mouse selection
-                self.isHoverPiece = False
                 if r != -1 and rang(r,c1):
                     # In a special case that mouse is touching current piece, make current piece transparent (if clicked, activate piece selection)
                     if self.touchingCurrent(r,c1):
@@ -468,11 +372,44 @@ class AnalysisBoard:
                         
                 else:
                      self.hover = empty()
-            else:
-                # If there are hypothetical piece placements, display them
-                self.isHoverPiece = True
-                self.hover = self.placements[self.hoverNum % len(self.placements)]
+            else: # isHoverPiece == True
+                if len(self.placements) == 0:
+                    self.hover = empty()
+                else:
+                    # If there are hypothetical piece placements, display them
+                    self.hover = self.placements[self.hoverNum % len(self.placements)]
 
+
+        if rightClick and self.nextBox.hover:
+            self.newNextBox()
+        elif click and self.nextBox.hover:
+            self.createNewPosition()
+            
+        # If true, we have placed the piece at some location.
+        elif click and self.isHoverPiece and np.count_nonzero(self.hover) > 1:
+            print("place new piece")
+            self.placeSelectedPiece()
+            self.newAdjust = True
+
+        # If current piece clicked, enter placement selection mode
+        elif (spacePressed or (click and self.touchingCurrent(r,c1))) and not self.isHoverPiece:
+            print("enter placement selection mode")
+            self.isHoverPiece = True
+            self.newAdjust = True
+        elif spacePressed or click and ((len(self.placements) == 0 and HT.at(mx,my)=="tetris") or HT.none(mx,my)) and self.position.board[r][c1] == 0:
+            print("reset piece")
+
+            self.isHoverPiece = False
+            self.newAdjust = True
+
+            if type(self.position.placement) != np.ndarray:
+                # In this case, the user is cancelling creating a new piece. So, delete this position and revert to previous position
+                self.position = self.position.prev
+                self.position.next = None
+
+        #print("a",self.position.distToRoot())
+    
+        
 
     def touchingCurrent(self,r,c1):
         if not rang(r,c1):
@@ -497,7 +434,6 @@ class AnalysisBoard:
             if c1 == 9:
                 return []
 
-            print2d(b)
             for i in [c1,c1-1]:
                 
                 if (rang(r+1,i) and b[r+1][i] == 1) or ((rang(r+1,i+1) and b[r+1][i+1]) == 1) or r == 19:
@@ -559,9 +495,12 @@ class AnalysisBoard:
     
     # Draw tetris board to screen
     def draw(self, hoveredPlacement):
+        #print("b",self.position.distToRoot())
 
         board = self.position.board.copy()
         curr = self.position.currentPiece
+
+        self.nextBox.blit(self.position.level)
 
         # When mouse is hovering over a possible placement
         if hoveredPlacement != None:
@@ -585,9 +524,13 @@ class AnalysisBoard:
                 placement = empty()
 
             # If active selection mode, then display that. Otherwise, display original placed piece location
-            if self.isAdjustCurrent:
-                if self.isHoverPiece:
-                    board += colorMinos(self.hover, curr, white2 = True)
+            if self.isHoverPiece:
+                    if np.count_nonzero(self.hover) == 4:
+                        board += colorMinos(self.hover, curr, white2 = True)
+                    else:
+                        # If hovered state and no hovered piece, then draw mouse piece
+                        self.mousePiece.updatePiece(self.position.currentPiece)
+                        self.mousePiece.blit(self.position.level)
             else:
                 board += placement
                 
@@ -599,6 +542,4 @@ class AnalysisBoard:
             addHueToSurface(surf, MID_GREY, 0.23)
 
         HT.blit("tetris", surf ,[self.x,self.y])
-
-        self.nextBox.blit(self.position.level)
         

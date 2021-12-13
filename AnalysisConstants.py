@@ -1,4 +1,4 @@
-from colors import WHITE, DARK_GREY
+from colors import WHITE, DARK_GREY, MID_GREY
 NONE = 0
 
 INVALID = 1
@@ -63,12 +63,13 @@ def scoreToColor(score, isKs):
         return C_MIST
     else:
         return C_BLUN
-    
+
+INVALID_COLOR = MID_GREY
     
 
 feedbackColors = {RAPID: C_RAPID, BEST : C_BEST, EXCELLENT : C_EXCE, INACCURACY : C_INAC,
                   MISTAKE : C_MIST, BLUNDER : C_BLUN, NONE : WHITE, MAJOR_MISSED : C_BLUN,
-                  MINOR_MISSED : C_INAC, INVALID : DARK_GREY, INVALID : WHITE, MEDIOCRE : C_MEDI}
+                  MINOR_MISSED : C_INAC, INVALID : INVALID_COLOR, MEDIOCRE : C_MEDI}
 feedbackString = {MEDIOCRE : "Mediocre", RAPID : "Rather Rapid", BEST : "Best Move", EXCELLENT : "Excellent", NONE : "ERROR",
                   INACCURACY : "Inaccuracy", MISTAKE : "Mistake", BLUNDER : "Blunder", INVALID : "ERROR"}
 

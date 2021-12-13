@@ -540,15 +540,17 @@ def callibrate():
                 bounds.set()
 
         elif buttons.get(B_RENDER).clicked or enterKey:
-            
+
 
             # If not callibrated, do not allow render
-            if bounds == None or nextBounds == None or bounds.notSet or nextBounds.notSet or getNextBox(minosNext) == None:
+            if bounds == None or nextBounds == None or bounds.notSet or nextBounds.notSet:
                 errorMsg = time.time()  # display error message by logging time to display for 3 seconds
-                errorText = "You must finish callibrating and go to the first frame to be rendered."
+                errorText = "You must set bounds for the board and next box."
                 errorColor = RED
 
             else:
+                frame, vidFrame[LEFT_FRAME] = c.goToFrame(vcap, vidFrame[LEFT_FRAME])
+                
                 board = bounds.getMinos(frame)
                 mask = extractCurrentPiece(board)
                 print(mask)
@@ -557,6 +559,11 @@ def callibrate():
                 if currPiece == None:
                     errorMsg = time.time()  # display error message by logging time to display for 3 seconds
                     errorText = "The current piece must be near the top  with all four minos fully visible."
+                    errorColor = RED
+
+                elif getNextBox(nextBounds.getMinos(frame)) == None:
+                    errorMsg = time.time()  # display error message by logging time to display for 3 seconds
+                    errorText = "The next box must be callibrated so that four dots are inside each mino."
                     errorColor = RED
                 
                 else:
@@ -572,9 +579,10 @@ def callibrate():
                         board -= mask # remove current piece from board to get pure board state
                         print2d(board)
                         nextPiece = getNextBox(minosNext)
+                        c.hzString = timeline[hzNum]
                         pos = Position(board, currPiece, nextPiece, level = buttons.get(B_LEVEL).value(),
                                        lines = buttons.get(B_LINES).value(), score = buttons.get(B_SCORE).value())
-                        analyze([pos], timelineNum[hzNum], timeline[hzNum])
+                        analyze([pos], timelineNum[hzNum])
 
                         return None
 
@@ -585,8 +593,9 @@ def callibrate():
 
                         # Exit callibration, initiate rendering with returned parameters
                         print("Hz num: ", timelineNum[hzNum])
+                        c.hzString = timeline[hzNum]
                         return [vidFrame[LEFT_FRAME], vidFrame[RIGHT_FRAME], bounds, nextBounds, buttons.get(B_LEVEL).value(),
-                                buttons.get(B_LINES).value(), buttons.get(B_SCORE).value(), timeline[hzNum], timelineNum[hzNum]]
+                                buttons.get(B_LINES).value(), buttons.get(B_SCORE).value(), timelineNum[hzNum]]
 
         elif click:
             if bounds != None:

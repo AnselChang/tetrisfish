@@ -1,15 +1,17 @@
-import os, sys
+import os, sys, requests
 #https://pyinstaller.readthedocs.io/en/stable/runtime-information.html
-print(os.environ)
+#print(os.environ)
+
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    print('running in a PyInstaller bundle', sys._MEIPASS)
+else:
+    print('running in a normal Python process')
+
 def fp(filepath):
-    print("test", os.path.abspath(os.path.join(os.path.dirname(__file__), filepath)))
+    
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        print('running in a PyInstaller bundle', sys._MEIPASS)
         filepath = os.path.join(sys._MEIPASS, filepath)
-    else:
-        print('running in a normal Python process')
         
-    print(filepath)
     return filepath
 
 import pygame
@@ -24,7 +26,13 @@ from TetrisUtility import scaleImage
 
 import threading
 lock = threading.Lock()
-numEvaluatedPositions = 0
+possibleCount = 0
+done = False
+
+poolSize = 50
+hzString = None
+
+session = requests.Session()
 
 pygame.init()
 pygame.font.init()

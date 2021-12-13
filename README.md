@@ -9,7 +9,7 @@ TetrisFish is powered by StackRabbit, a tetris AI made by Gregory Cannon that th
 This project would not have been possible without...
 - yobi9: creator of NEStrisChamps and provided invaluable insight on developing the difficult and complex video processing algorithm
 - HydrantDude: a graphics artist who designed the sexy UI for callibration and analysis (in progress)
-- Xenophilius: logo design and graphics consultant
+- Xenophilius: bugtesting, logo design, and graphics consultant
 - MegaTech: Tetris expert and tuning for rating categories
 - Arb1t - early testing and bughunting
 
@@ -18,7 +18,7 @@ and last but not least, countless beta testers to improve the robustness, ease o
 # The callibration process
 1. Drag a tetris video into the display. This does not have to be in any particular format, provided the quality is somewhat decent.
 2. The callibration should now be opened. You may readjust the size of the video with the zoom slider to a comfortable size.
-3. Select an appropriate tap speed (hz) and level.
+3. Configure an appropriate tap speed (hz, level, lines, and score. Note that *starting* level of the game should be specified, not the current level at the start of the render.
 4. Use the video controls on the bottom left to nagivate to different portions of the video. Make sure the tetris board is shown.
 5. Click the "Callibrate Dimensions" button. Click on the top-left, then bottom-right corner of the playing screen. The dots should align with the playing field. Redo as needed.
 6. Do the same thing for "Callibrate Next box". Note that this should be the top-left and bottom-right corner of the *entire* next box. Make sure four dots are inside each cell.
@@ -29,7 +29,7 @@ and last but not least, countless beta testers to improve the robustness, ease o
 11. If there are further problems with this software, please contact Ansel Chang on Discord: Ansel (aka Primer)#4422
 
 # Using the Analysis tool
-Tetrisfish evaluates all the different positions and evalutes the accuracy of your move. You can hover over StackRabbit's alternative move recommendations on the top-right corner, and click on the recommendation to actually make the move. You can also click on the current piece to change the location of that piece (press t to toggle rotation), or click the next box to change the next piece. You can scroll through these hypothetical moves using the small arrow buttons.
+Tetrisfish evaluates all the different positions and evalutes the accuracy of your move. You can hover over StackRabbit's alternative move recommendations on the top-right corner, and click on the recommendation to actually make the move. If you want to test out alternate placements, you can also click on the current piece to change the location of that piece (press t to toggle rotation). Left click the next box to put the next piece into the game, or right click to change the next piece. You can scroll through these hypothetical moves using the small arrow buttons (shortcuts Z and X)
 
 To scroll through the different positions in the game, both graphs are made to be interactive so you can hop around the positions. The bottom graph has a slider that allows you to scrub through different positions at high speed. Note that to render a different video, you must restart the program.
 
@@ -42,7 +42,7 @@ There are various shortcuts that speed up the use of this program.
 - Alternatively from clicking "Render", press the enter key to render the program.
 ## During Analysis
 - Press "t" to rotate the piece while making a hypothetical placement.
-- Press the spacebar to toggle live mode for changing the plcaement of the piece.
+- Press the spacebar to toggle live mode for changing the placement of the piece.
 - Use the left and right arrows to navigate back or forward a position.
 - Use the Z and X keys to navigate back or forward a hypothetical line.
 - Use , and . to go to the previous or next key position.
