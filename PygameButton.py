@@ -228,7 +228,7 @@ class PlacementButton(Button):
         mid1 = 0.35 # ratio between eval and first piece notation
         mid2 = 0.675 # ratio between first and second piece notation
         text1a = 0.07 # 1), 2) etc
-        text1b = 0.15 # the actual eval
+        text1b = 0.22 # the actual eval
         
         A_COLOR = [143, 143, 143] # eval
         B_COLOR = [71, 156, 220] # first piece notation

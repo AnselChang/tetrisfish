@@ -173,14 +173,17 @@ class AnalysisBoard:
         self.isHoverPiece = False
 
         self.positionDatabase = positionDatabase
-        self.positionNum = 0 # the index of the position in the rendered positionDatabase
+        self.positionNum = -1 # the index of the position in the rendered positionDatabase
         self.updatePosition(0)
 
         
 
     # Change the position by index amount delta
     def updatePosition(self, delta):
-        print("updatePosition")
+
+        # So that random method calls won't reset the hypothetical state
+        if self.positionNum == delta:
+            return
         
         self.positionNum = delta
         assert(self.positionNum >= 0 and self.positionNum < len(self.positionDatabase))
@@ -348,7 +351,6 @@ class AnalysisBoard:
         # If mouse is now hovering on a different tile
         if [r,c1] != self.ph or self.newAdjust:
             self.newAdjust = False
-            print("new square", r, c1)
             self.ph = [r,c1]
 
 
@@ -406,8 +408,8 @@ class AnalysisBoard:
                 # In this case, the user is cancelling creating a new piece. So, delete this position and revert to previous position
                 self.position = self.position.prev
                 self.position.next = None
+                self.nextBox.updatePiece(self.position.nextPiece)
 
-        #print("a",self.position.distToRoot())
     
         
 
@@ -495,7 +497,6 @@ class AnalysisBoard:
     
     # Draw tetris board to screen
     def draw(self, hoveredPlacement):
-        #print("b",self.position.distToRoot())
 
         board = self.position.board.copy()
         curr = self.position.currentPiece
@@ -505,14 +506,20 @@ class AnalysisBoard:
         # When mouse is hovering over a possible placement
         if hoveredPlacement != None:
 
-            if type(self.position.placement) != np.ndarray:
-                board = self.position.prev.board.copy()
-            
             board += colorMinos(hoveredPlacement.move1, curr, white2 = True)
-            board += colorMinos(hoveredPlacement.move2, self.position.nextPiece, white2 = True)
-
-            # Next box ideal placement is displayed transparently
-            finalHoverArray = hoveredPlacement.move2
+            if np.logical_and(board, hoveredPlacement.move2).any(): # There was some sort of line clear, so can't just put next piece.
+                # Attempt putting it the number of line clear rows above
+                numFilledRows = np.count_nonzero(board.all(axis=1))
+                move2shifted = np.roll(hoveredPlacement.move2, 0 - numFilledRows,axis=0)
+                if not np.logical_and(board, move2shifted).any():
+                    board += colorMinos(move2shifted, self.position.nextPiece, white2 = True)
+                    # Next box ideal placement is displayed transparently
+                    finalHoverArray = move2shifted
+                    
+            else: # Regular case of showing next box
+                board += colorMinos(hoveredPlacement.move2, self.position.nextPiece, white2 = True)
+                # Next box ideal placement is displayed transparently
+                finalHoverArray = hoveredPlacement.move2
             
         else:
             # If not, just regular analysis board display

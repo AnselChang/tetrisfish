@@ -229,7 +229,7 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
     print(transition)
     if linesP > transition:
         # User has transitioned already to a higher level
-        level = levelP + (linesP - transition) // 10
+        level = levelP + 1 + (linesP - transition) // 10
         transition = 10
         lineClears = linesP % 10
     else:

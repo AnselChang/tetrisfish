@@ -136,10 +136,10 @@ def analyze(positionDatabase, hzInt):
 
     size = 0.07
     
-    buttons.addImage(B_FASTLEFT, images[LEFTARROW_FAST], 1440, y, hydrantScale, margin = 5, img2 = images[LEFTARROW_FAST2], alt = leftFastAlt)
-    buttons.addImage(B_LEFT, images[LEFTARROW], 1510, y, size, margin = 5, img2 = left, alt = leftg)
-    buttons.addImage(B_RIGHT, images[RIGHTARROW], 1745, y, size, margin = 5, img2 = right, alt = rightg)
-    buttons.addImage(B_FASTRIGHT, images[RIGHTARROW_FAST], 1800, y, hydrantScale, margin = 5, img2 = images[RIGHTARROW_FAST2], alt = rightFastAlt)
+    buttons.addImage(B_FASTLEFT, images[LEFTARROW_FAST], 1440, y, hydrantScale, margin = -10, img2 = images[LEFTARROW_FAST2], alt = leftFastAlt)
+    buttons.addImage(B_LEFT, images[LEFTARROW], 1510, y, size, margin = -10, img2 = left, alt = leftg)
+    buttons.addImage(B_RIGHT, images[RIGHTARROW], 1745, y, size, margin = -10, img2 = right, alt = rightg)
+    buttons.addImage(B_FASTRIGHT, images[RIGHTARROW_FAST], 1800, y, hydrantScale, margin = -10, img2 = images[RIGHTARROW_FAST2], alt = rightFastAlt)
 
     # Hypothetical positon navigation buttons
     x = 1040
@@ -149,10 +149,10 @@ def analyze(positionDatabase, hzInt):
     rightMaxAlt = images[RIGHTARROW_MAX].copy().convert_alpha()
     addHueToSurface(rightMaxAlt, BLACK, 0.6)
     
-    buttons.addImage(B_HYP_MAXLEFT, images[LEFTARROW_MAX], x, y, hydrantScale, margin = 0, img2 = images[LEFTARROW2_MAX], alt = leftMaxAlt)
-    buttons.addImage(B_HYP_LEFT, images[LEFTARROW], x+65, y, size, margin = 0, img2 = left, alt =leftg)
-    buttons.addImage(B_HYP_RIGHT, images[RIGHTARROW], x+190, y, size, margin = 0, img2 = right, alt =rightg)
-    buttons.addImage(B_HYP_MAXRIGHT, images[RIGHTARROW_MAX], x+250, y, hydrantScale, margin = 0, img2 = images[RIGHTARROW2_MAX], alt = rightMaxAlt)
+    buttons.addImage(B_HYP_MAXLEFT, images[LEFTARROW_MAX], x, y, hydrantScale, margin = -10, img2 = images[LEFTARROW2_MAX], alt = leftMaxAlt)
+    buttons.addImage(B_HYP_LEFT, images[LEFTARROW], x+65, y, size, margin = -10, img2 = left, alt =leftg)
+    buttons.addImage(B_HYP_RIGHT, images[RIGHTARROW], x+190, y, size, margin = -10, img2 = right, alt =rightg)
+    buttons.addImage(B_HYP_MAXRIGHT, images[RIGHTARROW_MAX], x+250, y, hydrantScale, margin = -10, img2 = images[RIGHTARROW2_MAX], alt = rightMaxAlt)
 
     buttons.addPlacementButtons(5, 1440, 160, 27, 460, 87)
     
@@ -182,7 +182,10 @@ def analyze(positionDatabase, hzInt):
     # Index of very position that is an inaccuracy, mistake, or blunder
     keyPositions = []
     for i in range(len(feedback)):
-        count[feedback[i]] += 1
+        # the summary counts only apply pre-killscreen
+        if levels[i] < 29:
+            count[feedback[i]] += 1
+            
         if feedback[i] in [AC.INACCURACY, AC.MISTAKE, AC.BLUNDER]:
             keyPositions.append(i)
     keyPositions = np.array(keyPositions)
@@ -214,7 +217,7 @@ def analyze(positionDatabase, hzInt):
 
     print("Summary: ",preNum,preSum,postNum,postSum,ksNum,ksSum)
 
-    def getAccuracy(num, summ):
+    def getAccuracy(num, summ, overall = False):
         if num == 0:
             return "N/A", -1
         print(num,summ)
@@ -226,36 +229,39 @@ def analyze(positionDatabase, hzInt):
         print(scaled)
 
         # scaled is now a number 0-100(+)
-        return ["{}%".format(scaled), scaled]
+        if overall:
+            return ["{}%".format(scaled), scaled]
+        else:
+            return ["{}{}".format("+" if avg > 0 else "", round(avg,1)), scaled]
 
     # Generate game summary surface
-    gsummary = pygame.Surface([500,400]).convert_alpha()
+    gsummary = pygame.Surface([536,400]).convert_alpha()
     y = 0
     for f in reversed(AC.feedback):
         color = AC.feedbackColors[f]
         blitCenterText(gsummary, c.font, AC.feedbackString[f] + ": ", color, y, s = 1)
-        blitCenterText(gsummary, c.fontbold, str(count[f]), color, y, s = 0)
-        y += 45
+        blitCenterText(gsummary, c.fontbold, str(count[f]), color, y, s = 1, cx = gsummary.get_width()/2 + 65)
+        y += 41
         
 
     # Generate  summary surface
-    summary = pygame.Surface([300,400]).convert_alpha()
-    blitCenterText(summary, c.font, "Accuracy", WHITE, 0)
+    summary = pygame.Surface([276,400]).convert_alpha()
+    blitCenterText(summary, c.font, "Accuracy", WHITE, 14)
     
-    accT, acc = getAccuracy(preNum+postNum, preSum+postSum)
+    accT, acc = getAccuracy(preNum+postNum, preSum+postSum, overall = True)
     blitCenterText(summary, c.fontbigbold, accT, AC.scoreToColor(acc, False), 50)
 
     acc2T, acc2 = getAccuracy(preNum, preSum)
-    blitCenterText(summary, c.fontbold, "Pre - ", WHITE, 140, s = 1)
+    blitCenterText(summary, c.fontbold, "Pre: ", WHITE, 140, s = 1)
     blitCenterText(summary, c.fontbold,  acc2T, AC.scoreToColor(acc2, False), 140, s = 0)
     
     
     acc3T, acc3 = getAccuracy(postNum, postSum)    
-    blitCenterText(summary, c.fontbold, "Post - ", WHITE, 180, s = 1)
+    blitCenterText(summary, c.fontbold, "Post: ", WHITE, 180, s = 1)
     blitCenterText(summary, c.fontbold,  acc3T, AC.scoreToColor(acc3, False), 180, s = 0)
 
     acc4T, acc4 = getAccuracy(ksNum, ksSum) 
-    blitCenterText(summary, c.fontbold, "KS - ", WHITE, 220, s = 1)
+    blitCenterText(summary, c.fontbold, "KS: ", WHITE, 220, s = 1)
     blitCenterText(summary, c.fontbold,  acc4T, AC.scoreToColor(acc4, True), 220, s = 0)
     
     
@@ -444,14 +450,14 @@ def analyze(positionDatabase, hzInt):
 
         # Text for level / lines / score
         x1 = 1040
-        zeros = (7-len(str(pos.score)))*"0"
+        zeros = max(0,(6-len(str(pos.score))))*"0"
         c.screen.blit(c.font.render("Score: {}{}".format(zeros,pos.score), True, WHITE), [x1, 85])
         c.screen.blit(c.font.render("Level: {}".format(pos.level), True, WHITE), [x1, 135])
         c.screen.blit(c.font.render("Lines: {}".format(pos.lines), True, WHITE), [x1, 185])
 
         # Text for position number
         text = c.font.render("#{}".format(analysisBoard.positionNum + 1), True, WHITE)
-        c.screen.blit(text, [2000,787])
+        c.screen.blit(text, [1960,787])
 
         # Draw timestamp
         frameNum = analysisBoard.positionDatabase[analysisBoard.positionNum].frame
@@ -523,7 +529,6 @@ def analyze(positionDatabase, hzInt):
 
                 c.realscreen = pygame.display.set_mode(event.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
 
-        #print("c",analysisBoard.position.distToRoot())
             
         c.handleWindowResize(1.06)
         pygame.display.update()
