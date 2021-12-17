@@ -63,10 +63,11 @@ images = loadImages(c.fp("Images/Callibration/{}.png"), CALLIBRATION_IMAGES)
 background = pygame.transform.smoothscale(images[C_BACKDROP], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
  # Hydrant-to-Primer scaling factor
 hydrantScale = background.get_width() / images[C_BACKDROP].get_width()
+c.hydrantScale = hydrantScale
 
 class Bounds:
 
-    def __init__(self,isNextBox, x1,y1,x2,y2, mode = 1):
+    def __init__(self,isNextBox, x1,y1,x2,y2, mode = 1, isMaxoutClub = False):
 
         self.first = True
 
@@ -96,14 +97,33 @@ class Bounds:
             self.color = PURE_BLUE
             self.horizontal = 8
             self.vertical = 4
-            self.Y_TOP = 0.406
-            self.Y_BOTTOM = 0.363
-            self.X_LEFT = 0.04
-            self.X_RIGHT = 0.93
         else:
             self.color = BRIGHT_RED
             self.horizontal = c.NUM_HORIZONTAL_CELLS
             self.vertical = c.NUM_VERTICAL_CELLS
+
+
+        self.isMaxoutClub = isMaxoutClub
+        self.defineDimensions(False)
+        
+
+    def defineDimensions(self, toggle = False):
+
+        if toggle:
+            self.isMaxoutClub = not self.isMaxoutClub
+
+        if self.isNB:
+            if self.isMaxoutClub:
+                self.Y_TOP = 0.055
+                self.Y_BOTTOM = 0.7
+                self.X_LEFT = 0.105
+                self.X_RIGHT = 0.8
+            else:
+                self.Y_TOP = 0.406
+                self.Y_BOTTOM = 0.363
+                self.X_LEFT = 0.04
+                self.X_RIGHT = 0.93
+        else:
             self.Y_TOP = 0
             self.Y_BOTTOM = 0.993
             self.X_LEFT = 0.01
@@ -111,6 +131,7 @@ class Bounds:
 
         # initialize lookup tables for bounds
         self.updateConversions()
+        
 
     def mouseOutOfBounds(self, mx, my):
         return mx < 0 or mx > c.X_MAX or my < 0 or my > c.Y_MAX
@@ -639,7 +660,7 @@ def callibrate():
             if nextBounds == None:
                 nData = None
             else:
-                nData = [nextBounds.x1, nextBounds.y1, nextBounds.x2, nextBounds.y2]
+                nData = [[nextBounds.x1, nextBounds.y1, nextBounds.x2, nextBounds.y2], nextBounds.isMaxoutClub]
 
             data = [hzNum, bData, nData, c.COLOR_CALLIBRATION, c.SCALAR]
             pickle.dump( data, open( "callibration_preset.p", "wb" ) )
@@ -673,7 +694,7 @@ def callibrate():
             if data[2] == None:
                 nextBounds = None
             else:
-                nextBounds = Bounds(True, *data[2], mode = 0)
+                nextBounds = Bounds(True, *data[2][0], mode = 0, isMaxoutClub = data[2][1])
                 nextBounds.notSet = False
             
             print("loaded preset", data)
@@ -767,6 +788,11 @@ def callibrate():
                     key = event.key
                 elif not isTextBoxScroll and event.key == pygame.K_RETURN:
                     enterKey = True
+                elif event.key == pygame.K_t:
+                    # toggle next box maxoutclub/regular
+                    if nextBounds != None:
+                        nextBounds.defineDimensions(toggle = True)
+                        print("toggle")
 
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_SPACE:

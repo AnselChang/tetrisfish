@@ -4,6 +4,13 @@ from collections import deque
 import math
 import PieceMasks as PM
 
+def blitCenterText(surface, font, string, color, y, cx = None, s = 0.5):
+    if cx == None:
+        cx = surface.get_width()/2
+        
+    text = font.render(string, True, color)
+    surface.blit(text, [cx - text.get_width()*s, y])
+
 # Returns true if two binary 2d numpy arrays intersect
 def intersection(arr1, arr2):
     return 2 in (arr1 + arr2)
@@ -17,6 +24,9 @@ def lighten(color, amount, doThis = True):
         return [min(i * amount,255) for i in color]
     else:
         return color
+
+def betweenColors(colorA, colorB, percent):
+    return [(b-a)*percent+a for (a, b) in zip(colorA, colorB)]
 
 def addHueToSurface(surf, color, percent, dim = None):
     if dim == None:
@@ -194,11 +204,13 @@ def lineClear(array):
 
     return newBoard, numFilled
 
-def loadImages(fileFormat, nameList):
+def loadImages(fileFormat, nameList, scale = None):
     images = {}
     for name in nameList:
         images[name] = pygame.image.load(fileFormat.format(name)).convert_alpha()
         assert(images[name] != None)
+        if scale != None:
+            images[name] = scaleImage(images[name], scale)
     return images
 
 def scaleImage(img, scale):

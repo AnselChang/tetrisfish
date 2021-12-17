@@ -1,5 +1,6 @@
 import pygame, sys, time, cv2, requests
 from multiprocessing.dummy import Pool as ThreadPool
+import threading
 import numpy as np
 
 import config as c
@@ -8,6 +9,7 @@ from colors import *
 from TetrisUtility import *
 from PieceMasks import getTransitionFromLevel
 import Evaluator
+import AnalysisConstants as AC
 
 
 def drawProgressBar(screen,percent):
@@ -210,20 +212,116 @@ def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, pre
             wasLineClear = True
 
             updateLineClears(numFilledRows)
-
             
 
+def getColor(percent):
+    if percent < 0.4:
+        return betweenColors(AC.C_BLUN, AC.C_MIST, percent / 0.4)
+    elif percent < 0.7:
+        return betweenColors(AC.C_MIST, AC.C_INAC, (percent - 0.4) / 0.3)
+    else:
+        return betweenColors(AC.C_INAC, AC.C_BEST, (percent-0.7) / 0.3)
+
+# Display the render UI in pygame and handle graphics loop under a different thread
+def displayGraphics(positionDatabase, firstFrame, lastFrame):
+
+    print("begin graphics thread")
+
+    # load the 6 animation frames for the render UI and the animated rabbit
+    images = loadImages(c.fp("Images/Render/Frame{}.png"), [i for i in range(1,7)], scale = c.hydrantScale)
+
+    text = ["Programmed by Ansel Chang", "",
+                "Special thanks to:",
+                "Gregory Cannon (StackRabbit)",
+                "HydrantDude (UI Design)",
+                "Xenophilius (Advising and logo)",
+                "TegaMech (Analysis fine-tuning)",
+                "...and many beta testers that made this possible!"]
+
+    frame = 1
+
+    while not done:
+        c.realscreen.fill([38,38,38])
+        c.screen.blit(images[frame], [0,0])
+
+        renderPercent = min(1,(frameCount - firstFrame) / (lastFrame - firstFrame)) ** 2
+        evalPercent = min(1,0 if len(positionDatabase) == 0 else c.numEvalDone /  len(positionDatabase))
+
+        height = 157
+        width = 1155
+
+        def drawLine(i):
+            percent = i  / len(positionDatabase)
+            x = 1340 + width*percent
+            if percent < 0.87:
+                blitCenterText(c.screen, c.font2, str(i), WHITE, 102 + height - 35, cx = x + 13, s = 0)
+                h = height
+            elif percent < 0.97:
+                h = height - (percent - 0.87)*10*40
+            else:
+                h = height - 40
+
+            pygame.draw.rect(c.screen, WHITE, [x, 102, 5, h])
+
+
+        pygame.draw.rect(c.screen, getColor(renderPercent), [78,102, width * renderPercent, height], border_radius = 15)
+        pygame.draw.rect(c.screen, getColor(evalPercent), [1340, 102, width*evalPercent, height], border_radius = 15)
+            
+
+        # Draw marker at every 20 positions for the first 100 positions
+        if len(positionDatabase) < 250:
+            for i in range(20, min(100, len(positionDatabase)), 20):
+                drawLine(i)
+
+        # Draw marker at every 100 positions
+        for i in range(100, len(positionDatabase), 100):
+            drawLine(i)
+
+        blitCenterText(c.screen, c.font2, str(len(positionDatabase)), WHITE, 102 + height - 35, cx = 1340 + width - 15, s = 1)
+            
+        
+
+        print(renderPercent, evalPercent)
+
+        # Draw text for special thanks
+        x = c.screen.get_width() / 2
+        y = 1080
+        color = [200,200,200]
+        for line in text:
+           blitCenterText(c.screen, c.font, line, color, y, cx = x)
+           y += 42
+
+
+        pygame.event.get()
+        c.handleWindowResize()
+        pygame.display.update()
+
+        frame += 1
+        if frame == 7:
+            frame = 1
+        time.sleep(0.1) # 10 fps
+
+    print("exit graphics thread")
+
+   
+done = False
 # Update: render everything through numpy (no conversion to lists at all)
 def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
     print("Beginning render...")
 
-    c.numEvaluatedPositions = 0
+    positionDatabase = [] # The generated list of all the positions in the video. To be returned
+
+    # Start graphics thread
+    thread = threading.Thread(target = displayGraphics, args = (positionDatabase, firstFrame, lastFrame))
+    thread.daemon = True
+    thread.start()
+
 
     global pool
     pool = ThreadPool(c.poolSize)
     
 
-    global lineClears, transition, level, totalLineClears, score
+    global lineClears, transition, level, totalLineClears, score, done
 
     transition = getTransitionFromLevel(levelP)
     print(transition)
@@ -248,11 +346,7 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
 
     minosMain = None
     prevMinosMain = None
-    
-    positionDatabase = [] # The generated list of all the positions in the video. To be returned
 
-    maxX = 200 # display screen every 200 frames (to save time)
-    x = maxX - 1
 
     startTime = time.time()
 
@@ -266,8 +360,6 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
     frameCount =  firstFrame - 1
 
     while frameCount  <= lastFrame:
-
-        x += 1
 
         # read frame sequentially
         ret, frame = vcap.read()
@@ -294,45 +386,13 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
                 break
             else:
                 assert(False) # Rendering failure
-        
+                        
 
-        if x == maxX:
-            x = 0
-            
-            # A start frame. We blit to pygame display on these frames. We don't do this on every frame to save computation time.
-            c.screen.fill(BACKGROUND)
-            c.realscreen.fill(BACKGROUND)
-
-            videoShift = 90
-
-            frame = np.flip(frame,2) # flip frame rgb
-            c.displayTetrisImage(frame, 0, videoShift)
-            drawProgressBar(c.screen, frameCount / lastFrame)
-
-             # draw title
-            text = c.fontbig.render("Step 2: Render", True, BLACK)
-            c.screen.blit(text, (10,10))
-
-            # Draw bounds
-            bounds.displayBounds(c.screen, minos = minosMain, dy = videoShift)
-            nextBounds.displayBounds(c.screen, minos = nextBounds.getMinos(frame), dy = videoShift)
-
-            pygame.event.get()
-            c.handleWindowResize()
-            pygame.display.update()        
-
-
-    c.screen.fill(BACKGROUND)
-    c.realscreen.fill(BACKGROUND)
-    text = c.fontbig.render("Step 3: Evaluating... please wait...", True, BLACK)
-    c.screen.blit(text, (10,10))
-    pygame.event.get()
-    c.handleWindowResize()
-    pygame.display.update()
 
     print("waiting for pool..", len(positionDatabase))
     pool.close()
     pool.join()
+    done = True
     print("Render done. Render time: {} seconds".format(round(time.time() - startTime,2)))
     
 

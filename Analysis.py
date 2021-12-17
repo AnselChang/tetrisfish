@@ -8,7 +8,7 @@ import PygameButton
 from colors import *
 from PieceMasks import *
 import HitboxTracker as HT
-from TetrisUtility import loadImages, lighten, scaleImage, addHueToSurface, getPlacementStr
+from TetrisUtility import loadImages, lighten, scaleImage, addHueToSurface, getPlacementStr, blitCenterText
 import EvalGraph, Evaluator
 import AnalysisConstants as AC
 
@@ -46,12 +46,6 @@ class EvalBar:
 
         return surf
 
-def blitCenterText(surface, font, string, color, y, cx = None, s = 0.5):
-    if cx == None:
-        cx = surface.get_width()/2
-        
-    text = font.render(string, True, color)
-    surface.blit(text, [cx - text.get_width()*s, y])
 
 def plus(num):
     return ("+" if num > 0 else "") + str(num)
@@ -183,7 +177,7 @@ def analyze(positionDatabase, hzInt):
     keyPositions = []
     for i in range(len(feedback)):
         # the summary counts only apply pre-killscreen
-        if levels[i] < 29:
+        if levels[i] < 29 and feedback[i] != AC.INVALID:
             count[feedback[i]] += 1
             
         if feedback[i] in [AC.INACCURACY, AC.MISTAKE, AC.BLUNDER]:
@@ -412,7 +406,6 @@ def analyze(positionDatabase, hzInt):
         
 
         # --- [ DISPLAY ] ---
-
         # Now that we're about to display things, reset hitbox data so that new graphics components can be appended
         #HT.log()
         #print(HT.at(mx,my),mx,my)
@@ -477,7 +470,13 @@ def analyze(positionDatabase, hzInt):
         cx = 1190
 
         if pos.evaluated:
+
             color = AC.feedbackColors[pos.feedback]
+
+            # draw background rect
+            pygame.draw.rect(c.screen, lighten(color, 0.17), [1028, 241, 317, 286])
+            
+            
             text = "{} -> {}".format(getPlacementStr(pos.placement, pos.currentPiece), plus(round(pos.playerFinal,1)))
             blitCenterText(c.screen, c.fontbold, text, color, 250, cx = cx)
             blitCenterText(c.screen, c.fontbigbold3 if pos.feedback == AC.INACCURACY else c.fontbigbold2, AC.feedbackString[pos.feedback], color, 300, cx = cx)

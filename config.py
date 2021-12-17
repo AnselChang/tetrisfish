@@ -29,6 +29,8 @@ lock = threading.Lock()
 possibleCount = 0
 done = False
 
+numEvalDone = 0
+
 poolSize = 50
 hzString = None
 
@@ -37,13 +39,13 @@ session = requests.Session()
 pygame.init()
 pygame.font.init()
 font = pygame.font.Font(fp('Images/Fonts/verdana.ttf'), 34)
-fontbold = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 34)
+fontbold = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 30)
 font2 = pygame.font.Font(fp('Images/Fonts/verdana.ttf'), 25)
 font2bold = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 25)
 fontbig = pygame.font.Font(fp('Images/Fonts/verdana.ttf'), 70)
 fontbigbold = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 70)
-fontbigbold2 = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 56)
-fontbigbold3 = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 50)
+fontbigbold2 = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 52)
+fontbigbold3 = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 48)
 
 fontnum = pygame.font.Font(fp('Images/Fonts/numbers.ttf'), 25)
 
@@ -61,6 +63,8 @@ VIDEO_X = 0
 VIDEO_Y = 0
 VIDEO_WIDTH = None
 VIDEO_HEIGHT = None
+
+hydrantScale = -1
 
 # Location of the bottom-right corner of the video boundary
 X_MAX = 1642
