@@ -85,24 +85,32 @@ class ButtonHandler:
         return False
 
     
-    def displayTooltip(self, surf, mx, my):
-        y = my - surf.get_height() - 25
-        if y < 0:
-            y = my + 35
-        c.screen.blit(surf, [min(mx - surf.get_width()/2, c.screen.get_width() - surf.get_width()), y])
+    def displayTooltip(self, surf, mx, my, isPlacement, by):
+        if isPlacement:
+            x = 1945
+            y = by - 100
+        else:
+            x = min(mx - surf.get_width()/2, c.screen.get_width() - surf.get_width())
+            y = my - surf.get_height() - 25
+            if y < 0:
+                y = my + 35
+        c.screen.blit(surf, [x, y])
 
     def display(self,screen, mx, my):
 
-
+        # Draw buttons
         for ID in self.buttons:
             b = self.buttons[ID]
             if not (isinstance(b, PlacementButton) and not b.show):
                 HT.blit(ID, *(b.get()))
 
-                # Display tooltip if hovering on button
-                if b.tooltip != None and b.pressed:
-                    self.displayTooltip(b.tooltipSurface, mx, my)
+        # Draw tooltips
+        for ID in self.buttons:
+            b = self.buttons[ID]
+            if b.tooltip != None and b.pressed:
+                self.displayTooltip(b.tooltipSurface, mx, my, isinstance(b, PlacementButton), b.y)
 
+        # Draw invisible tooltips
         for t in self.invisTooltips:
             if t.hovering(mx,my):
                 self.displayTooltip(t.tooltipSurface, mx, my)
@@ -154,9 +162,13 @@ class Button(ABC):
 
         self.pressed = False
         self.clicked = False
+     
+        self.setTooltip(tooltip)
 
-        # Precompute the tooltip surface. If not none, stores a list of strings (that will be separated by newlines)
-        self.tooltip = tooltip
+
+    # Precompute the tooltip surface. If not none, stores a list of strings (that will be separated by newlines)
+    def setTooltip(self, text):
+        self.tooltip = text
         if self.tooltip != None:
             self.tooltipSurface = getTooltipSurface(self.tooltip)
             
@@ -326,7 +338,9 @@ class PlacementButton(Button):
     def updatePressed(self, mx, my, click):
         super().updatePressed(mx, my, click, self.dy)
 
-    def update(self, evalStr, currentStr, nextStr, isGreen):
+    def update(self, evalStr, currentStr, nextStr, text, isGreen):
+
+        self.setTooltip(text)
         
         self.evalStr = evalStr
         self.currentStr = currentStr

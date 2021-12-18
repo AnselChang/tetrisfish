@@ -153,9 +153,11 @@ class Bounds:
 
         self.first = False
 
+        mx /= c.SCALAR
+        my /= c.SCALAR
         if pressDown and distance(mx,my,self.x1,self.y1) <= self.dragRadius*3:
             self.dragMode = 1
-        elif pressDown and distance(mx,my,self.x2,self.y2) <= self.dragRadius*3:
+        elif pressDown and distance(mx,my,self.x2s,self.y2) <= self.dragRadius*3:
             self.dragMode = 2
 
         if pressUp:
@@ -204,10 +206,11 @@ class Bounds:
     # After change x1/y1/x2/y2, update conversions to scale
     # Generate lookup tables of locations of elements
     def updateConversions(self):
-        self.x1s = (self.x1 - c.VIDEO_X) / c.SCALAR
-        self.y1s = (self.y1 - c.VIDEO_Y) / c.SCALAR
-        self.x2s = (self.x2 - c.VIDEO_X) / c.SCALAR
-        self.y2s = (self.y2 - c.VIDEO_Y) / c.SCALAR
+
+        self.x1s = self.x1
+        self.y1s = self.y1
+        self.x2s = self.x2
+        self.y2s = self.y2
 
         w = self.x2s - self.x1s
         h = self.y2s - self.y1s
@@ -392,8 +395,8 @@ def callibrate():
         frame = cv2.imread(c.filename)
         frame = np.flip(frame,2)
 
-        c.VIDEO_HEIGHT = len(frame[0])
-        c.VIDEO_WIDTH = len(frame)
+        c.VIDEO_WIDTH = len(frame[0])
+        c.VIDEO_HEIGHT = len(frame)
         
     else:
 
@@ -575,12 +578,12 @@ def callibrate():
 
         
         if buttons.get(B_CALLIBRATE).clicked:
-            bounds = Bounds(False,0,0, c.X_MAX, c.Y_MAX)
+            bounds = Bounds(False,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
             if nextBounds != None:
                 nextBounds.set()
 
         elif buttons.get(B_NEXTBOX).clicked:
-            nextBounds = Bounds(True,0,0, c.X_MAX, c.Y_MAX)
+            nextBounds = Bounds(True,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
             if bounds != None:
                 bounds.set()
 

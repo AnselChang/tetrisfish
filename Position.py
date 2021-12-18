@@ -10,11 +10,12 @@ BLUNDER_THRESHOLD = -50
 class PossibleMove:
 
     # numpy 2d arrays
-    def __init__(self, evaluation, move1, move2, currentPiece, nextPiece):
+    def __init__(self, evaluation, move1, move2, currentPiece, nextPiece, depth3Text):
         
         self.evaluation = evaluation
         self.move1Str = getPlacementStr(move1, currentPiece)
         self.move2Str = getPlacementStr(move2, nextPiece)
+        self.depth3Text = depth3Text
         
         self.move1 = move1
         self.move2 = move2
@@ -101,8 +102,8 @@ class Position:
         return count
 
     # add if only no duplicate first piece location. Return false if duplicate
-    def addPossible(self,evaluation, move1, move2, currentPiece, nextPiece):
-        move = PossibleMove(evaluation, move1, move2, currentPiece, nextPiece)
+    def addPossible(self,evaluation, move1, move2, currentPiece, nextPiece, text):
+        move = PossibleMove(evaluation, move1, move2, currentPiece, nextPiece, text)
         if move in self.possible:
             return False
         else:

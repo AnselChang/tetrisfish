@@ -207,6 +207,7 @@ NO_PIECE = 7
 TETRONIMOS = [I_PIECE, L_PIECE, Z_PIECE, S_PIECE, J_PIECE, T_PIECE, O_PIECE]
 TETRONIMO_NAMES = {-1 : "UNDEFINED", None : "None", I_PIECE : "LONGBAR", L_PIECE : "L-PIECE", Z_PIECE : "Z-PIECE", S_PIECE : "S-PIECE", J_PIECE : "J-PIECE", T_PIECE : "T-PIECE", O_PIECE : "O-PIECE"}
 TETRONIMO_LETTER = {I_PIECE : "I", L_PIECE : "L", Z_PIECE : "Z", S_PIECE : "S", J_PIECE : "J", T_PIECE : "T", O_PIECE : "O"}
+LETTER_TO_PIECE = inv_map = {v: k for k, v in TETRONIMO_LETTER.items()}
 
 # Names of all images used
 BOARD = "board"

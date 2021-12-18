@@ -2,7 +2,7 @@ import requests, traceback
 import config as c
 from PieceMasks import *
 from numpy import ndarray
-from TetrisUtility import lineClear, pieceOnBoard
+from TetrisUtility import lineClear, pieceOnBoard, getPlacementStr
 
 from multiprocessing.dummy import Pool as ThreadPool
 import Evaluator
@@ -111,7 +111,16 @@ def makeAPICallPossible(position):
         currMask = pieceOnBoard(position.currentPiece, *currData["placement"])
         nextMask = pieceOnBoard(position.nextPiece, *nextData["placement"])
 
-        unique = position.addPossible(float(currData["totalValue"]), currMask, nextMask, position.currentPiece, position.nextPiece)
+        depth3 = nextData["hypotheticalLines"] # a list of placement probabilities
+        text = []
+        for line in depth3:
+            piece, prob, pos, val = LETTER_TO_PIECE[line["pieceSequence"]], round(100*line["probability"]), line["moveSequence"][0], round(line["resultingValue"],1)
+            placement = pieceOnBoard(piece, *pos)
+            string = getPlacementStr(placement, piece)
+            text.append("If {} ({}%), do {} = {}".format(TETRONIMO_LETTER[piece], prob, string, val))
+            
+
+        unique = position.addPossible(float(currData["totalValue"]), currMask, nextMask, position.currentPiece, position.nextPiece, text)
 
         if unique:
             i += 1

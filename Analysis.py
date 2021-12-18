@@ -310,7 +310,6 @@ def analyze(positionDatabase, hzInt):
         mx /= 1.06
         my /= 1.06
         pressed = pygame.mouse.get_pressed()[0]
-        #print(mx,my)
 
 
         # Update with mouse event information        
@@ -398,7 +397,7 @@ def analyze(positionDatabase, hzInt):
             else:
                 bs[i].show = True
                 pm = pos.possible[i]
-                bs[i].update(plus(round(pm.evaluation,1)), pm.move1Str, pm.move2Str, (pos.placement == pm.move1).all())
+                bs[i].update(plus(round(pm.evaluation,1)), pm.move1Str, pm.move2Str, pm.depth3Text, (pos.placement == pm.move1).all())
 
         # Check mouse hovering over possible moves
         hoveredPlacement = None # stores the PossibleMove object the mouse is hovering on
