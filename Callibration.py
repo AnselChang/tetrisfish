@@ -48,10 +48,13 @@ C_RVIDEORED2 = "rightvideored2"
 C_SAVE = "upload"
 C_LOAD = "download"
 
+C_CHECKMARK = "checkmark"
+C_CHECKMARK2 = "checkmark2"
+
 CALLIBRATION_IMAGES = [C_BACKDROP, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2]
 CALLIBRATION_IMAGES.extend( [C_PREVF, C_PREVF2, C_NEXTF, C_NEXTF2, C_RENDER, C_RENDER2, C_SLIDER, C_SLIDER2, C_SLIDERF, C_SLIDER2F] )
 CALLIBRATION_IMAGES.extend([ C_LVIDEO, C_LVIDEO2, C_RVIDEO, C_RVIDEO2, C_SAVE, C_LOAD ])
-CALLIBRATION_IMAGES.extend([ C_LVIDEORED, C_LVIDEORED2, C_RVIDEORED, C_RVIDEORED2 ])
+CALLIBRATION_IMAGES.extend([ C_LVIDEORED, C_LVIDEORED2, C_RVIDEORED, C_RVIDEORED2, C_CHECKMARK, C_CHECKMARK2 ])
 images = loadImages(c.fp("Images/Callibration/{}.png"), CALLIBRATION_IMAGES)
 
 
@@ -415,17 +418,37 @@ def callibrate():
     B_RIGHT = 6
     B_SAVE = 12
     B_LOAD = 13
+    B_CHECK = 14
 
     buttons = PygameButton.ButtonHandler()
-    buttons.addImage(B_CALLIBRATE, images[C_BOARD], 1724, 380, hydrantScale, img2 = images[C_BOARD2])
-    buttons.addImage(B_NEXTBOX, images[C_NEXT], 1724, 600, hydrantScale, img2 = images[C_NEXT2])
+    buttons.addImage(B_CALLIBRATE, images[C_BOARD], 1724, 380, hydrantScale, img2 = images[C_BOARD2],
+                     tooltip = ["Set the bounds for the tetris board. One dot",
+                                "should be centered along each mino."])
+    buttons.addImage(B_NEXTBOX, images[C_NEXT], 1724, 600, hydrantScale, img2 = images[C_NEXT2],
+                     tooltip = ["Set the bounds across the active area of the entire",
+                                "next box. Make sure four dots are symmetrically placed",
+                                "along each mino. Press 'T' for a MaxoutClub layout"])
 
     if not c.isImage:
         buttons.addImage(B_PLAY, images[C_PLAY], 134,1377, hydrantScale, img2 = images[C_PLAY2], alt = images[C_PAUSE], alt2 = images[C_PAUSE2])
         buttons.addImage(B_LEFT, images[C_PREVF], 45, 1377, hydrantScale, img2 = images[C_PREVF2])
         buttons.addImage(B_RIGHT, images[C_NEXTF], 207, 1377, hydrantScale, img2 = images[C_NEXTF2])
     
-    buttons.addImage(B_RENDER, images[C_RENDER], 1724, 1203, hydrantScale, img2 = images[C_RENDER2])
+    buttons.addImage(B_RENDER, images[C_RENDER], 1724, 1203, hydrantScale, img2 = images[C_RENDER2], tooltip = ["Shortcut: Enter key"])
+
+
+    c1dark = images[C_CHECKMARK].copy().convert_alpha()
+    addHueToSurface(c1dark, BLACK, 0.3)
+    c2dark = images[C_CHECKMARK2].copy().convert_alpha()
+    addHueToSurface(c2dark, BLACK, 0.3)
+    buttons.addImage(B_CHECK, images[C_CHECKMARK], 1664, 1203, 0.3, img2 = c1dark, alt = images[C_CHECKMARK2],
+                     alt2 = c2dark, tooltip = ["Performs depth 3 search instead", "of depth 2. May take 2-3x longer"])
+
+    buttons.addInvisible(1726,880, 2480, 953, tooltip = [
+        "The threshold for how bright the pixel must be to",
+        "be considered a mino. You may need to increase",
+        "this value for scuffed captures. Check especially",
+        "that level 21 and 27 colors are captured properly"])
 
     save2 = images[C_SAVE].copy()
     load2 = images[C_LOAD].copy()
@@ -434,8 +457,8 @@ def callibrate():
     load3 = images[C_LOAD].copy()
     addHueToSurface(load3,BLACK,0.6)
     print(load2)
-    buttons.addImage(B_LOAD, images[C_LOAD], 1462, 1364, 0.063, img2 = load2, alt = load3, alt2 = load3)
-    buttons.addImage(B_SAVE, images[C_SAVE], 1555, 1364, 0.27, img2 = save2)
+    buttons.addImage(B_LOAD, images[C_LOAD], 1462, 1364, 0.063, img2 = load2, alt = load3, alt2 = load3, tooltip = ["Load callibration settings"])
+    buttons.addImage(B_SAVE, images[C_SAVE], 1555, 1364, 0.27, img2 = save2, tooltip = ["Save callibration settings"])
     print(buttons.get(B_SAVE).img2)
 
 
@@ -527,6 +550,7 @@ def callibrate():
         mx,my =c.getScaledPos(*pygame.mouse.get_pos())
         isPressed =  pygame.mouse.get_pressed()[0]
         buttons.updatePressed(mx,my,click)
+        #print(mx,my)
 
         if not c.isImage:
             b = buttons.get(B_PLAY)
@@ -559,6 +583,11 @@ def callibrate():
             nextBounds = Bounds(True,0,0, c.X_MAX, c.Y_MAX)
             if bounds != None:
                 bounds.set()
+
+        elif buttons.get(B_CHECK).clicked:
+            b = buttons.get(B_CHECK)
+            b.isAlt = not b.isAlt
+            c.isDepth3 = b.isAlt
 
         elif buttons.get(B_RENDER).clicked or enterKey:
 
@@ -703,9 +732,6 @@ def callibrate():
             errorColor = WHITE
         
 
-        # Draw buttons
-        buttons.display(c.screen)
-
         # Draw sliders
         c.COLOR_CALLIBRATION = 150*colorSlider.tick(c.screen, c.COLOR_CALLIBRATION/150, startPress, isPressed, mx, my)
         c.SCALAR = 3* zoomSlider.tick(c.screen, c.SCALAR/3, startPress, isPressed, mx, my)
@@ -756,6 +782,9 @@ def callibrate():
                 c.screen.blit(text, [1670,1380] )
             else:
                 errorMsg = None
+
+        # Draw buttons
+        buttons.display(c.screen, mx, my)
 
         wasPressed = isPressed
 

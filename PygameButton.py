@@ -6,10 +6,19 @@ from colors import *
 import config as c
 
 font = None
+question, questionDark = None, None
+
+TOOLTIP_COLOR = [220, 220, 200]
 
 def init(fontParam):
     global font
     font = fontParam
+
+def initTooltip(q):
+    global question, questionDark
+    question = q
+    questionDark = q.copy().convert_alpha()
+    addHueToSurface(questionDark, BLACK, 0.2)
 
 # Handle the display and click-checking of all button objects
 class ButtonHandler:
@@ -20,12 +29,13 @@ class ButtonHandler:
         self.buttons = {}
         self.displayPlacementRect = False
         self.textboxes = []
+        self.invisTooltips = []
 
-    def addText(self, ID, text,x,y,width,height,buttonColor,textColor, margin = 0):
-        self.buttons[ID] = TextButton(ID, text, x, y, width, height, buttonColor, textColor, margin)
+    def addText(self, ID, text,x,y,width,height,buttonColor,textColor, margin = 0, tooltip = None):
+        self.buttons[ID] = TextButton(ID, text, x, y, width, height, buttonColor, textColor, margin, tooltip = tooltip)
 
-    def addImage(self, ID, image, x, y, scale, margin = 0, alt = None, img2 = None, alt2 = None):
-        self.buttons[ID] = ImageButton(ID, image, x, y, scale, margin, alt = alt, img2 = img2, alt2 = alt2)
+    def addImage(self, ID, image, x, y, scale, margin = 0, alt = None, img2 = None, alt2 = None, tooltip = None):
+        self.buttons[ID] = ImageButton(ID, image, x, y, scale, margin, alt = alt, img2 = img2, alt2 = alt2, tooltip = tooltip)
 
     def addTextBox(self,ID, x, y, width, height, maxDigits, defaultText = 0):
         textbox = TextboxButton(ID, x, y, width, height, maxDigits, defaultText)
@@ -45,7 +55,13 @@ class ButtonHandler:
             button = PlacementButton(ID, i, x, firstY + i*(dy+height), width, height, dy if i < num - 1 else 0)
             self.buttons[ID] = button
             self.placementButtons.append(button)
-        
+
+    def addTooltipButton(self, x, y, tooltip):
+        b = TooltipButton(x, y, tooltip)
+        self.buttons[b.ID] = b
+
+    def addInvisible(self, x1, y1, x2, y2, tooltip):
+        self.invisTooltips.append(InvisibleTooltip(x1, y1, x2, y2, tooltip))
 
     def updatePressed(self, mx, my, click):
         
@@ -68,25 +84,67 @@ class ButtonHandler:
 
         return False
 
+    
+    def displayTooltip(self, surf, mx, my):
+        y = my - surf.get_height() - 25
+        if y < 0:
+            y = my + 35
+        c.screen.blit(surf, [min(mx - surf.get_width()/2, c.screen.get_width() - surf.get_width()), y])
 
-    def display(self,screen):
+    def display(self,screen, mx, my):
 
 
         for ID in self.buttons:
-            if not (isinstance(self.buttons[ID], PlacementButton) and not self.buttons[ID].show):
-                HT.blit(ID, *(self.buttons[ID].get()))
+            b = self.buttons[ID]
+            if not (isinstance(b, PlacementButton) and not b.show):
+                HT.blit(ID, *(b.get()))
+
+                # Display tooltip if hovering on button
+                if b.tooltip != None and b.pressed:
+                    self.displayTooltip(b.tooltipSurface, mx, my)
+
+        for t in self.invisTooltips:
+            if t.hovering(mx,my):
+                self.displayTooltip(t.tooltipSurface, mx, my)
 
     def get(self, buttonID):
 
         # constant-time lookup
         return self.buttons[buttonID]
+
+# tooltip is an array of strings
+def getTooltipSurface(tooltip):
+    texts = [c.font2.render(line, True, BLACK) for line in tooltip]
+    width = max([text.get_width() for text in texts])
+    dy = 36
+    margin = 15
+    surf = pygame.Surface([width + 2 * margin, margin + len(texts) * dy]).convert_alpha()
+    pygame.draw.rect(surf, TOOLTIP_COLOR, [0,0,width + 2 * margin, margin + len(texts) * dy], border_radius = 10)
+    pygame.draw.rect(surf, BLACK, [0,0,width + 2 * margin, margin + len(texts) * dy], width = 5, border_radius = 10)
+    y = margin / 2
+    for text in texts:
+        surf.blit(text, [margin, y])
+        y += dy
+
+    return surf
         
 
+class InvisibleTooltip:
+
+    def __init__(self, x1, y1, x2, y2, tooltip):
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+        self.tooltipSurface = getTooltipSurface(tooltip)
+
+    def hovering(self, mx, my):
+        return mx >= self.x1 and mx <= self.x2 and my >= self.y1 and my <= self.y2
 
 # Abtract class button for gui
 class Button(ABC):
 
-    def __init__(self, ID, x, y, width, height, margin):
+    def __init__(self, ID, x, y, width, height, margin, tooltip = None):
         self.ID = ID
         self.x = x
         self.y = y
@@ -96,6 +154,13 @@ class Button(ABC):
 
         self.pressed = False
         self.clicked = False
+
+        # Precompute the tooltip surface. If not none, stores a list of strings (that will be separated by newlines)
+        self.tooltip = tooltip
+        if self.tooltip != None:
+            self.tooltipSurface = getTooltipSurface(self.tooltip)
+            
+            
 
     # mouse (mx,my), click is true if mouse released on that frame
     def updatePressed(self, mx, my, click, dy = 0):
@@ -124,6 +189,7 @@ class TextboxButton(Button):
         self.text =str(defaultText)
         self.textSurf = None
         self.textX = -1
+
 
         self.maxDigits = maxDigits
         self.offset = 18
@@ -292,8 +358,8 @@ class PlacementButton(Button):
 # Text button has text and background rectangle, inherits Button
 class TextButton(Button):
     
-    def __init__(self, ID, text, x, y, width, height, buttonColor, textColor, margin):
-        super().__init__(ID, x, y, width, height, margin)
+    def __init__(self, ID, text, x, y, width, height, buttonColor, textColor, margin, tooltip):
+        super().__init__(ID, x, y, width, height, margin, tooltip)
         self.text = text
         self.buttonColor = buttonColor
         self.textColor = textColor
@@ -317,7 +383,7 @@ class ImageButton(Button):
     # default image is img
     # If mouse hovered, go to img2 (usually darken). If img2 does not exist, then image gets bigger
     # alt/alt2 are secondary image states
-    def __init__(self, ID, img, x, y, scale, margin, alt = None, img2 = None, alt2 = None):
+    def __init__(self, ID, img, x, y, scale, margin, alt = None, img2 = None, alt2 = None, tooltip = None):
 
         bscale = 1.14
         self.img = scaleImage(img, scale)
@@ -343,7 +409,7 @@ class ImageButton(Button):
 
         self.isAlt = False
         
-        super().__init__(ID, x, y, self.img.get_width(), self.img.get_height(), margin)
+        super().__init__(ID, x, y, self.img.get_width(), self.img.get_height(), margin, tooltip)
 
     def get(self):
 
@@ -360,3 +426,21 @@ class ImageButton(Button):
                     return self.img2, [self.x, self.y]
             else:
                 return self.img, [self.x, self.y]
+
+
+class TooltipButton(Button):
+
+    ID = 0
+
+    # x,y define the center of the question mark
+    def __init__(self, x, y, tooltip):
+        w = question.get_width()
+        h = question.get_height()
+        super().__init__("question{}".format(TooltipButton.ID), x - w/2, y - h/2, w, h, -5, tooltip)
+        TooltipButton.ID += 1
+
+    def get(self):
+        if self.pressed:
+            return questionDark, [self.x, self.y]
+        else:
+            return question, [self.x, self.y]

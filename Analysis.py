@@ -80,10 +80,11 @@ def analyze(positionDatabase, hzInt):
     IMAGE_NAMES.extend( [LEFTARROW, RIGHTARROW, STRIPES ])
     IMAGE_NAMES.extend( [LEFTARROW_FAST, RIGHTARROW_FAST, LEFTARROW_FAST2, RIGHTARROW_FAST2] )
     IMAGE_NAMES.extend( [LEFTARROW_MAX, RIGHTARROW_MAX, LEFTARROW2_MAX, RIGHTARROW2_MAX] )
-    IMAGE_NAMES.extend( [A_BACKDROP] )
+    IMAGE_NAMES.extend( [A_BACKDROP, "question"] )
 
     # Load all images.
     images = loadImages(c.fp("Images/Analysis/{}.png"), IMAGE_NAMES)
+    PygameButton.initTooltip(scaleImage(images["question"], 0.07))
 
     hydrantScale = 0.94 * c.SCREEN_WIDTH / images[A_BACKDROP].get_width()
     background = scaleImage(images[A_BACKDROP], hydrantScale)
@@ -108,7 +109,6 @@ def analyze(positionDatabase, hzInt):
     B_HYP_RIGHT = "RightArrowHypothetical"
     B_HYP_MAXLEFT = "MaxLeftArrowHypothetical"
     B_HYP_MAXRIGHT = "MaxRightArrowHypothetical"
-
     
     buttons = PygameButton.ButtonHandler()
 
@@ -130,10 +130,12 @@ def analyze(positionDatabase, hzInt):
 
     size = 0.07
     
-    buttons.addImage(B_FASTLEFT, images[LEFTARROW_FAST], 1440, y, hydrantScale, margin = -10, img2 = images[LEFTARROW_FAST2], alt = leftFastAlt)
-    buttons.addImage(B_LEFT, images[LEFTARROW], 1510, y, size, margin = -10, img2 = left, alt = leftg)
-    buttons.addImage(B_RIGHT, images[RIGHTARROW], 1745, y, size, margin = -10, img2 = right, alt = rightg)
-    buttons.addImage(B_FASTRIGHT, images[RIGHTARROW_FAST], 1800, y, hydrantScale, margin = -10, img2 = images[RIGHTARROW_FAST2], alt = rightFastAlt)
+    buttons.addImage(B_FASTLEFT, images[LEFTARROW_FAST], 1440, y, hydrantScale, margin = -10, img2 = images[LEFTARROW_FAST2],
+                     alt = leftFastAlt, tooltip = ["Skip to previous key placement.", "Shortcut: ,"])
+    buttons.addImage(B_LEFT, images[LEFTARROW], 1510, y, size, margin = -10, img2 = left, alt = leftg, tooltip = ["Shortcut: Left Arrow"])
+    buttons.addImage(B_RIGHT, images[RIGHTARROW], 1745, y, size, margin = -10, img2 = right, alt = rightg, tooltip = ["Shortcut: Right Arrow"])
+    buttons.addImage(B_FASTRIGHT, images[RIGHTARROW_FAST], 1800, y, hydrantScale, margin = -10, img2 = images[RIGHTARROW_FAST2],
+                     alt = rightFastAlt, tooltip = ["Skip to next key placement", "Shortcut: ."])
 
     # Hypothetical positon navigation buttons
     x = 1040
@@ -149,7 +151,13 @@ def analyze(positionDatabase, hzInt):
     buttons.addImage(B_HYP_MAXRIGHT, images[RIGHTARROW_MAX], x+250, y, hydrantScale, margin = -10, img2 = images[RIGHTARROW2_MAX], alt = rightMaxAlt)
 
     buttons.addPlacementButtons(5, 1440, 160, 27, 460, 87)
-    
+
+    buttons.addTooltipButton(905, 112, ["Click on the current piece (shortcut: spacebar) to change its placement.", "Press 'T' to toggle the rotation of the piece"])
+    buttons.addInvisible(1046, 447, 1341, 513, ["The no-next-box evaluation of your placement", "compared to the best placement's nnb evaluation"])
+    buttons.addInvisible(1033, 532, 1341, 580, ["Navigate hypothetical placements. Add", "hypothetical placements by clicking the next box.", "Shortcuts: Z, X"])
+    buttons.addInvisible(1029, 660, 1341, 838, ["Left click to add a new piece to the board,", "or right (or ctrl) click to change the next piece"])
+    buttons.addInvisible(2066, 88, 2322, 138, ["Note: these counts do not include placements at killscreen"])
+    buttons.addInvisible(2054, 587, 2247, 696, ["The average loss of evaluation score for", "each placement"])
 
     positionNum = 0
     analysisBoard = AnalysisBoard.AnalysisBoard(positionDatabase)
@@ -302,7 +310,7 @@ def analyze(positionDatabase, hzInt):
         mx /= 1.06
         my /= 1.06
         pressed = pygame.mouse.get_pressed()[0]
-
+        #print(mx,my)
 
 
         # Update with mouse event information        
@@ -416,12 +424,9 @@ def analyze(positionDatabase, hzInt):
         # Background
         c.screen.blit(background,[0,0])
 
-        # Buttons
-        buttons.display(c.screen)
-        
         # Tetris board
         analysisBoard.draw(hoveredPlacement)
-
+        
         # Possible moves processing % text
         if not c.done:
             percent = round(100*c.possibleCount / (len(positionDatabase) - 1))
@@ -466,7 +471,6 @@ def analyze(positionDatabase, hzInt):
             c.screen.blit(c.fontbold.render("Loading...", True, WHITE), [1590, 300])
 
         
-
         cx = 1190
 
         if pos.evaluated:
@@ -495,6 +499,9 @@ def analyze(positionDatabase, hzInt):
         # Game summary
         c.screen.blit(gsummary, [1980, 140])
         c.screen.blit(summary, [2015, 440])
+
+        # Buttons
+        buttons.display(c.screen, mx, my)
 
         key = None
         startPressed = False

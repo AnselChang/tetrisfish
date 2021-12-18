@@ -31,6 +31,8 @@ done = False
 
 numEvalDone = 0
 
+isDepth3 = False
+
 poolSize = 50
 hzString = None
 
@@ -48,6 +50,7 @@ fontbigbold2 = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 52)
 fontbigbold3 = pygame.font.Font(fp('Images/Fonts/verdanabold.ttf'), 48)
 
 fontnum = pygame.font.Font(fp('Images/Fonts/numbers.ttf'), 25)
+
 
 
 KEY_DELAY = 500
