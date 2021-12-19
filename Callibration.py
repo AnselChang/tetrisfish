@@ -437,14 +437,14 @@ def callibrate():
         buttons.addImage(B_LEFT, images[C_PREVF], 45, 1377, hydrantScale, img2 = images[C_PREVF2])
         buttons.addImage(B_RIGHT, images[C_NEXTF], 207, 1377, hydrantScale, img2 = images[C_NEXTF2])
     
-    buttons.addImage(B_RENDER, images[C_RENDER], 1724, 1203, hydrantScale, img2 = images[C_RENDER2], tooltip = ["Shortcut: Enter key"])
+    buttons.addImage(B_RENDER, images[C_RENDER], 1862, 1203, hydrantScale, img2 = images[C_RENDER2], tooltip = ["Shortcut: Enter key"])
 
 
     c1dark = images[C_CHECKMARK].copy().convert_alpha()
     addHueToSurface(c1dark, BLACK, 0.3)
     c2dark = images[C_CHECKMARK2].copy().convert_alpha()
     addHueToSurface(c2dark, BLACK, 0.3)
-    buttons.addImage(B_CHECK, images[C_CHECKMARK], 1664, 1203, 0.3, img2 = c1dark, alt = images[C_CHECKMARK2],
+    buttons.addImage(B_CHECK, images[C_CHECKMARK], 1714, 1268, 0.3, img2 = c1dark, alt = images[C_CHECKMARK2],
                      alt2 = c2dark, tooltip = ["Performs depth 3 search instead", "of depth 2. May take 2-3x longer"])
 
     buttons.addInvisible(1726,880, 2480, 953, tooltip = [
@@ -453,11 +453,11 @@ def callibrate():
         "this value for scuffed captures. Check especially",
         "that level 21 and 27 colors are captured properly"])
 
-    save2 = images[C_SAVE].copy()
-    load2 = images[C_LOAD].copy()
+    save2 = images[C_SAVE].copy().convert_alpha()
+    load2 = images[C_LOAD].copy().convert_alpha()
     addHueToSurface(save2,BLACK,0.2)
     addHueToSurface(load2,BLACK,0.2)
-    load3 = images[C_LOAD].copy()
+    load3 = images[C_LOAD].copy().convert_alpha()
     addHueToSurface(load3,BLACK,0.6)
     print(load2)
     buttons.addImage(B_LOAD, images[C_LOAD], 1462, 1364, 0.063, img2 = load2, alt = load3, alt2 = load3, tooltip = ["Load callibration settings"])
@@ -776,6 +776,8 @@ def callibrate():
         c.screen.blit(c.fontbold.render("Start Level:", True, WHITE), [1700, 40])
         c.screen.blit(c.fontbold.render("Current Lines:", True, WHITE), [2100, 40])
         c.screen.blit(c.fontbold.render("Current Score:", True, WHITE), [1830, 125])
+
+        c.screen.blit(c.fontbold.render("Deep?", True, WHITE), [1700, 1215])
         
 
         # Draw error message
@@ -827,17 +829,20 @@ def callibrate():
                         print("toggle")
 
             elif event.type == pygame.KEYUP:
-                if event.key == pygame.K_SPACE:
-                    if currentEnd == LEFT_FRAME:
-                        currentEnd = RIGHT_FRAME
-                        rightVideoSlider.setAlt(True)
-                        leftVideoSlider.setAlt(False)
-                    else:
-                        currentEnd = LEFT_FRAME
-                        rightVideoSlider.setAlt(False)
-                        leftVideoSlider.setAlt(True)
-                    frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
-                    assert(type(frame) == np.ndarray)
+
+                if not c.isImage:
+                    
+                    if event.key == pygame.K_SPACE:
+                        if currentEnd == LEFT_FRAME:
+                            currentEnd = RIGHT_FRAME
+                            rightVideoSlider.setAlt(True)
+                            leftVideoSlider.setAlt(False)
+                        else:
+                            currentEnd = LEFT_FRAME
+                            rightVideoSlider.setAlt(False)
+                            leftVideoSlider.setAlt(True)
+                        frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
+                        assert(type(frame) == np.ndarray)
 
         c.handleWindowResize()
             

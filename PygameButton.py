@@ -113,7 +113,7 @@ class ButtonHandler:
         # Draw invisible tooltips
         for t in self.invisTooltips:
             if t.hovering(mx,my):
-                self.displayTooltip(t.tooltipSurface, mx, my)
+                self.displayTooltip(t.tooltipSurface, mx, my, False, 0)
 
     def get(self, buttonID):
 
