@@ -314,6 +314,7 @@ def extractCurrentPiece(board):
 
 def getPlacementStr(placement, piece):
 
+
     columns = np.where(placement.any(axis=0))[0] # generate a list of columns the piece occupies
     columns = (columns + 1) % 10 # start counting from 1, and 10 -> 0
 

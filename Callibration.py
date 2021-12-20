@@ -570,7 +570,7 @@ def callibrate():
 
         elif not c.isImage and (b.isAlt or buttons.get(B_RIGHT).clicked and vidFrame[currentEnd] < c.totalFrames - 100):
             
-            frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] + 1)
+            frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] + (2 if b.isAlt else 1))
             assert(type(frame) == np.ndarray)
                 
         elif not c.isImage and (buttons.get(B_LEFT).clicked and vidFrame[currentEnd] > 0):
