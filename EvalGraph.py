@@ -181,7 +181,7 @@ class Graph:
         self.bigInterval = -1
 
 
-        self.surfLines = pygame.Surface([self.right+self.intervalSize * self.resolution * self.dist, self.realheight]).convert_alpha()
+        self.surfLines = pygame.Surface([self.right+self.intervalSize * self.resolution * self.dist, self.realheight], pygame.SRCALPHA)
         self.surfLines2 = self.surfLines.copy()
         self.drawLines(self.surfLines, self.points, 3)
         self.drawLines(self.surfLines2, self.points, 5)
@@ -221,7 +221,7 @@ class Graph:
         newPosition = None
 
         self.prevHovering = self.hovering
-        self.hovering = mx - self.x > self.HORI_PADDING and mx - self.x < self.realwidth and my - self.y > self.VERT_PADDING and my - self.y < self.realheight
+        self.hovering = mx - self.x > self.HORI_PADDING and mx - self.x < self.realwidth and my > self.y and my - self.y < self.realheight
 
         self.index = round((mx - self.x) / self.dist)
         if self.isDetailed:
@@ -285,11 +285,11 @@ class Graph:
         HOVER_MARGIN = 30
         
 
-        self.surf = pygame.Surface([self.realwidth, self.realheight]).convert_alpha()
+        self.surf = pygame.Surface([self.realwidth, self.realheight], pygame.SRCALPHA)
         self.surf.fill(lighten(DARK_GREY,1.2))
         
 
-        surf2 = pygame.Surface([self.right+self.intervalSize * self.resolution * self.dist, self.realheight]).convert_alpha()
+        surf2 = pygame.Surface([self.right+self.intervalSize * self.resolution * self.dist, self.realheight], pygame.SRCALPHA)
 
         width = 15 if self.isDetailed else 15
         color_at = 0.8

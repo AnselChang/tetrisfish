@@ -90,7 +90,7 @@ class ButtonHandler:
             x = 1945
             y = by - 100
         else:
-            x = min(mx - surf.get_width()/2, c.screen.get_width() - surf.get_width())
+            x = max(0,min(mx - surf.get_width()/2, c.screen.get_width() - surf.get_width()))
             y = my - surf.get_height() - 25
             if y < 0:
                 y = my + 35
@@ -212,8 +212,10 @@ class TextboxButton(Button):
         self.active = False
         self.cursor = -1 # index of the digit to the left of the cursor. -1 is when cursor is all the way left (can't delete anything)
 
-        self.keys = {pygame.K_0 : 0, pygame.K_1 : 1, pygame.K_2 : 2, pygame.K_3 : 3, pygame.K_4 : 4, pygame.K_5 : 5,
-                     pygame.K_6 : 6, pygame.K_7 : 7, pygame.K_8 : 8, pygame.K_9 : 9}
+        self.keys = {pygame.K_0 : 0, pygame.K_1 : 1, pygame.K_2 : 2, pygame.K_3 : 3, pygame.K_4 : 4, pygame.K_5 : 5, pygame.K_6 : 6,
+                     pygame.K_7 : 7, pygame.K_8 : 8, pygame.K_9 : 9, pygame.K_KP_0 : 0, pygame.K_KP_1 : 1,
+                     pygame.K_KP_2 : 2, pygame.K_KP_3 : 3, pygame.K_KP_4 : 4, pygame.K_KP_5 : 5, pygame.K_KP_6 : 6, pygame.K_KP_7 : 7,
+                     pygame.K_KP_8 : 8, pygame.K_KP_9 : 9}
 
         self.tick = 0
         self.showCursor = False

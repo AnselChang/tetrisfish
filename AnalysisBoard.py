@@ -40,7 +40,7 @@ def drawGeneralBoard(level, board, hover = None, small = False, percent = 1):
 
     offset = int(minoScale * (MINO_SIZE + MINO_OFFSET))
 
-    surf = pygame.Surface([offset*len(board[0]),offset*len(board)]).convert_alpha()
+    surf = pygame.Surface([offset*len(board[0]),offset*len(board)], pygame.SRCALPHA)
     
     #surf.blit(b, [0,0])
 
@@ -515,12 +515,14 @@ class AnalysisBoard:
                     board += colorMinos(move2shifted, self.position.nextPiece, white2 = True)
                     # Next box ideal placement is displayed transparently
                     finalHoverArray = move2shifted
+                else:
+                    finalHoverArray = empty()
                     
             else: # Regular case of showing next box
                 board += colorMinos(hoveredPlacement.move2, self.position.nextPiece, white2 = True)
                 # Next box ideal placement is displayed transparently
                 finalHoverArray = hoveredPlacement.move2
-            
+
         else:
             # If not, just regular analysis board display
 

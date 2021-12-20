@@ -433,7 +433,9 @@ def callibrate():
                                 "along each mino. Press 'T' for a MaxoutClub layout"])
 
     if not c.isImage:
-        buttons.addImage(B_PLAY, images[C_PLAY], 134,1377, hydrantScale, img2 = images[C_PLAY2], alt = images[C_PAUSE], alt2 = images[C_PAUSE2])
+        buttons.addImage(B_PLAY, images[C_PLAY], 134,1377, hydrantScale, img2 = images[C_PLAY2], alt = images[C_PAUSE],
+                         alt2 = images[C_PAUSE2], tooltip = ["Shortcuts: , and . to move back or forward a frame", "Arrow keys to skip behind or ahead",
+                                                             "Spacebar to toggle between starting and ending frame"])
         buttons.addImage(B_LEFT, images[C_PREVF], 45, 1377, hydrantScale, img2 = images[C_PREVF2])
         buttons.addImage(B_RIGHT, images[C_NEXTF], 207, 1377, hydrantScale, img2 = images[C_NEXTF2])
     
@@ -737,7 +739,7 @@ def callibrate():
 
         # Draw sliders
         c.COLOR_CALLIBRATION = 150*colorSlider.tick(c.screen, c.COLOR_CALLIBRATION/150, startPress, isPressed, mx, my)
-        c.SCALAR = 3* zoomSlider.tick(c.screen, c.SCALAR/3, startPress, isPressed, mx, my)
+        c.SCALAR = max(0.1,3* zoomSlider.tick(c.screen, c.SCALAR/3, startPress, isPressed, mx, my))
         hzNum = hzSlider.tick(c.screen, hzNum, startPress, isPressed, mx, my)
         c.screen.blit(c.font.render(str(int(c.COLOR_CALLIBRATION)), True, WHITE), [1650, 900])
         

@@ -184,8 +184,8 @@ def analyze(positionDatabase, hzInt):
     # Index of very position that is an inaccuracy, mistake, or blunder
     keyPositions = []
     for i in range(len(feedback)):
-        # the summary counts only apply pre-killscreen
-        if levels[i] < 29 and feedback[i] != AC.INVALID:
+        # the summary counts only apply pre-killscreen, unless the entire game is a killscreen run
+        if (levels[0] == 29 or levels[i] < 29) and feedback[i] != AC.INVALID:
             count[feedback[i]] += 1
             
         if feedback[i] in [AC.INACCURACY, AC.MISTAKE, AC.BLUNDER]:
@@ -237,7 +237,7 @@ def analyze(positionDatabase, hzInt):
             return ["{}{}".format("+" if avg > 0 else "", round(avg,1)), scaled]
 
     # Generate game summary surface
-    gsummary = pygame.Surface([536,400]).convert_alpha()
+    gsummary = pygame.Surface([536,400], pygame.SRCALPHA)
     y = 0
     for f in reversed(AC.feedback):
         color = AC.feedbackColors[f]
@@ -247,7 +247,7 @@ def analyze(positionDatabase, hzInt):
         
 
     # Generate  summary surface
-    summary = pygame.Surface([276,400]).convert_alpha()
+    summary = pygame.Surface([276,400], pygame.SRCALPHA)
     blitCenterText(summary, c.font, "Accuracy", WHITE, 14)
     
     accT, acc = getAccuracy(preNum+postNum, preSum+postSum, overall = True)
@@ -482,7 +482,7 @@ def analyze(positionDatabase, hzInt):
             
             text = "{} -> {}".format(getPlacementStr(pos.placement, pos.currentPiece), plus(round(pos.playerFinal,1)))
             blitCenterText(c.screen, c.fontbold, text, color, 250, cx = cx)
-            blitCenterText(c.screen, c.fontbigbold3 if pos.feedback == AC.INACCURACY else c.fontbigbold2, AC.feedbackString[pos.feedback], color, 300, cx = cx)
+            blitCenterText(c.screen, c.fontbigbold3 if pos.feedback == AC.INACCURACY or pos.feedback == AC.RAPID else c.fontbigbold2, AC.feedbackString[pos.feedback], color, 300, cx = cx)
             blitCenterText(c.screen, c.fontbold, AC.adjustmentString[pos.adjustment], color, 385, cx = cx)
             try:
                 playerNNB = plus(round(pos.playerNNB,1))
