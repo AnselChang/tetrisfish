@@ -241,7 +241,7 @@ def analyze(positionDatabase, hzInt):
         
 
     # Generate  summary surface
-    summary = pygame.Surface([276,400], pygame.SRCALPHA)
+    summary = pygame.Surface([300,400], pygame.SRCALPHA)
     blitCenterText(summary, c.font, "Accuracy", WHITE, 14)
     
     accT, acc = getAccuracy(preNum+postNum, preSum+postSum, overall = True)

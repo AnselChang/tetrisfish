@@ -92,11 +92,8 @@ def makeAPICallPossible(position):
 
     
  # API call for possible moves
-    url = "https://stackrabbit.herokuapp.com/engine-movelist-nb/{}/{}/{}/{}/{}/0/0/0/21/0/{}/true".format(
-        b1Str, currStr, nextStr, level, lines, x_and_dots)
-
-    # future url
-    #url = "https://stackrabbit.herokuapp.com/engine-movelist-nb/board={}&currentPiece={}&nextPiece={}&level={}&lines={}&inputFrameTimeline={}"
+    url = "https://stackrabbit.herokuapp.com/engine-movelist-nb?board={}&currentPiece={}&nextPiece={}&level={}&lines={}&inputFrameTimeline={}"
+    url = url.format(b1Str, currStr, nextStr, level, lines, x_and_dots)
     
     print(url)
 
@@ -144,8 +141,8 @@ def makeAPICallEvaluation(b1Str, b2Str, currStr, nextStr, level, lines, x_and_do
     depth = "-3" if c.isDepth3 else ""
  
     # API call for evaluations
-    url = "https://stackrabbit.herokuapp.com/rate-move-nb{}/{}/{}/{}/{}/{}/{}/0/0/0/0/21/{}/false".format(depth,
-        b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots)
+    url = "https://stackrabbit.herokuapp.com/rate-move-nb{}?board={}&secondBoard={}&currentPiece={}&nextPiece={}&level={}&lines={}&inputFrameTimeline={}"
+    url = url.format(depth, b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots)
     #print(url)
     json = getJson(url)
 
@@ -163,8 +160,10 @@ def makeAPICallEvaluation(b1Str, b2Str, currStr, nextStr, level, lines, x_and_do
         rapid = False
     except: # Player made a move faster than inputted hz. In this case, compare with 30hz StackRabbit and determine whether "rather rapid" should be awarded
         #print("rapid")
-        url = "https://stackrabbit.herokuapp.com/rate-move-nb{}/{}/{}/{}/{}/{}/{}/0/0/0/0/21/{}/false".format(depth,
-            b1Str, b2Str, currStr, nextStr, level, lines, TIMELINE_30_HZ)
+        
+        url = "https://stackrabbit.herokuapp.com/rate-move-nb{}?board={}&secondBoard={}&currentPiece={}&nextPiece={}&level={}&lines={}&inputFrameTimeline={}"
+        url = url.format(depth, b1Str, b2Str, currStr, nextStr, level, lines, TIMELINE_30_HZ)
+
         #print("url 2 ", url)
         json = getJson(url)
         try:
