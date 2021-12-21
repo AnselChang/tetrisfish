@@ -33,7 +33,7 @@ numEvalDone = 0
 
 isDepth3 = False
 
-poolSize = 50
+poolSize = 20
 hzString = None
 
 session = requests.Session()
