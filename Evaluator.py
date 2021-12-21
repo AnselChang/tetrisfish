@@ -114,7 +114,11 @@ def makeAPICallPossible(position):
         depth3 = nextData["hypotheticalLines"] # a list of placement probabilities
         text = []
         for line in depth3:
-            piece, prob, pos, val = LETTER_TO_PIECE[line["pieceSequence"]], round(100*line["probability"]), line["moveSequence"][0], round(line["resultingValue"],1)
+            try:
+                piece, prob, pos, val = LETTER_TO_PIECE[line["pieceSequence"]], round(100*line["probability"]), line["moveSequence"][0], round(line["resultingValue"],1)
+            except:
+                print(line)
+                traceback.print_exc()
             placement = pieceOnBoard(piece, *pos)
             string = getPlacementStr(placement, piece)
             text.append("If {} ({}%), do {} = {}".format(TETRONIMO_LETTER[piece], prob, string, val))

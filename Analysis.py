@@ -151,33 +151,27 @@ def analyze(positionDatabase, hzInt):
     buttons.addImage(B_HYP_MAXRIGHT, images[RIGHTARROW_MAX], x+250, y, hydrantScale, margin = -10, img2 = images[RIGHTARROW2_MAX], alt = rightMaxAlt)
 
     buttons.addPlacementButtons(5, 1440, 160, 27, 460, 87)
+    
+
+    positionNum = 0
+    analysisBoard = AnalysisBoard.AnalysisBoard(positionDatabase)
+
+    
+    evals = [position.evaluation for position in positionDatabase]
+    levels = [position.level for position in positionDatabase]
+    feedback = [p.feedback for p in positionDatabase]
+
 
     buttons.addTooltipButton(905, 112, ["Click on the current piece (shortcut: spacebar) to change its placement.", "Press 'R' to rotate the piece"])
     buttons.addInvisible(1046, 447, 1341, 513, ["The no-next-box evaluation of your placement", "compared to the best placement's nnb evaluation"])
     buttons.addInvisible(1033, 532, 1341, 580, ["Navigate hypothetical placements. Add", "hypothetical placements by clicking the next box.", "Shortcuts: Z, X"])
     buttons.addInvisible(1029, 660, 1341, 838, ["Left click to add a new piece to the board,", "or right (or ctrl) click to change the next piece"])
-    buttons.addInvisible(2066, 88, 2322, 138, ["Note: these counts do not include placements at killscreen"])
-    buttons.addInvisible(2054, 587, 2247, 696, ["The average loss of evaluation score for", "each placement"])
-
-    positionNum = 0
-    analysisBoard = AnalysisBoard.AnalysisBoard(positionDatabase)
+    
+    if levels[0] < 29:
+        buttons.addInvisible(2016, 88, 2322, 400, ["Note: Level 29+ not included"])
+    buttons.addInvisible(2054, 587, 2247, 696, ["The average loss of evaluation score", "for each placement"])
 
     # Setup graph
-    evals = [position.evaluation for position in positionDatabase]
-
-    print("Evals: ", evals)
-    
-    
-    levels = [position.level for position in positionDatabase]
-    #TESTLEVELS = [18]*500 + [19] * 500
-    #testEvals = [max(0, min(1, np.random.normal(loc = 0.5, scale = 0.2))) for i in range(len(levels))]
-
-    # CALCULATE BRILLANCIES/BLUNDERS/ETC HERE. For now, test code
-    #testFeedback = [AC.NONE] * len(levels)
-    #for i in range(30):
-    #    testFeedback[random.randint(0,len(levels)-1)] = random.choice(list(AC.feedbackColors))
-
-    feedback = [p.feedback for p in positionDatabase]
 
     count = {AC.RAPID: 0, AC.BEST : 0, AC.EXCELLENT : 0, AC.MEDIOCRE : 0, AC.INACCURACY : 0, AC.MISTAKE : 0, AC.BLUNDER : 0}
 
@@ -237,12 +231,12 @@ def analyze(positionDatabase, hzInt):
             return ["{}{}".format("+" if avg > 0 else "", round(avg,1)), scaled]
 
     # Generate game summary surface
-    gsummary = pygame.Surface([542,400], pygame.SRCALPHA)
+    gsummary = pygame.Surface([550,400], pygame.SRCALPHA)
     y = 0
     for f in reversed(AC.feedback):
         color = AC.feedbackColors[f]
         blitCenterText(gsummary, c.font, AC.feedbackString[f] + ": ", color, y, s = 1)
-        blitCenterText(gsummary, c.fontbold, str(count[f]), color, y, s = 0)
+        blitCenterText(gsummary, c.fontbold, str(count[f]), color, y+4, s = 0)
         y += 41
         
 
