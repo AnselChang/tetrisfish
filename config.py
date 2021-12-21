@@ -82,13 +82,11 @@ info = pygame.display.Info()
 REAL_WIDTH = info.current_w*0.8
 REAL_HEIGHT = REAL_WIDTH * 2856 / 4806
 # scaled width and height, arbitrary values that maintain aspect ratio and are high enough to have decent resolution
-#SCREEN_WIDTH = 4806
-#SCREEN_HEIGHT = 2856
 SCREEN_WIDTH = 1280*2
 SCREEN_HEIGHT = 720*2
 
-#print(SCREEN_WIDTH, SCREEN_HEIGHT)
-#print("Scaled is ", REAL_WIDTH / SCREEN_WIDTH, " times actual")
+icon_surf = pygame.image.load(fp("Images/logo.png"))
+pygame.display.set_icon(icon_surf)
 
 # Global screen surface variables
 # https://stackoverflow.com/questions/34910086/pygame-how-do-i-resize-a-surface-and-keep-all-objects-within-proportionate-to-t
