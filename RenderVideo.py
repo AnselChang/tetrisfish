@@ -225,9 +225,6 @@ def getColor(percent):
 
 # Display the render UI in pygame and handle graphics loop under a different thread
 def displayGraphics(positionDatabase, firstFrame, lastFrame):
-
-    print("begin graphics thread")
-
     # load the 6 animation frames for the render UI and the animated rabbit
     images = loadImages(c.fp("Images/Render/Frame{}.png"), [i for i in range(1,7)], scale = c.hydrantScale)
 
@@ -307,32 +304,15 @@ def displayGraphics(positionDatabase, firstFrame, lastFrame):
         frame += 1
         if frame == 7:
             frame = 1
-        
-        delta = time.time() - t
-        if delta < 0.1:
-            time.sleep(0.1 - delta) # 10 fps
+        #time.sleep(0.1) # 10 fps
+        pygame.time.wait(100) # 10 fps
 
-    print("exit graphics thread")
-
-   
-done = False
-# Update: render everything through numpy (no conversion to lists at all)
-def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
-    print("Beginning render...")
-
-    positionDatabase = [] # The generated list of all the positions in the video. To be returned
-
-    # Start graphics thread
-    thread = threading.Thread(target = displayGraphics, args = (positionDatabase, firstFrame, lastFrame))
-    thread.daemon = True
-    thread.start()
-
-
+def doRender(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
     global pool
     pool = ThreadPool(c.poolSize)
     
 
-    global lineClears, transition, level, totalLineClears, score, done
+    global lineClears, transition, level, totalLineClears, score, done, positionDatabase
 
     transition = getTransitionFromLevel(levelP)
     print(transition)
@@ -423,3 +403,16 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
         return positionDatabase
     else:
         return None
+
+done = False
+positionDatabase = [] # The generated list of all the positions in the video. To be returned
+renderThread = None
+# Update: render everything through numpy (no conversion to lists at all)
+def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
+    print("Beginning render...")
+
+    global positionDatabase, renderThread
+    renderThread = threading.Thread(target=doRender, args=(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP))
+    renderThread.start()
+    displayGraphics(positionDatabase, firstFrame, lastFrame)
+    return positionDatabase
