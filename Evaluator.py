@@ -94,6 +94,10 @@ def makeAPICallPossible(position):
  # API call for possible moves
     url = "https://stackrabbit.herokuapp.com/engine-movelist-nb/{}/{}/{}/{}/{}/0/0/0/21/0/{}/true".format(
         b1Str, currStr, nextStr, level, lines, x_and_dots)
+
+    # future url
+    #url = "https://stackrabbit.herokuapp.com/engine-movelist-nb/board={}&currentPiece={}&nextPiece={}&level={}&lines={}&inputFrameTimeline={}"
+    
     print(url)
 
     json = getJson(url)

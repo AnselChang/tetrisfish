@@ -413,6 +413,7 @@ def analyze(positionDatabase, hzInt):
         HT.reset()
 
         c.realscreen.fill([38,38,38])
+        c.screen.fill([38,38,38])
 
         # Background
         c.screen.blit(background,[0,0])

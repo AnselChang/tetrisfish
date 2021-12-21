@@ -476,7 +476,7 @@ def callibrate():
     B_LEVEL = 9
     B_LINES = 10
     B_SCORE = 11
-    buttons.addTextBox(B_LEVEL, 1960, 40, 70, 50, 2, "18")
+    buttons.addTextBox(B_LEVEL, 1960, 40, 70, 50, 2, "18", tooltip = ["Level at GAME start, not", "at the render selection start"])
     buttons.addTextBox(B_LINES, 2410, 40, 90, 50, 3, "0")
     buttons.addTextBox(B_SCORE, 2150, 125, 170, 50, 7, "0")
     

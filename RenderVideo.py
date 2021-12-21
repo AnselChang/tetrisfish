@@ -231,8 +231,9 @@ def displayGraphics(positionDatabase, firstFrame, lastFrame):
     text = ["Programmed by Ansel Chang", "",
                 "Special thanks to:",
                 "Gregory Cannon (StackRabbit)",
-                "HydrantDude (UI Design)",
+                "HydrantDude (UI Design and bugtesting)",
                 "Xenophilius (Advising and logo)",
+                "Grzechooo (Prolific bugfixing)",
                 "TegaMech (Analysis fine-tuning)",
                 "...and many beta testers that made this possible!"]
 
@@ -290,7 +291,7 @@ def displayGraphics(positionDatabase, firstFrame, lastFrame):
 
         # Draw text for special thanks
         x = c.screen.get_width() / 2
-        y = 1080
+        y = 1060
         color = [200,200,200]
         for line in text:
            blitCenterText(c.screen, c.font, line, color, y, cx = x)

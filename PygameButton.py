@@ -37,8 +37,8 @@ class ButtonHandler:
     def addImage(self, ID, image, x, y, scale, margin = 0, alt = None, img2 = None, alt2 = None, tooltip = None):
         self.buttons[ID] = ImageButton(ID, image, x, y, scale, margin, alt = alt, img2 = img2, alt2 = alt2, tooltip = tooltip)
 
-    def addTextBox(self,ID, x, y, width, height, maxDigits, defaultText = 0):
-        textbox = TextboxButton(ID, x, y, width, height, maxDigits, defaultText)
+    def addTextBox(self,ID, x, y, width, height, maxDigits, defaultText = 0, tooltip = None):
+        textbox = TextboxButton(ID, x, y, width, height, maxDigits, defaultText, tooltip)
         self.buttons[ID] = textbox
         self.textboxes.append(textbox)
 
@@ -192,8 +192,8 @@ class Button(ABC):
 # Type in numbers with backspace functionality for a textbox
 class TextboxButton(Button):
     
-    def __init__(self,ID, x, y, width, height, maxDigits, defaultText = 0):
-        super().__init__(ID, x, y, width, height, 0) # last param is margin in pixels at top
+    def __init__(self,ID, x, y, width, height, maxDigits, defaultText = 0, tooltip = None):
+        super().__init__(ID, x, y, width, height, 0, tooltip)
 
         self.color = MID_GREY
         self.activeColor = [247,241,223]
