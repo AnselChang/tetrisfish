@@ -104,6 +104,7 @@ frameCount = -1
 wasLineClear = False
 stableCount = 0
 first = True
+doneLock = threading.Lock()
 # stableCount indicates the number of minos at previous position (when no line clear), or the manual calculation after line clear
 # prevMinosMain is the board the frame right before this one
 def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, prevMinosMain):
@@ -240,7 +241,14 @@ def displayGraphics(positionDatabase, firstFrame, lastFrame):
 
     frame = 1
 
-    while not done:
+    while True:
+
+        with doneLock:
+            if done:
+                break
+
+        t = time.time()
+        
         c.realscreen.fill([38,38,38])
         c.screen.blit(images[frame], [0,0])
 
@@ -299,7 +307,10 @@ def displayGraphics(positionDatabase, firstFrame, lastFrame):
         frame += 1
         if frame == 7:
             frame = 1
-        time.sleep(0.1) # 10 fps
+        
+        delta = time.time() - t
+        if delta < 0.1:
+            time.sleep(0.1 - delta) # 10 fps
 
     print("exit graphics thread")
 
@@ -392,7 +403,8 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
     print("waiting for pool..", len(positionDatabase))
     pool.close()
     pool.join()
-    done = True
+    with doneLock:
+        done = True
     print("Render done. Render time: {} seconds".format(round(time.time() - startTime,2)))
     
 

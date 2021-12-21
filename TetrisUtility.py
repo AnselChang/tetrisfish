@@ -207,7 +207,9 @@ def lineClear(array):
 def loadImages(fileFormat, nameList, scale = None):
     images = {}
     for name in nameList:
-        images[name] = pygame.image.load(fileFormat.format(name)).convert_alpha()
+        img = pygame.image.load(fileFormat.format(name))
+        images[name] = pygame.Surface(img.get_size(), pygame.SRCALPHA)
+        images[name].blit(img.convert_alpha(), [0,0])
         assert(images[name] != None)
         if scale != None:
             images[name] = scaleImage(images[name], scale)

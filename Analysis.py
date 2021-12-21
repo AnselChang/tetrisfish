@@ -38,7 +38,7 @@ class EvalBar:
         
         width = 150
         height = 1086
-        surf = pygame.Surface([width, height]).convert_alpha()
+        surf = pygame.Surface([width, height], pygame.SRCALPHA)
         
 
         sheight = int((1-self.currentPercent) * height)
@@ -152,7 +152,7 @@ def analyze(positionDatabase, hzInt):
 
     buttons.addPlacementButtons(5, 1440, 160, 27, 460, 87)
 
-    buttons.addTooltipButton(905, 112, ["Click on the current piece (shortcut: spacebar) to change its placement.", "Press 'T' to toggle the rotation of the piece"])
+    buttons.addTooltipButton(905, 112, ["Click on the current piece (shortcut: spacebar) to change its placement.", "Press 'R' to rotate the piece"])
     buttons.addInvisible(1046, 447, 1341, 513, ["The no-next-box evaluation of your placement", "compared to the best placement's nnb evaluation"])
     buttons.addInvisible(1033, 532, 1341, 580, ["Navigate hypothetical placements. Add", "hypothetical placements by clicking the next box.", "Shortcuts: Z, X"])
     buttons.addInvisible(1029, 660, 1341, 838, ["Left click to add a new piece to the board,", "or right (or ctrl) click to change the next piece"])
@@ -237,12 +237,12 @@ def analyze(positionDatabase, hzInt):
             return ["{}{}".format("+" if avg > 0 else "", round(avg,1)), scaled]
 
     # Generate game summary surface
-    gsummary = pygame.Surface([536,400], pygame.SRCALPHA)
+    gsummary = pygame.Surface([542,400], pygame.SRCALPHA)
     y = 0
     for f in reversed(AC.feedback):
         color = AC.feedbackColors[f]
         blitCenterText(gsummary, c.font, AC.feedbackString[f] + ": ", color, y, s = 1)
-        blitCenterText(gsummary, c.fontbold, str(count[f]), color, y, s = 1, cx = gsummary.get_width()/2 + 65)
+        blitCenterText(gsummary, c.fontbold, str(count[f]), color, y, s = 0)
         y += 41
         
 
@@ -525,7 +525,7 @@ def analyze(positionDatabase, hzInt):
 
             elif event.type == pygame.KEYDOWN:
                 
-                if event.key == pygame.K_t:
+                if event.key == pygame.K_r:
                     analysisBoard.toggle()
 
                 key = event.key    

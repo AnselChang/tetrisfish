@@ -44,6 +44,8 @@ C_LVIDEORED = "leftvideored"
 C_LVIDEORED2 = "leftvideored2"
 C_RVIDEORED = "rightvideored"
 C_RVIDEORED2 = "rightvideored2"
+C_SEGMENT = "segment"
+C_SEGMENTGREY = "segmentgrey"
 
 C_SAVE = "upload"
 C_LOAD = "download"
@@ -51,7 +53,8 @@ C_LOAD = "download"
 C_CHECKMARK = "checkmark"
 C_CHECKMARK2 = "checkmark2"
 
-CALLIBRATION_IMAGES = [C_BACKDROP, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2]
+
+CALLIBRATION_IMAGES = [C_BACKDROP, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2, C_SEGMENT, C_SEGMENTGREY]
 CALLIBRATION_IMAGES.extend( [C_PREVF, C_PREVF2, C_NEXTF, C_NEXTF2, C_RENDER, C_RENDER2, C_SLIDER, C_SLIDER2, C_SLIDERF, C_SLIDER2F] )
 CALLIBRATION_IMAGES.extend([ C_LVIDEO, C_LVIDEO2, C_RVIDEO, C_RVIDEO2, C_SAVE, C_LOAD ])
 CALLIBRATION_IMAGES.extend([ C_LVIDEORED, C_LVIDEORED2, C_RVIDEORED, C_RVIDEORED2, C_CHECKMARK, C_CHECKMARK2 ])
@@ -306,7 +309,7 @@ class Bounds:
 # Slider object during callibration. Move with mousex
 class Slider:
 
-    def __init__(self,leftx, y, sliderWidth, startValue, img1, img2, imgr1 = None, imgr2 = None):
+    def __init__(self,leftx, y, sliderWidth, startValue, img1, img2, imgr1 = None, imgr2 = None, margin = 0):
         self.leftx = leftx
         self.x = self.leftx + startValue * sliderWidth
         self.y = y
@@ -315,6 +318,8 @@ class Slider:
         self.img2 = img2
         self.imgr1 = imgr1
         self.imgr2 = imgr2
+
+        self.margin = margin
 
         self.SH = 10
         self.active = False
@@ -360,7 +365,7 @@ class Slider:
         return (self.x - self.leftx) / self.sliderWidth
 
     def isHovering(self,mx,my):
-        return mx >= self.x and mx <= self.x+self.width and my  >= self.y and my <= self.y+self.height
+        return mx >= self.x - self.margin and mx <= self.x+self.width + self.margin and my  >= self.y - self.margin and my <= self.y+self.height + self.margin
 
     def draw(self,screen):
         if self.hover or self.active:
@@ -489,27 +494,34 @@ def callibrate():
     rect.fill(WHITE)
     rect2.fill([193,193,193])
     
-    colorSlider = Slider(LEFT_X+2, 875, SW+50, c.COLOR_CALLIBRATION/150, rect, rect2)
-    zoomSlider = Slider(LEFT_X, 1104, SW, c.SCALAR/3, sliderImage3, sliderImage4)
+    colorSlider = Slider(LEFT_X+2, 875, SW+50, c.COLOR_CALLIBRATION/150, rect, rect2, margin = 10)
+    zoomSlider = Slider(LEFT_X, 1104, SW, c.SCALAR/3, sliderImage3, sliderImage4, margin = 10)
     hzNum = 0
-    hzSlider = HzSlider(LEFT_X  + 12, 203, SW, hzNum, sliderImage, sliderImage2)
+    hzSlider = HzSlider(LEFT_X  + 12, 203, SW, hzNum, sliderImage, sliderImage2, margin = 10)
 
     SW2 = 922
     LEFT_X2 = 497
     Y = 1377
     leftVideoSlider = Slider(LEFT_X2, Y, SW2, 0, scaleImage(images[C_LVIDEO],hydrantScale), scaleImage(images[C_LVIDEO2],hydrantScale),
-                                                                                                        scaleImage(images[C_LVIDEORED], hydrantScale), scaleImage(images[C_LVIDEORED2], hydrantScale) )
+                                scaleImage(images[C_LVIDEORED], hydrantScale), scaleImage(images[C_LVIDEORED2], hydrantScale), margin = 10 )
     rightVideoSlider = Slider(LEFT_X2, Y, SW2, 1, scaleImage(images[C_RVIDEO],hydrantScale), scaleImage(images[C_RVIDEO2],hydrantScale),
-                              scaleImage(images[C_RVIDEORED], hydrantScale), scaleImage(images[C_RVIDEORED2], hydrantScale) )
+                                scaleImage(images[C_RVIDEORED], hydrantScale), scaleImage(images[C_RVIDEORED2], hydrantScale), margin = 10 )
 
-    vidFrame = [0]*2
+
+
+    segmentred = scaleImage(images[C_SEGMENT], hydrantScale)
+    segmentgrey = scaleImage(images[C_SEGMENTGREY], hydrantScale)
+
+    vidFrame = [0]*3
     LEFT_FRAME = 0
     RIGHT_FRAME = 1
+    SEGMENT_FRAME = 2
     vidFrame[LEFT_FRAME] = 0
     vidFrame[RIGHT_FRAME] = c.totalFrames - 100
     currentEnd = LEFT_FRAME
     rightVideoSlider.setAlt(False)
     leftVideoSlider.setAlt(True)
+    segmentActive = False
 
     previousFrame = -1
 
@@ -755,13 +767,35 @@ def callibrate():
         if rightVideoSlider.active:
             rightVideoSlider.setAlt(True)
             leftVideoSlider.setAlt(False)
+            segmentActive = False
             currentEnd = RIGHT_FRAME
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
         elif leftVideoSlider.active:
             currentEnd = LEFT_FRAME
             rightVideoSlider.setAlt(False)
             leftVideoSlider.setAlt(True)
+            segmentActive = False
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
+
+        
+        SW2 = 922
+        LEFT_X2 = 497
+        Y = 1377
+        inVideoSlider = (mx > LEFT_X2 - 20 and mx < LEFT_X2 + SW2 + 20 and my > Y - 30 and my < Y + 60)
+        if not leftVideoSlider.active and not rightVideoSlider.active and inVideoSlider:
+            if isPressed:
+                segmentActive = True
+                rightVideoSlider.setAlt(False)
+                leftVideoSlider.setAlt(False)
+                currentEnd = SEGMENT_FRAME
+                vidFrame[SEGMENT_FRAME] = clamp((c.totalFrames) * (mx - LEFT_X2) / SW2, 0, c.totalFrames - 100)
+                frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
+            elif not segmentActive and not leftVideoSlider.isHovering(mx,my) and not rightVideoSlider.isHovering(mx,my):
+                c.screen.blit(segmentgrey, [mx - 10, Y])
+
+        if segmentActive:
+            c.screen.blit(segmentred, [LEFT_X2 - 5 + SW2 * vidFrame[SEGMENT_FRAME] / (c.totalFrames - 1) , Y])
+
 
 
 
@@ -839,10 +873,12 @@ def callibrate():
                             currentEnd = RIGHT_FRAME
                             rightVideoSlider.setAlt(True)
                             leftVideoSlider.setAlt(False)
+                            segmentActive = False
                         else:
                             currentEnd = LEFT_FRAME
                             rightVideoSlider.setAlt(False)
                             leftVideoSlider.setAlt(True)
+                            segmentActive = False
                         frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd])
                         assert(type(frame) == np.ndarray)
 

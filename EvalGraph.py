@@ -291,7 +291,6 @@ class Graph:
 
         surf2 = pygame.Surface([self.right+self.intervalSize * self.resolution * self.dist, self.realheight], pygame.SRCALPHA)
 
-        width = 15 if self.isDetailed else 15
         color_at = 0.8
         # Draw color shading
         for level in self.levelBounds:
@@ -301,7 +300,6 @@ class Graph:
             assert(x2 != -1)
             shader = pygame.Surface([x2 - x1, self.realheight])
             pygame.draw.rect(shader, lighten(self.levelColors[level],1.5), [0, self.realheight*color_at,shader.get_width(),self.realheight*(1-color_at)])
-            pygame.draw.rect(shader,lighten(DARK_GREY,1.7),[(x2-x1)-width,0,width,self.realheight*color_at])
             surf2.blit(shader, [x1, 0])
 
 
