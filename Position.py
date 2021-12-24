@@ -10,12 +10,13 @@ BLUNDER_THRESHOLD = -50
 class PossibleMove:
 
     # numpy 2d arrays
-    def __init__(self, evaluation, move1, move2, currentPiece, nextPiece, depth3Text):
+    def __init__(self, evaluation, move1, move2, currentPiece, nextPiece, depth3Text, colors):
         
         self.evaluation = evaluation
         self.move1Str = getPlacementStr(move1, currentPiece)
         self.move2Str = getPlacementStr(move2, nextPiece)
         self.depth3Text = depth3Text
+        self.colors = colors
         
         self.move1 = move1
         self.move2 = move2
@@ -72,6 +73,8 @@ class Position:
 
         self.startEvaluation = False # whether api call has been made for current position for evaluation
         self.startPossible = False # whether api call has been made for current position for possible moves
+
+        self.startDepth3 = c.isDepth3
         
         self.e = 0
         
@@ -102,8 +105,8 @@ class Position:
         return count
 
     # add if only no duplicate first piece location. Return false if duplicate
-    def addPossible(self,evaluation, move1, move2, currentPiece, nextPiece, text):
-        move = PossibleMove(evaluation, move1, move2, currentPiece, nextPiece, text)
+    def addPossible(self,evaluation, move1, move2, currentPiece, nextPiece, text, colors):
+        move = PossibleMove(evaluation, move1, move2, currentPiece, nextPiece, text, colors)
         if move in self.possible:
             return False
         else:

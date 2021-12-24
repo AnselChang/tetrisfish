@@ -452,7 +452,9 @@ def callibrate():
     c2dark = images[C_CHECKMARK2].copy().convert_alpha()
     addHueToSurface(c2dark, BLACK, 0.3)
     buttons.addImage(B_CHECK, images[C_CHECKMARK], 1714, 1268, 0.3, img2 = c1dark, alt = images[C_CHECKMARK2],
-                     alt2 = c2dark, tooltip = ["Performs depth 3 search instead", "of depth 2. May take 2-3x longer"])
+                     alt2 = c2dark, tooltip = ["Depth 3 search takes longer but is more accurate.", "Depth 2 is faster, but will self-correct to depth 3 eventually."])
+
+    buttons.get(B_CHECK).isAlt = True
 
     buttons.addInvisible(1726,880, 2480, 953, tooltip = [
         "The threshold for how bright the pixel must be to",
@@ -496,8 +498,9 @@ def callibrate():
     
     colorSlider = Slider(LEFT_X+2, 875, SW+50, c.COLOR_CALLIBRATION/150, rect, rect2, margin = 10)
     zoomSlider = Slider(LEFT_X, 1104, SW, c.SCALAR/3, sliderImage3, sliderImage4, margin = 10)
-    hzNum = 0
-    hzSlider = HzSlider(LEFT_X  + 12, 203, SW, hzNum, sliderImage, sliderImage2, margin = 10)
+    hzSlider = HzSlider(LEFT_X  + 12, 203, SW, 0, sliderImage, sliderImage2, margin = 10)
+    hzNum = 2
+    hzSlider.overwrite(hzNum)
 
     SW2 = 922
     LEFT_X2 = 497
@@ -605,8 +608,11 @@ def callibrate():
             b = buttons.get(B_CHECK)
             b.isAlt = not b.isAlt
             c.isDepth3 = b.isAlt
+            c.isEvalDepth3 = b.isAlt
 
         elif buttons.get(B_RENDER).clicked or enterKey:
+
+            c.startLevel = buttons.get(B_LEVEL).value()
 
 
             # If not callibrated, do not allow render

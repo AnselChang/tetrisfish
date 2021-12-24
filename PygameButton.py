@@ -121,8 +121,11 @@ class ButtonHandler:
         return self.buttons[buttonID]
 
 # tooltip is an array of strings
-def getTooltipSurface(tooltip):
-    texts = [c.font2.render(line, True, BLACK) for line in tooltip]
+def getTooltipSurface(tooltip, colors = None):
+    if colors == None:
+        texts = [c.font2.render(line, True, BLACK) for line in tooltip]
+    else:
+        texts = [c.font2.render(line, True, color) for (line, color) in zip(tooltip, colors)]
     width = max([text.get_width() for text in texts])
     dy = 36
     margin = 15
@@ -167,10 +170,10 @@ class Button(ABC):
 
 
     # Precompute the tooltip surface. If not none, stores a list of strings (that will be separated by newlines)
-    def setTooltip(self, text):
+    def setTooltip(self, text, colors = None):
         self.tooltip = text
         if self.tooltip != None:
-            self.tooltipSurface = getTooltipSurface(self.tooltip)
+            self.tooltipSurface = getTooltipSurface(self.tooltip, colors)
             
             
 
@@ -340,9 +343,9 @@ class PlacementButton(Button):
     def updatePressed(self, mx, my, click):
         super().updatePressed(mx, my, click, self.dy)
 
-    def update(self, evalStr, currentStr, nextStr, text, isGreen):
+    def update(self, evalStr, currentStr, nextStr, text, colors, isGreen):
 
-        self.setTooltip(text)
+        self.setTooltip(text, colors)
         
         self.evalStr = evalStr
         self.currentStr = currentStr

@@ -71,7 +71,7 @@ def updateLineClears(numFilledRows):
     score += getScore(level, numFilledRows) # Increment score. cruicial this is done after level update, as in the original NES
 
 # Scrub until we arrive at a new distinct frame
-def forwardToDistinct(vcap, bounds, currentMinos):
+def forwardToDistinct(vcap, bounds, nextBounds, currentMinos):
     global frameCount
     
     for i in range(100):
@@ -79,9 +79,10 @@ def forwardToDistinct(vcap, bounds, currentMinos):
         ret, frame = vcap.read()
         frameCount += 1
         minos = bounds.getMinos(frame)
+        nextMinos = nextBounds.getMinos(frame)
 
-        # ignore maxout club tetris flashes
-        if minos.all():
+        # ignore maxout club tetris flashes or pauses
+        if minos.all() or not nextMinos.any():
             continue
 
         # frame is distinct from previous
@@ -178,7 +179,7 @@ def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, pre
 
         # To check that it really is the start of the line clear, we go forward to the next DISTINCT (keep going to next frame until frame is different)
         # frame and make sure there is at least a 2+ mino decrease there as well
-        distinct, minos = forwardToDistinct(vcap, bounds, minosMain)
+        distinct, minos = forwardToDistinct(vcap, bounds, nextBounds, minosMain)
         
         if not distinct: # something has gone terribly wrong
             return "Error, trying to get next distinct frame but none found"
@@ -194,6 +195,10 @@ def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, pre
             positionDatabase[-1].placement = prevMinosMain - positionDatabase[-1].board
             numMinos = np.count_nonzero(positionDatabase[-1].placement)
             if numMinos != 4:
+                print2d(prevMinosMain)
+                print2d(minosMain)
+                print2d(minos)
+                print2d(positionDatabase[-1].board)
                 return "Error, B placement mask has {} minos".format(numMinos)
             positionDatabase[-1].startEvaluation = True
             pool.apply_async(Evaluator.evaluate, (positionDatabase[-1],)) # We send the full position asynchronously to the evaluator
@@ -361,9 +366,10 @@ def doRender(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
             
         prevMinosMain = minosMain
         minosMain = bounds.getMinos(frame)
+        minosNext = nextBounds.getMinos(frame)
         
-        # Maxout club tetris flash. Ignore frame.
-        if minosMain.all():
+        # Maxout club tetris flash or pause. Ignore frame.
+        if minosMain.all() or not minosNext.any():
             minosMain = prevMinosMain
             continue
 

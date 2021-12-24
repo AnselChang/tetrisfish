@@ -28,15 +28,19 @@ import threading
 lock = threading.Lock()
 possibleCount = 0
 done = False
+doneEval = False
 
 numEvalDone = 0
 
 isDepth3 = False
+isEvalDepth3 = False
 
 poolSize = 20
 hzString = None
 
 session = requests.Session()
+
+startLevel = -1
 
 pygame.init()
 pygame.font.init()

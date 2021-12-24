@@ -1,6 +1,7 @@
 import requests, traceback
 import config as c
 from PieceMasks import *
+from colors import *
 from numpy import ndarray
 from TetrisUtility import lineClear, pieceOnBoard, getPlacementStr
 
@@ -24,20 +25,23 @@ def getInfo(position):
     nextStr = TETRONIMO_LETTER[position.nextPiece]
 
     # API calls only work for 18/19/29 starts. Need to do manual conversion for lower starts.
-    if position.level >= 29:
-        level = 29
-        lines = 0
-    elif position.level >= 18:
+    if c.startLevel >= 18 or position.level >= 29:
         level = position.level
-        trans = 130 + (position.level - 18)
-        lines = max(min(trans - 1, position.lines), trans - 10)
+        lines = position.lines
     else:
-        level = 18
-        lines = 0
-
-        # For levels lower than 18 speeds, just assume 30hz movement (unlimited piece range)
-        if position.level < 16:
-            x_and_dots = TIMELINE_30_HZ
+        if position.level <= 19:
+            lines = 0
+            level = 19 if position.level == 19 else 18
+        elif position.level <= 27:
+            lines = 0
+            level = 19
+        else: # position.level == 28
+            lines = 220 + position.lines % 10
+            level = 28
+            
+    # For levels lower than 18 speeds, just assume 30hz movement (unlimited piece range)
+    if position.level < 16:
+        x_and_dots = TIMELINE_30_HZ
 
     return [b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots]
 
@@ -82,7 +86,20 @@ def getJson(url):
         except:
             print("Internet connection attempt {}/{} failed.".format(i+1,tries))
     print("Failed to establish API response. URL was {}".format(url))
+
+
+def printData(position):
+
+    b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots = getInfo(position)
+    url = "https://stackrabbit.herokuapp.com/engine-movelist?board={}&currentPiece={}&nextPiece={}&level={}&lines={}&inputFrameTimeline={}"
+    url = url.format(b1Str, currStr, nextStr, level, lines, x_and_dots)
     
+    print(url)
+
+    url = "https://stackrabbit.herokuapp.com/rate-move?board={}&secondBoard={}&currentPiece={}&nextPiece={}&level={}&lines={}&inputFrameTimeline={}"
+    url = url.format(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots)
+    
+    print(url)
 
 def makeAPICallPossible(position):
 
@@ -98,7 +115,7 @@ def makeAPICallPossible(position):
     print(url)
 
     json = getJson(url)
-    print(json)
+    #print(json)
 
     i = 0
     for data in json:
@@ -114,18 +131,33 @@ def makeAPICallPossible(position):
 
         depth3 = nextData["hypotheticalLines"] # a list of placement probabilities
         text = []
+        colors = []
+        values = []
         for line in depth3:
             try:
                 piece, prob, pos, val = LETTER_TO_PIECE[line["pieceSequence"]], round(100*line["probability"]), line["moveSequence"][0], round(line["resultingValue"],1)
+                colors.append(BLACK)
+                values.append(val)
             except:
                 print(line)
                 traceback.print_exc()
             placement = pieceOnBoard(piece, *pos)
             string = getPlacementStr(placement, piece)
             text.append("If {} ({}%), do {} = {}".format(TETRONIMO_LETTER[piece], prob, string, val))
-            
 
-        unique = position.addPossible(float(currData["totalValue"]), currMask, nextMask, position.currentPiece, position.nextPiece, text)
+        lowIndex = 0
+        highIndex = 0
+        
+        for i in range(len(values)):
+            if values[i] < values[lowIndex]:
+                lowIndex = i
+            if values[i] > values[highIndex]:
+                highIndex = i
+
+        colors[lowIndex] = BRIGHT_RED
+        colors[highIndex] = BRIGHT_GREEN
+
+        unique = position.addPossible(float(currData["totalValue"]), currMask, nextMask, position.currentPiece, position.nextPiece, text, colors)
 
         if unique:
             i += 1
@@ -138,12 +170,12 @@ def makeAPICallPossible(position):
     
 def makeAPICallEvaluation(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots):
 
-    depth = "1" if c.isDepth3 else "0"
+    depth = "1" if c.isEvalDepth3 else "0"
  
     # API call for evaluations
     url = "https://stackrabbit.herokuapp.com/rate-move?board={}&secondBoard={}&currentPiece={}&nextPiece={}&level={}&lines={}&inputFrameTimeline={}&lookaheadDepth={}"
     url = url.format(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots, depth)
-    #print(url)
+    print(url)
     json = getJson(url)
 
     isFailed = False

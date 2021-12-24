@@ -51,7 +51,7 @@ def plus(num):
     return ("+" if num > 0 else "") + str(num)
 
 def handleAPICalls(positionDatabase):
-    print("Started pool")
+    print("Started pool possible")
     pool = ThreadPool(c.poolSize)
     for pos in positionDatabase:
         pos.startPossible = True
@@ -59,7 +59,113 @@ def handleAPICalls(positionDatabase):
     pool.close()
     pool.join()
     c.done = True
-    print("Ended pool")
+    print("Ended pool possible")
+
+def handleAPIEvalCalls(positionDatabase):
+    print("Started pool eval")
+    c.numEvalDone = 0
+    pool = ThreadPool(c.poolSize)
+    for pos in positionDatabase:
+        pos.startDepth3 = True
+    pool.map(Evaluator.evaluate, positionDatabase)
+    pool.close()
+    pool.join()
+    c.doneEval = True
+    print("Ended pool eval")
+
+
+def calculateSummary(positionDatabase):
+    
+    # Setup graph
+    count = {AC.RAPID: 0, AC.BEST : 0, AC.EXCELLENT : 0, AC.MEDIOCRE : 0, AC.INACCURACY : 0, AC.MISTAKE : 0, AC.BLUNDER : 0}
+
+    # Index of very position that is an inaccuracy, mistake, or blunder
+    keyPositions = []
+    for i in range(len(positionDatabase)):
+        # the summary counts only apply pre-killscreen, unless the entire game is a killscreen run
+        f = positionDatabase[i].feedback
+        if (positionDatabase[0].level == 29 or positionDatabase[i].level < 29) and f != AC.INVALID:
+            count[f] += 1
+            
+        if f in [AC.INACCURACY, AC.MISTAKE, AC.BLUNDER]:
+            keyPositions.append(i)
+    keyPositions = np.array(keyPositions)
+    print("Key positions:", keyPositions)
+    print("Count:", count)
+
+    # Calculate game summary. Get average loss for pre, post, killscreen.
+    preNum, preSum = 0, 0
+    postNum, postSum = 0, 0
+    ksNum, ksSum = 0, 0
+    pre = positionDatabase[0].level
+    for p in positionDatabase:
+
+        # Disregard unknown/invalid evaluations
+        if p.feedback == AC.INVALID:
+            continue
+
+        e = min(120,max(BLUNDER_THRESHOLD, p.playerFinal - p.bestFinal)) # limit difference to -50, rather rapid max 120
+
+        if p.level >= 29:
+            ksNum += 1
+            ksSum += e
+        elif p.level >= 19 or p.level > pre:
+            postNum += 1
+            postSum += e
+        else: # p.level == pre
+            preNum += 1
+            preSum += e
+
+    print("Summary: ",preNum,preSum,postNum,postSum,ksNum,ksSum)
+
+    def getAccuracy(num, summ, overall = False):
+        if num == 0:
+            return "N/A", -1
+        print(num,summ)
+        avg = summ / num # probably some negative number. BLUNDER_THRESHHOLD = -50 at the moment
+        # scale BLUNDER_THRESHOLD to 0 -> 0% -> 100%
+
+         # can't get worse than 0% accuracy. Can go over 100% though... (rather rapid)
+        scaled = round(100 * max(avg - BLUNDER_THRESHOLD, 0) / (0-BLUNDER_THRESHOLD))
+        print(scaled)
+
+        # scaled is now a number 0-100(+)
+        if overall:
+            return ["{}%".format(scaled), scaled]
+        else:
+            return ["{}{}".format("+" if avg > 0 else "", round(avg,1)), scaled]
+
+    # Generate game summary surface
+    gsummary = pygame.Surface([550,400], pygame.SRCALPHA)
+    y = 0
+    for f in reversed(AC.feedback):
+        color = AC.feedbackColors[f]
+        blitCenterText(gsummary, c.font, AC.feedbackString[f] + ": ", color, y, s = 1)
+        blitCenterText(gsummary, c.fontbold, str(count[f]), color, y+4, s = 0)
+        y += 41
+        
+
+    # Generate  summary surface
+    summary = pygame.Surface([300,400], pygame.SRCALPHA)
+    blitCenterText(summary, c.font, "Accuracy", WHITE, 14)
+    
+    accT, acc = getAccuracy(preNum+postNum, preSum+postSum, overall = True)
+    blitCenterText(summary, c.fontbigbold, accT, AC.scoreToColor(acc, False), 50)
+
+    acc2T, acc2 = getAccuracy(preNum, preSum)
+    blitCenterText(summary, c.fontbold, "Pre: ", WHITE, 140, s = 1)
+    blitCenterText(summary, c.fontbold,  acc2T, AC.scoreToColor(acc2, False), 140, s = 0)
+    
+    
+    acc3T, acc3 = getAccuracy(postNum, postSum)    
+    blitCenterText(summary, c.fontbold, "Post: ", WHITE, 180, s = 1)
+    blitCenterText(summary, c.fontbold,  acc3T, AC.scoreToColor(acc3, False), 180, s = 0)
+
+    acc4T, acc4 = getAccuracy(ksNum, ksSum) 
+    blitCenterText(summary, c.fontbold, "KS: ", WHITE, 220, s = 1)
+    blitCenterText(summary, c.fontbold,  acc4T, AC.scoreToColor(acc4, True), 220, s = 0)
+
+    return keyPositions, gsummary, summary
     
     
 def analyze(positionDatabase, hzInt):
@@ -67,8 +173,14 @@ def analyze(positionDatabase, hzInt):
 
     print("START ANALYSIS")
 
+    c.isEvalDepth3 = True
+    updatedGraph = c.isDepth3
+
     # Get started with possible placements api calls in the background
-    thread = threading.Thread(target=handleAPICalls, args=(positionDatabase,)).start()
+    threading.Thread(target=handleAPICalls, args=(positionDatabase,)).start()
+
+    if not c.isDepth3:
+        threading.Thread(target=handleAPIEvalCalls, args=(positionDatabase,)).start()
 
     print("startanalysis2")
 
@@ -171,95 +283,8 @@ def analyze(positionDatabase, hzInt):
         buttons.addInvisible(2016, 88, 2322, 400, ["Note: Level 29+ not included"])
     buttons.addInvisible(2054, 587, 2247, 696, ["The average loss of evaluation score", "for each placement"])
 
-    # Setup graph
-
-    count = {AC.RAPID: 0, AC.BEST : 0, AC.EXCELLENT : 0, AC.MEDIOCRE : 0, AC.INACCURACY : 0, AC.MISTAKE : 0, AC.BLUNDER : 0}
-
-    # Index of very position that is an inaccuracy, mistake, or blunder
-    keyPositions = []
-    for i in range(len(feedback)):
-        # the summary counts only apply pre-killscreen, unless the entire game is a killscreen run
-        if (levels[0] == 29 or levels[i] < 29) and feedback[i] != AC.INVALID:
-            count[feedback[i]] += 1
-            
-        if feedback[i] in [AC.INACCURACY, AC.MISTAKE, AC.BLUNDER]:
-            keyPositions.append(i)
-    keyPositions = np.array(keyPositions)
-    print("Key positions:", keyPositions)
-    print("Count:", count)
-
-    # Calculate game summary. Get average loss for pre, post, killscreen.
-    preNum, preSum = 0, 0
-    postNum, postSum = 0, 0
-    ksNum, ksSum = 0, 0
-    pre = positionDatabase[0].level
-    for p in positionDatabase:
-
-        # Disregard unknown/invalid evaluations
-        if p.feedback == AC.INVALID:
-            continue
-
-        e = min(120,max(BLUNDER_THRESHOLD, p.playerFinal - p.bestFinal)) # limit difference to -50, rather rapid max 120
-
-        if p.level >= 29:
-            ksNum += 1
-            ksSum += e
-        elif p.level >= 19 or p.level > pre:
-            postNum += 1
-            postSum += e
-        else: # p.level == pre
-            preNum += 1
-            preSum += e
-
-    print("Summary: ",preNum,preSum,postNum,postSum,ksNum,ksSum)
-
-    def getAccuracy(num, summ, overall = False):
-        if num == 0:
-            return "N/A", -1
-        print(num,summ)
-        avg = summ / num # probably some negative number. BLUNDER_THRESHHOLD = -50 at the moment
-        # scale BLUNDER_THRESHOLD to 0 -> 0% -> 100%
-
-         # can't get worse than 0% accuracy. Can go over 100% though... (rather rapid)
-        scaled = round(100 * max(avg - BLUNDER_THRESHOLD, 0) / (0-BLUNDER_THRESHOLD))
-        print(scaled)
-
-        # scaled is now a number 0-100(+)
-        if overall:
-            return ["{}%".format(scaled), scaled]
-        else:
-            return ["{}{}".format("+" if avg > 0 else "", round(avg,1)), scaled]
-
-    # Generate game summary surface
-    gsummary = pygame.Surface([550,400], pygame.SRCALPHA)
-    y = 0
-    for f in reversed(AC.feedback):
-        color = AC.feedbackColors[f]
-        blitCenterText(gsummary, c.font, AC.feedbackString[f] + ": ", color, y, s = 1)
-        blitCenterText(gsummary, c.fontbold, str(count[f]), color, y+4, s = 0)
-        y += 41
-        
-
-    # Generate  summary surface
-    summary = pygame.Surface([300,400], pygame.SRCALPHA)
-    blitCenterText(summary, c.font, "Accuracy", WHITE, 14)
     
-    accT, acc = getAccuracy(preNum+postNum, preSum+postSum, overall = True)
-    blitCenterText(summary, c.fontbigbold, accT, AC.scoreToColor(acc, False), 50)
-
-    acc2T, acc2 = getAccuracy(preNum, preSum)
-    blitCenterText(summary, c.fontbold, "Pre: ", WHITE, 140, s = 1)
-    blitCenterText(summary, c.fontbold,  acc2T, AC.scoreToColor(acc2, False), 140, s = 0)
-    
-    
-    acc3T, acc3 = getAccuracy(postNum, postSum)    
-    blitCenterText(summary, c.fontbold, "Post: ", WHITE, 180, s = 1)
-    blitCenterText(summary, c.fontbold,  acc3T, AC.scoreToColor(acc3, False), 180, s = 0)
-
-    acc4T, acc4 = getAccuracy(ksNum, ksSum) 
-    blitCenterText(summary, c.fontbold, "KS: ", WHITE, 220, s = 1)
-    blitCenterText(summary, c.fontbold,  acc4T, AC.scoreToColor(acc4, True), 220, s = 0)
-    
+    keyPositions, gsummary, summary = calculateSummary(positionDatabase)
     
         
     smallSize = 70 if len(levels) >= 75 else (40 if len(levels) >= 40 else 30)
@@ -270,9 +295,9 @@ def analyze(positionDatabase, hzInt):
 
     # Graph only accepts a minimum of 4 positions, otherwise interpolation doesn't work
     showGraphs = (len(levels) >= 4)
-    if showGraphs:
-        showBig = len(levels) >= 30 # If there are under 30 positions, don't show the big graph at all
-        
+    showBig = len(levels) >= 30 # If there are under 30 positions, don't show the big graph at all
+    
+    if showGraphs:    
         if showBig:                   
             bigGraph = EvalGraph.Graph(False, evals, levels, feedback, x, 1160, width, height, bigResolution, smallSize)
             smallGraph = EvalGraph.Graph(True, evals, levels, feedback, x, 905, width, height, 1, smallSize, bigRes = bigResolution)
@@ -292,8 +317,32 @@ def analyze(positionDatabase, hzInt):
     click = False
     rightClick = False
 
-
+    updateEvalCounter = 0
     while True:
+        
+        updateEvalCounter = (updateEvalCounter + 1) % 100
+        if not c.doneEval and updateEvalCounter == 0:
+            keyPositions, gsummary, summary = calculateSummary(positionDatabase)
+
+        # The first frame in which all calcuations for depth 3 eval are done. Then, update the stats and graph
+        if c.doneEval and not updatedGraph:
+            
+            updatedGraph = True
+            
+            keyPositions, gsummary, summary = calculateSummary(positionDatabase)
+
+            evals = [position.evaluation for position in positionDatabase]
+            levels = [position.level for position in positionDatabase]
+            feedback = [p.feedback for p in positionDatabase]
+
+            if showGraphs:    
+                if showBig:                   
+                    bigGraph = EvalGraph.Graph(False, evals, levels, feedback, x, 1160, width, height, bigResolution, smallSize)
+                    smallGraph = EvalGraph.Graph(True, evals, levels, feedback, x, 905, width, height, 1, smallSize, bigRes = bigResolution)
+                else:
+                    smallGraph = EvalGraph.Graph(True, evals, levels, feedback, x, 1000, width, 300, 1, smallSize, bigRes = bigResolution)
+            
+            
 
         startTime = time.time()
 
@@ -378,9 +427,10 @@ def analyze(positionDatabase, hzInt):
 
 
         # Evaluation API call on the current position if there's a placement, or the previous position if there's no placement yet
-        if not pos.startEvaluation and type(pos.placement) == np.ndarray:
+        if (not pos.startEvaluation or not c.isEvalDepth3) and type(pos.placement) == np.ndarray:
             print("Make evaluation API call")
             pos.startEvaluation = True
+            pos.startDepth3 = True
             threading.Thread(target = Evaluator.evaluate, args = (pos,)).start()
 
         # Update possible moves
@@ -391,7 +441,7 @@ def analyze(positionDatabase, hzInt):
             else:
                 bs[i].show = True
                 pm = pos.possible[i]
-                bs[i].update(plus(round(pm.evaluation,1)), pm.move1Str, pm.move2Str, pm.depth3Text, (pos.placement == pm.move1).all())
+                bs[i].update(plus(round(pm.evaluation,1)), pm.move1Str, pm.move2Str, pm.depth3Text, pm.colors, (pos.placement == pm.move1).all())
 
         # Check mouse hovering over possible moves
         hoveredPlacement = None # stores the PossibleMove object the mouse is hovering on
@@ -425,7 +475,12 @@ def analyze(positionDatabase, hzInt):
         if not c.done:
             percent = round(100*c.possibleCount / (len(positionDatabase) - 1))
             blitCenterText(c.screen, c.font2, "Processing... {}/{} positions ({}%)".format(
-                c.possibleCount, len(positionDatabase)-1,percent), BRIGHT_RED, 100, cx = 370, s = 0)
+                c.possibleCount, len(positionDatabase)-1,percent), BRIGHT_RED, 100, cx = 320, s = 0)
+
+        if not c.isDepth3 and not c.doneEval:
+            percent = round(100 * c.numEvalDone / (len(positionDatabase) - 1))
+            blitCenterText(c.screen, c.font2, "Processing depth 3... {}/{} ratings ({}%)".format(
+                c.numEvalDone, len(positionDatabase)-1,percent), PURE_BLUE, 140, cx = 320, s = 0)
     
 
         # Evaluation Graph
@@ -522,6 +577,8 @@ def analyze(positionDatabase, hzInt):
                 
                 if event.key == pygame.K_r:
                     analysisBoard.toggle()
+                elif event.key == pygame.K_q:
+                    Evaluator.printData(analysisBoard.position)
 
                 key = event.key    
                 

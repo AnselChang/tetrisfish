@@ -106,6 +106,7 @@ class Graph:
             del groupedLevels[-1]
             del groupedFeedback[-1]
         self.posIndices[-1] = len(fullEvals) - 1
+
         self.evals = [sum(arr) / len(arr) for arr in self.grouped]
         self.levels = [max(arr) for arr in groupedLevels]
         self.feedback = [max(arr) for arr in groupedFeedback]
