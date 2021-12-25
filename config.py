@@ -2,6 +2,8 @@ import os, sys, requests
 #https://pyinstaller.readthedocs.io/en/stable/runtime-information.html
 #print(os.environ)
 
+version = "1.2"
+
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     print('running in a PyInstaller bundle', sys._MEIPASS)
 else:
@@ -32,7 +34,7 @@ doneEval = False
 
 numEvalDone = 0
 
-isDepth3 = False
+isDepth3 = True
 isEvalDepth3 = False
 
 poolSize = 20
@@ -124,14 +126,14 @@ def getVideo():
     return vcap
 
 # Draw video frame
-def displayTetrisImage(frame, x = VIDEO_X, y = VIDEO_Y):
+def displayTetrisImage(frame):
 
     frame = frame.transpose(1,0,2)
     surf = pygame.surfarray.make_surface(frame)
     surf = scaleImage(surf, SCALAR)
     boundedSurf = pygame.Surface([X_MAX,Y_MAX])
-    boundedSurf.blit(surf,[0,0])
-    screen.blit(boundedSurf, (x, y))
+    boundedSurf.blit(surf,[VIDEO_X, VIDEO_Y])
+    screen.blit(boundedSurf, (0, 0))
     return surf
 
         

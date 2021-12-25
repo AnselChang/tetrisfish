@@ -71,6 +71,9 @@ background = pygame.transform.smoothscale(images[C_BACKDROP], [c.SCREEN_WIDTH, c
 hydrantScale = background.get_width() / images[C_BACKDROP].get_width()
 c.hydrantScale = hydrantScale
 
+def mouseOutOfBounds(mx, my):
+    return mx < 0 or mx > c.X_MAX or my < 0 or my > c.Y_MAX
+
 class Bounds:
 
     def __init__(self,isNextBox, x1,y1,x2,y2, mode = 1, isMaxoutClub = False):
@@ -83,14 +86,18 @@ class Bounds:
         self.x2 = x2
         self.y2 = y2
         self.callibration = mode # 1 = setting top-left point, 2 = setting bottom-right point, 0 = already set
-        self.r = 2 if isNextBox else 3
+        self.r = 4 if isNextBox else 8
         self.dragRadius = 10
+        self.dragRadiusBig = 13
         self.dragMode = 0
 
         self.notSet = True
 
         self.xrlist = None
         self.yrlist = None
+
+        self.hover1 = False
+        self.hover2 = False
 
         self.directions = [
             [0,0],
@@ -139,13 +146,17 @@ class Bounds:
         self.updateConversions()
         
 
-    def mouseOutOfBounds(self, mx, my):
-        return mx < 0 or mx > c.X_MAX or my < 0 or my > c.Y_MAX
+    def mouseNearDot(self, mx, my):
+        mx -= c.VIDEO_X
+        my -= c.VIDEO_Y
+        mx /= c.SCALAR
+        my /= c.SCALAR
+        return (distance(mx,my,self.x1,self.y1) <= self.dragRadius*3) or (distance(mx,my,self.x2s,self.y2) <= self.dragRadius*3) or self.callibration != 0 or self.dragMode != 0
 
     # return True to delete
     def updateMouse(self,mx,my, pressDown, pressUp):
 
-        self.doNotDisplay = self.notSet and self.mouseOutOfBounds(mx, my)
+        self.doNotDisplay = self.notSet and mouseOutOfBounds(mx, my)
 
         if self.doNotDisplay:
             if pressUp and not self.first:
@@ -156,24 +167,36 @@ class Bounds:
 
         self.first = False
 
+        mx -= c.VIDEO_X
+        my -= c.VIDEO_Y
         mx /= c.SCALAR
         my /= c.SCALAR
-        if pressDown and distance(mx,my,self.x1,self.y1) <= self.dragRadius*3:
-            self.dragMode = 1
-        elif pressDown and distance(mx,my,self.x2s,self.y2) <= self.dragRadius*3:
-            self.dragMode = 2
+
+        self.hover1 = self.dragMode == 1
+        self.hover2 = self.dragMode == 2
+        if distance(mx,my,self.x1,self.y1) <= self.dragRadius*3:
+            self.hover1 = True
+            if pressDown:
+                self.dragMode = 1
+        elif distance(mx,my,self.x2s,self.y2) <= self.dragRadius*3:
+            self.hover2 = True
+            if pressDown:
+                self.dragMode = 2
+            
 
         if pressUp:
             self.dragMode = 0
 
+        minimumLength = 20
+        
         
         if self.callibration == 1 or self.dragMode == 1:
-            self.x1 = min(mx, self.x2 - 50)
-            self.y1 = min(my, self.y2 - 50)
+            self.x1 = min(mx, self.x2 - minimumLength)
+            self.y1 = min(my, self.y2 - minimumLength)
             self.updateConversions()
         elif self.callibration == 2 or self.dragMode == 2:
-            self.x2 = max(mx, self.x1 + 50)
-            self.y2 = max(my, self.y1 + 50)
+            self.x2 = max(mx, self.x1 + minimumLength)
+            self.y2 = max(my, self.y1 + minimumLength)
             self.updateConversions()
 
         return False
@@ -181,7 +204,7 @@ class Bounds:
 
     def click(self, mx, my):
 
-        if self.mouseOutOfBounds(mx ,my):
+        if mouseOutOfBounds(mx ,my):
             return
         
         if self.callibration == 1:
@@ -288,12 +311,13 @@ class Bounds:
         pygame.draw.rect(surface, self.color, [x1, y1 + dy, x2-x1, y2-y1], width = 3)
 
         # Draw draggable bounds dots
-        pygame.draw.circle(surface, self.color, [x1,y1], self.dragRadius)
-        pygame.draw.circle(surface, self.color, [x2,y2], self.dragRadius)
+        pygame.draw.circle(surface, self.color, [x1,y1], self.dragRadiusBig if self.hover1 else self.dragRadius)
+        pygame.draw.circle(surface, self.color, [x2,y2], self.dragRadiusBig if self.hover2 else self.dragRadius)
 
         #  Draw cell callibration markers. Start on the center of the first cell
 
-        r = max(1,int(self.r * c.SCALAR))
+        #r = max(1,int(self.r * c.SCALAR))
+        r = self.r
         for i in range(self.vertical):
                         
             for j in range(self.horizontal):
@@ -302,7 +326,7 @@ class Bounds:
                 
                 x = int(self.xlist[j] * c.SCALAR + c.VIDEO_X)
                 y = int(self.ylist[i] * c.SCALAR + c.VIDEO_Y)
-                pygame.draw.circle(surface, BRIGHT_GREEN if exists else BRIGHT_RED, [x,y + dy], (r+2) if exists else r, width = (0 if exists else 1))
+                pygame.draw.circle(surface, BRIGHT_GREEN if exists else BRIGHT_RED, [x,y + dy], (r+2) if exists else r, width = (0 if exists else 3))
 
         return minos
 
@@ -497,7 +521,7 @@ def callibrate():
     rect2.fill([193,193,193])
     
     colorSlider = Slider(LEFT_X+2, 875, SW+50, c.COLOR_CALLIBRATION/150, rect, rect2, margin = 10)
-    zoomSlider = Slider(LEFT_X, 1104, SW, c.SCALAR/3, sliderImage3, sliderImage4, margin = 10)
+    zoomSlider = Slider(LEFT_X, 1104, SW+15, c.SCALAR/4, sliderImage3, sliderImage4, margin = 10)
     hzSlider = HzSlider(LEFT_X  + 12, 203, SW, 0, sliderImage, sliderImage2, margin = 10)
     hzNum = 2
     hzSlider.overwrite(hzNum)
@@ -556,6 +580,12 @@ def callibrate():
     
     startPress = False
     click = False
+
+    videoDragActive = False
+    videoDragX = 0
+    videoDragY = 0
+    videoStartX = 0
+    videoStartY = 0
     
     while True:
 
@@ -695,6 +725,30 @@ def callibrate():
                 if isArray(x):
                     minosNext = x
 
+
+        if isPressed  and not mouseOutOfBounds(mx, my):
+            
+            if startPress and not videoDragActive:
+                b = (bounds == None or  not bounds.mouseNearDot(mx, my))
+                nb = (nextBounds == None or not nextBounds.mouseNearDot(mx, my))
+                print(b, nb)
+                
+                if b and nb:
+                    videoDragActive = True
+                    videoDragX = mx
+                    videoDragY = my
+                    videoStartX = c.VIDEO_X
+                    videoStartY = c.VIDEO_Y
+                    
+            elif videoDragActive:
+                c.VIDEO_X = mx - videoDragX + videoStartX
+                c.VIDEO_Y = my - videoDragY + videoStartY
+                
+        elif not isPressed:
+            videoDragActive = False
+            
+        
+
         bload = buttons.get(B_LOAD)
         bload.isAlt = not os.path.isfile("callibration_preset.p")
 
@@ -733,7 +787,7 @@ def callibrate():
             c.SCALAR = data[4]
 
             colorSlider.overwrite(c.COLOR_CALLIBRATION/150)
-            zoomSlider.overwrite(c.SCALAR/3)
+            zoomSlider.overwrite(c.SCALAR/4)
             hzSlider.overwrite(hzNum)
 
             
@@ -757,7 +811,7 @@ def callibrate():
 
         # Draw sliders
         c.COLOR_CALLIBRATION = 150*colorSlider.tick(c.screen, c.COLOR_CALLIBRATION/150, startPress, isPressed, mx, my)
-        c.SCALAR = max(0.1,3* zoomSlider.tick(c.screen, c.SCALAR/3, startPress, isPressed, mx, my))
+        c.SCALAR = max(0.1,4* zoomSlider.tick(c.screen, c.SCALAR/4, startPress, isPressed, mx, my))
         hzNum = hzSlider.tick(c.screen, hzNum, startPress, isPressed, mx, my)
         c.screen.blit(c.font.render(str(int(c.COLOR_CALLIBRATION)), True, WHITE), [1650, 900])
         
