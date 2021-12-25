@@ -235,6 +235,11 @@ def main():
     else:
 
         import config as c
+        try:
+            import pyi_splash
+            pyi_splash.close()
+        except ImportError:
+            pass
 
         filename = dragFile()
         if filename == None:
