@@ -1,0 +1,5 @@
+pygame>=2.1
+opencv-python
+numpy
+scipy
+requests

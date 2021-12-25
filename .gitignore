@@ -1,2 +1,4 @@
 **/.DS_Store
 callibration_preset.p
+bundle/dist
+bundle/build
