@@ -478,7 +478,7 @@ def callibrate():
     buttons = PygameButton.ButtonHandler()
     buttons.addImage(B_AUTOCALIBRATE, images[C_ABOARD], 1724, 380, hydrantScale, img2= images[C_ABOARD2],
                      tooltip = ["Uses AI to try to find your board and next box.", 
-                                "Mainly works for centered boards atm",
+                                "Currently only works for centered or Stencil™ boards;",
                                 "But will expand over time to be more AI"])
 
     buttons.addImage(B_CALLIBRATE, images[C_BOARD], 1724, 600, hydrantScale, img2 = images[C_BOARD2],

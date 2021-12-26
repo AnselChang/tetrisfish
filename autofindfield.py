@@ -3,63 +3,52 @@ This will eventually be AI;
 but atm is quite simple.
 """
 import numpy as np
+import cv2
 
-
-def valid_pixel(arr, y, x):
-    size = arr.shape[:2]
-    result = 0 <= y < size[0] and 0 <= x < size[1]
-    if not result:
-        print (size, y, x)
-    return result
-
-def scan_dir(arr, y, x, func):
-    while kinda_black(arr[y][x]):
-        newy, newx = func(y,x)
-        if valid_pixel(arr, newy, newx):
-            (y, x) = (newy, newx)
-        else:
-            break
-    return y, x
+class Rect:
+    def __init__(self, left, top, right, bottom):
+        self.left = left
+        self.top = top
+        self.right = right
+        self.bottom = bottom
     
-def scan_up(y,x):
-    return y-1, x
-
-def scan_down(y,x):
-    return y+1, x
+    @property
+    def width(self):
+        return self.right - self.left
     
-def scan_left(y,x):
-    return y, x-1
+    @property
+    def height(self):
+        return self.bottom - self.top
 
-def scan_right(y,x):
-    return y, x+1
+    @property
+    def area(self):
+        return self.width * self.height
+
+    def to_array(self):
+        return (self.left, self.top, self.right, self.bottom)
     
+    def __str__(self):
+        return str(self.to_array())
+   
+
 def try_expand(arr, centre):
-    y, x = centre
+    arr = np.array(arr, copy=True)
+    red = (0,0,255) #Blue green red
+    centre = centre[1], centre[0] # opencv is stupid and uses x,y coordinates
+    cv2.floodFill(arr, None, centre, newVal=red, loDiff=(1, 1, 1), upDiff=(1, 1, 1))
+    #cv2.imshow('color image', arr) 
+    #cv2.waitKey(0)
+
+    red_px = np.where(np.all(arr == red, axis=-1))
+    y_values = list(red_px[0])
+    y_values.sort()
+    x_values = list(red_px[1])
+    x_values.sort()
     
-    # find left
-    _, x = scan_dir(arr,y,x, scan_left)
-    left = x
-    x = centre[1]
-    
-    # find right
-    _, x = scan_dir(arr,y,x, scan_right)
-    right = x
-    x = centre[1]
-    
-    # find top and bottom:
-    col_width = (right-left)//10
-    top = centre[0]
-    bot = centre[0]
-    for col in range(10):
-        x = left + col*col_width + col_width//2
-        y, _ = scan_dir(arr, centre[0],x, scan_up)
-        if y < top:
-            top = y
-        y, _ = scan_dir(arr, centre[0],x, scan_down)
-        if y > bot:
-            bot = y
-            
-    return (left, top, right, bot)
+    top, bot = y_values[0], y_values[-1]
+    left, right = x_values[0], x_values[-1]
+
+    return Rect(left, top, right, bot)
 
 def get_board(img):
     """
@@ -71,9 +60,18 @@ def get_board(img):
     else:
         arr = img
     
+    
+    # Convert image to grayscale, but in RGB format
+    gray = cv2.cvtColor(arr, cv2.COLOR_BGR2GRAY)
+    arr = np.zeros_like(arr)
+    arr[:,:,0] = gray
+    arr[:,:,1] = gray
+    arr[:,:,2] = gray
+
     size = arr.shape[:2]
-    centre = (size[0]//2, size[1]//2)
-    stencil = (int(size[0] * 563/1080.0),
+    
+    centre = (size[0]//2, size[1]//2) # y, x
+    stencil = (int(size[0] * 563/1080.0), 
                int(size[1] * 675/1920.0))
     
     attempts = [centre, stencil]
@@ -81,28 +79,21 @@ def get_board(img):
     for attempt in attempts:
         result = try_expand(arr, attempt)
         print("potential field:", result)
-        if (width(result) < 1/6.0 * size[1]):
+        if (result.width < 1/6.0 * size[1]):
+            print ("Field too skinny, skipping")
             continue
-        if (height(result) > 0.95 * size[0] or
-           height(result) < 0.5 * size[0]):
+        if (result.height > 0.95 * size[0] or
+           result.height < 0.3 * size[0]):
+            print ("field too tall or short, skipping")
             continue
         results.append(result)
     
     if len(results) == 0:
+        print("Ai could not find board")
         return None
 
-    results.sort(key=lambda x:area(x), reverse=True)
-    return results[0]
-
-def area(rect):
-    return width(rect) * height(rect)
-
-def width(rect):
-    return rect[2] - rect[0]
-
-def height(rect):
-    return rect[3] - rect[1]
-
-def kinda_black(col):    
-    return col[0] < 40 and col[1] < 40 and col[2] < 40
-    
+    results.sort(key=lambda x:x.area, reverse=True)
+    # we could instead return everything, so that
+    # the user can pick the best one
+    print (f"AI Board time: {time.time() - t}")
+    return results[0].to_array()
