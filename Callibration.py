@@ -259,7 +259,7 @@ class Bounds:
         self.y1s = self.y1
         self.x2s = self.x2
         self.y2s = self.y2
-        print ("updateconversions", self.x1, self.y1, self.x2, self.y2)
+        
         w = self.x2s - self.x1s
         h = self.y2s - self.y1s
 
@@ -355,7 +355,7 @@ class Bounds:
 # Slider object during callibration. Move with mousex
 class Slider:
 
-    def __init__(self,leftx, y, sliderWidth, startValue, img1, img2, imgr1 = None, imgr2 = None, margin = 0):
+    def __init__(self, leftx, y, sliderWidth, startValue, img1, img2, imgr1 = None, imgr2 = None, margin = 0):
         self.leftx = leftx
         self.x = self.leftx + startValue * sliderWidth
         self.y = y
@@ -411,7 +411,11 @@ class Slider:
         return (self.x - self.leftx) / self.sliderWidth
 
     def isHovering(self,mx,my):
-        return mx >= self.x - self.margin and mx <= self.x+self.width + self.margin and my  >= self.y - self.margin and my <= self.y+self.height + self.margin
+        left = self.x - self.margin
+        right = self.x + self.width + self.margin
+        top = self.y - self.margin
+        bottom = self.y + self.height + self.margin
+        return (left <= mx <= right and top <= my <= bottom)
 
     def draw(self,screen):
         if self.hover or self.active:
