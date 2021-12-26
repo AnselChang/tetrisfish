@@ -10,7 +10,7 @@ pip install -r requirements.txt
 
 cd bundle
 
-pyinstaller -D tetrisfish.spec
+pyinstaller tetrisfish.spec
 
 
 rem Now do the changelog:
