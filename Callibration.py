@@ -17,6 +17,8 @@ PygameButton.init(c.font)
 
 
 C_BACKDROP = "Background"
+C_ABOARD = "autocaliboard"
+C_ABOARD2 = "autocaliboard2"
 C_BOARD = "calliboard"
 C_BOARD2 = "calliboard2"
 C_NEXT = "nextbox"
@@ -54,7 +56,7 @@ C_CHECKMARK = "checkmark"
 C_CHECKMARK2 = "checkmark2"
 
 
-CALLIBRATION_IMAGES = [C_BACKDROP, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2, C_SEGMENT, C_SEGMENTGREY]
+CALLIBRATION_IMAGES = [C_BACKDROP, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2, C_SEGMENT, C_SEGMENTGREY, C_ABOARD, C_ABOARD2]
 CALLIBRATION_IMAGES.extend( [C_PREVF, C_PREVF2, C_NEXTF, C_NEXTF2, C_RENDER, C_RENDER2, C_SLIDER, C_SLIDER2, C_SLIDERF, C_SLIDER2F] )
 CALLIBRATION_IMAGES.extend([ C_LVIDEO, C_LVIDEO2, C_RVIDEO, C_RVIDEO2, C_SAVE, C_LOAD ])
 CALLIBRATION_IMAGES.extend([ C_LVIDEORED, C_LVIDEORED2, C_RVIDEORED, C_RVIDEORED2, C_CHECKMARK, C_CHECKMARK2 ])
@@ -428,7 +430,6 @@ def callibrate():
         c.VIDEO_HEIGHT = len(frame)
         
     else:
-
         vcap = c.getVideo()
         c.VIDEO_WIDTH = int(vcap.get(cv2.CAP_PROP_FRAME_WIDTH))
         c.VIDEO_HEIGHT = int(vcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -440,7 +441,7 @@ def callibrate():
 
     print(c.VIDEO_WIDTH, c.VIDEO_HEIGHT)
 
-
+    
     B_CALLIBRATE = 0
     B_NEXTBOX = 1
     B_PLAY = 2
@@ -451,12 +452,18 @@ def callibrate():
     B_SAVE = 12
     B_LOAD = 13
     B_CHECK = 14
+    B_AUTOCALIBRATE = 15
 
     buttons = PygameButton.ButtonHandler()
-    buttons.addImage(B_CALLIBRATE, images[C_BOARD], 1724, 380, hydrantScale, img2 = images[C_BOARD2],
+    buttons.addImage(B_AUTOCALIBRATE, images[C_ABOARD], 1724, 380, hydrantScale, img2= images[C_ABOARD2],
+                     tooltip = ["Uses AI to try to find your board and next box.", 
+                                "Mainly works for centered boards atm",
+                                "But will expand over time to be more AI"])
+
+    buttons.addImage(B_CALLIBRATE, images[C_BOARD], 1724, 600, hydrantScale, img2 = images[C_BOARD2],
                      tooltip = ["Set the bounds for the tetris board. One dot",
                                 "should be centered along each mino."])
-    buttons.addImage(B_NEXTBOX, images[C_NEXT], 1724, 600, hydrantScale, img2 = images[C_NEXT2],
+    buttons.addImage(B_NEXTBOX, images[C_NEXT], 2100, 600, hydrantScale, img2 = images[C_NEXT2],
                      tooltip = ["Set the bounds across the active area of the entire",
                                 "next box. Make sure four dots are symmetrically placed",
                                 "along each mino. Press 'T' for a MaxoutClub layout"])
@@ -623,7 +630,8 @@ def callibrate():
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] - 1)
             assert(type(frame) == np.ndarray)
 
-        
+        if buttons.get(B_AUTOCALIBRATE).clicked:
+            print("autocalibrate clicked")
         if buttons.get(B_CALLIBRATE).clicked:
             bounds = Bounds(False,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
             if nextBounds != None:
