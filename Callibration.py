@@ -76,6 +76,9 @@ def mouseOutOfBounds(mx, my):
 
 class Bounds:
 
+    TOP_LEFT = 1
+    BOTTOM_RIGHT = 2
+    ALREADY_SET = 0
     def __init__(self,isNextBox, x1,y1,x2,y2, mode = 1, isMaxoutClub = False):
 
         self.first = True
@@ -151,7 +154,10 @@ class Bounds:
         my -= c.VIDEO_Y
         mx /= c.SCALAR
         my /= c.SCALAR
-        return (distance(mx,my,self.x1,self.y1) <= self.dragRadius*3) or (distance(mx,my,self.x2s,self.y2) <= self.dragRadius*3) or self.callibration != 0 or self.dragMode != 0
+        return ((distance(mx,my,self.x1,self.y1) <= self.dragRadius*3) or 
+               (distance(mx,my,self.x2s,self.y2) <= self.dragRadius*3) or 
+               self.callibration != self.ALREADY_SET or
+               self.dragMode != self.ALREADY_SET)
 
     # return True to delete
     def updateMouse(self,mx,my, pressDown, pressUp):
@@ -172,29 +178,31 @@ class Bounds:
         mx /= c.SCALAR
         my /= c.SCALAR
 
-        self.hover1 = self.dragMode == 1
-        self.hover2 = self.dragMode == 2
+        self.hover1 = self.dragMode == self.TOP_LEFT
+        self.hover2 = self.dragMode == self.BOTTOM_RIGHT
         if distance(mx,my,self.x1,self.y1) <= self.dragRadius*3:
             self.hover1 = True
             if pressDown:
-                self.dragMode = 1
+                self.dragMode = self.TOP_LEFT
         elif distance(mx,my,self.x2s,self.y2) <= self.dragRadius*3:
             self.hover2 = True
             if pressDown:
-                self.dragMode = 2
+                self.dragMode = self.BOTTOM_RIGHT
             
 
         if pressUp:
-            self.dragMode = 0
+            self.dragMode = self.ALREADY_SET
 
         minimumLength = 20
         
         
-        if self.callibration == 1 or self.dragMode == 1:
+        if (self.callibration == self.TOP_LEFT or
+            self.dragMode == self.TOP_LEFT):
             self.x1 = min(mx, self.x2 - minimumLength)
             self.y1 = min(my, self.y2 - minimumLength)
             self.updateConversions()
-        elif self.callibration == 2 or self.dragMode == 2:
+        elif (self.callibration == self.BOTTOM_RIGHT or 
+             self.dragMode == self.BOTTOM_RIGHT):
             self.x2 = max(mx, self.x1 + minimumLength)
             self.y2 = max(my, self.y1 + minimumLength)
             self.updateConversions()
@@ -207,16 +215,16 @@ class Bounds:
         if mouseOutOfBounds(mx ,my):
             return
         
-        if self.callibration == 1:
-            self.callibration = 2
+        if self.callibration == self.TOP_LEFT:
+            self.callibration = self.BOTTOM_RIGHT
             
-        elif self.callibration == 2:
-            self.callibration = 0
+        elif self.callibration == self.BOTTOM_RIGHT:
+            self.callibration = self.ALREADY_SET
             self.notSet = False
 
     # Finalize callibration
     def set(self):
-        self.callibration = 0
+        self.callibration = self.ALREADY_SET
         self.notSet = False
 
 
@@ -428,19 +436,19 @@ def callibrate():
         c.VIDEO_HEIGHT = len(frame)
         
     else:
-
         vcap = c.getVideo()
         c.VIDEO_WIDTH = int(vcap.get(cv2.CAP_PROP_FRAME_WIDTH))
         c.VIDEO_HEIGHT = int(vcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         c.totalFrames = int(vcap.get(cv2.CAP_PROP_FRAME_COUNT))
         c.fps = vcap.get(cv2.CAP_PROP_FPS)
+        frame = c.goToFrame(vcap, 0)[0]
         print("fps: ", c.fps)
         print(vcap)
 
 
     print(c.VIDEO_WIDTH, c.VIDEO_HEIGHT)
 
-
+    
     B_CALLIBRATE = 0
     B_NEXTBOX = 1
     B_PLAY = 2
@@ -521,10 +529,18 @@ def callibrate():
     rect2.fill([193,193,193])
     
     colorSlider = Slider(LEFT_X+2, 875, SW+50, c.COLOR_CALLIBRATION/150, rect, rect2, margin = 10)
-    zoomSlider = Slider(LEFT_X, 1104, SW+15, c.SCALAR/4, sliderImage3, sliderImage4, margin = 10)
+    zoomSlider = Slider(LEFT_X, 1104, SW+15, c.SCALAR/4, sliderImage3, sliderImage4, margin = 10)    
     hzSlider = HzSlider(LEFT_X  + 12, 203, SW, 0, sliderImage, sliderImage2, margin = 10)
     hzNum = 2
     hzSlider.overwrite(hzNum)
+    
+    # init zoom to show full image:
+    widthRatio = c.X_MAX / c.VIDEO_WIDTH
+    heightRatio = c.Y_MAX / c.VIDEO_HEIGHT
+    autoZoom = min(widthRatio,heightRatio, 4) # magic, the four is max zoom
+    c.SCALAR = autoZoom
+    zoomSlider.overwrite(autoZoom / 4) # lol magic
+    
 
     SW2 = 922
     LEFT_X2 = 497
@@ -623,7 +639,6 @@ def callibrate():
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] - 1)
             assert(type(frame) == np.ndarray)
 
-        
         if buttons.get(B_CALLIBRATE).clicked:
             bounds = Bounds(False,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
             if nextBounds != None:
