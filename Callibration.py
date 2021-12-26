@@ -665,12 +665,18 @@ def callibrate():
 
         if buttons.get(B_AUTOCALIBRATE).clicked:
             pixels = autofindfield.get_board(frame) #todo return multiple regions if possible
-            if pixels is None: #todo: tooltip
-                pixels = (0,0,c.VIDEO_WIDTH,c.VIDEO_HEIGHT)
+            board_pixels = pixels or (0,0,c.VIDEO_WIDTH,c.VIDEO_HEIGHT)
             bounds = Bounds(False,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
-            bounds.setScaled(pixels, (c.VIDEO_WIDTH, c.VIDEO_HEIGHT))
-            if nextBounds != None:
+            bounds.setScaled(board_pixels, (c.VIDEO_WIDTH, c.VIDEO_HEIGHT))
+            if pixels: #successfully found board
+                pixels = autofindfield.get_next_box(frame, pixels)
+                if pixels is not None:
+                    nextBounds = Bounds(True,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
+                    nextBounds.setScaled(pixels, (c.VIDEO_WIDTH, c.VIDEO_HEIGHT))
+            if nextBounds is not None:
                 nextBounds.set()
+            if bounds is not None:
+                bounds.set()
             
 
         if buttons.get(B_CALLIBRATE).clicked:
