@@ -10,7 +10,7 @@ from colors import *
 import Evaluator
 from Position import Position
 from Analysis import analyze
-
+import autofindfield
 
 
 PygameButton.init(c.font)
@@ -221,8 +221,7 @@ class Bounds:
             self.callibration = self.BOTTOM_RIGHT
             
         elif self.callibration == self.BOTTOM_RIGHT:
-            self.callibration = self.ALREADY_SET
-            self.notSet = False
+            self.set()            
 
     # Finalize callibration
     def set(self):
@@ -238,7 +237,24 @@ class Bounds:
 
         # dx, dy, radius
         return dx, dy, (dx+dy)/2/8
-
+    
+    def setScaled(self, rect, videoSize):
+        """
+        Sets rectangle based on raw video
+        """
+        leftPerc = rect[0] / float(videoSize[0])
+        rightPerc = rect[2] / float(videoSize[0])
+        topPerc = rect[1] / float(videoSize[1])
+        botPerc = rect[3] / float(videoSize[1])
+        ratio = videoSize[1] / float(videoSize[0])
+        y_max = int(ratio * c.X_MAX)
+        self.x1 = int(leftPerc * c.X_MAX / c.SCALAR) 
+        self.x2 = int(rightPerc * c.X_MAX / c.SCALAR)
+        self.y1 = int(topPerc * y_max / c.SCALAR) 
+        self.y2 = int(botPerc * y_max / c.SCALAR)
+        self.set()
+        self.updateConversions()
+        
     # After change x1/y1/x2/y2, update conversions to scale
     # Generate lookup tables of locations of elements
     def updateConversions(self):
@@ -247,7 +263,7 @@ class Bounds:
         self.y1s = self.y1
         self.x2s = self.x2
         self.y2s = self.y2
-
+        print ("updateconversions", self.x1, self.y1, self.x2, self.y2)
         w = self.x2s - self.x1s
         h = self.y2s - self.y1s
 
@@ -648,7 +664,14 @@ def callibrate():
             assert(type(frame) == np.ndarray)
 
         if buttons.get(B_AUTOCALIBRATE).clicked:
-            print("autocalibrate clicked")
+            pixels = autofindfield.get_board(frame)
+            print("autocalibratepixels:",  pixels)
+            bounds = Bounds(False,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
+            bounds.setScaled(pixels, (c.VIDEO_WIDTH, c.VIDEO_HEIGHT))
+            if nextBounds != None:
+                nextBounds.set()
+            
+
         if buttons.get(B_CALLIBRATE).clicked:
             bounds = Bounds(False,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
             if nextBounds != None:
