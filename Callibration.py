@@ -137,7 +137,6 @@ class Bounds:
                 self.X_LEFT = 0.105
                 self.X_RIGHT = 0.8
             else:
-                print ("regular next box")
                 self.Y_TOP = 0.41
                 self.Y_BOTTOM = 0.75
                 self.X_LEFT = 0.04
