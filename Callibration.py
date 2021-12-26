@@ -729,7 +729,8 @@ def callibrate():
                 errorColor = RED
 
             else:
-                frame, vidFrame[LEFT_FRAME] = c.goToFrame(vcap, vidFrame[LEFT_FRAME])
+                if not c.isImage:
+                    frame, _ = c.goToFrame(vcap, vidFrame[LEFT_FRAME])
                 
                 board = bounds.getMinos(frame)
                 mask = extractCurrentPiece(board)
