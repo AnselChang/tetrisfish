@@ -471,14 +471,18 @@ def analyze(positionDatabase, hzInt):
         # Tetris board
         analysisBoard.draw(hoveredPlacement)
         
+        # Cap length of positions in the case its a still image
+        positionDatabaseLen = len(positionDatabase) - 1
+        if positionDatabaseLen <= 0:
+            positionDatabaseLen = 1
         # Possible moves processing % text
-        if not c.done:
-            percent = round(100*c.possibleCount / (len(positionDatabase) - 1))
+        if not c.done:            
+            percent = round(100*c.possibleCount / positionDatabaseLen)
             blitCenterText(c.screen, c.font2, "Processing... {}/{} positions ({}%)".format(
                 c.possibleCount, len(positionDatabase)-1,percent), BRIGHT_RED, 100, cx = 320, s = 0)
 
         if not c.isDepth3 and not c.doneEval:
-            percent = round(100 * c.numEvalDone / (len(positionDatabase) - 1))
+            percent = round(100 * c.numEvalDone / positionDatabaseLen)
             blitCenterText(c.screen, c.font2, "Processing depth 3... {}/{} ratings ({}%)".format(
                 c.numEvalDone, len(positionDatabase)-1,percent), PURE_BLUE, 140, cx = 320, s = 0)
     
