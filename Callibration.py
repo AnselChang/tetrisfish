@@ -242,18 +242,14 @@ class Bounds:
         """
         Sets rectangle based on raw video
         """
-        leftPerc = rect[0] / float(videoSize[0])
-        rightPerc = rect[2] / float(videoSize[0])
-        topPerc = rect[1] / float(videoSize[1])
-        botPerc = rect[3] / float(videoSize[1])
-        ratio = videoSize[1] / float(videoSize[0])
-        y_max = int(ratio * c.X_MAX)
-        self.x1 = int(leftPerc * c.X_MAX / c.SCALAR) 
-        self.x2 = int(rightPerc * c.X_MAX / c.SCALAR)
-        self.y1 = int(topPerc * y_max / c.SCALAR) 
-        self.y2 = int(botPerc * y_max / c.SCALAR)
-        self.set()
+        #percentage of pixel to original video
+        self.x1= rect[0]
+        self.x2= rect[2]
+        self.y1 = rect[1]
+        self.y2 = rect[3]
+               
         self.updateConversions()
+        self.set()
         
     # After change x1/y1/x2/y2, update conversions to scale
     # Generate lookup tables of locations of elements
