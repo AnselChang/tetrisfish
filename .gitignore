@@ -5,3 +5,5 @@ bundle/build
 __pycache__/
 /venv/
 /.vs/
+/bundle/last-tag.txt
+/changelog.txt

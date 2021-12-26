@@ -1,0 +1,52 @@
+name: PyInstaller-windows
+
+on: 
+  push:    
+    tags:
+    - '202*' #any tag in the form 202Ymmdd
+        
+
+jobs:
+  build:
+
+    runs-on: windows-latest    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0 # This is important for the Git history
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.9  
+        architecture: 'x86' # we dont support x64
+    - name: Get the version
+      id: get_version
+      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      shell: bash        
+    - name: Install dependencies
+      working-directory: bundle
+      run: |      
+        build_windows.bat ${{ steps.get_version.outputs.VERSION }}
+      shell: cmd
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1.1.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: ${{ github.ref }}
+        body_path: changelog.txt
+        draft: true
+        prerelease: false
+    - name: Upload Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./bundle/TetrisFish_${{ steps.get_version.outputs.VERSION }}.zip
+        asset_name: TetrisFish_${{ steps.get_version.outputs.VERSION }}.zip
+        asset_content_type: application/zip

@@ -40,3 +40,11 @@ Building is via pyinstaller
 2) `cd bundle` then build.
 
 3) `pyinstaller <whatever>.spec`
+
+
+Auto-Building
+===
+Simply tag a commit in the format YYYYMMDD, and push this tag to github.
+A draft release will show up in the draft page.
+
+Anything that matches `^202.*$`, so you can use YYYYMMDD_v2 for multiple on same day.
