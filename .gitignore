@@ -2,3 +2,6 @@
 callibration_preset.p
 bundle/dist
 bundle/build
+__pycache__/
+/venv/
+/.vs/

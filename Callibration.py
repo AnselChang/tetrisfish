@@ -10,13 +10,15 @@ from colors import *
 import Evaluator
 from Position import Position
 from Analysis import analyze
-
+import autofindfield
 
 
 PygameButton.init(c.font)
 
 
 C_BACKDROP = "Background"
+C_ABOARD = "autocaliboard"
+C_ABOARD2 = "autocaliboard2"
 C_BOARD = "calliboard"
 C_BOARD2 = "calliboard2"
 C_NEXT = "nextbox"
@@ -54,7 +56,7 @@ C_CHECKMARK = "checkmark"
 C_CHECKMARK2 = "checkmark2"
 
 
-CALLIBRATION_IMAGES = [C_BACKDROP, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2, C_SEGMENT, C_SEGMENTGREY]
+CALLIBRATION_IMAGES = [C_BACKDROP, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2, C_SEGMENT, C_SEGMENTGREY, C_ABOARD, C_ABOARD2]
 CALLIBRATION_IMAGES.extend( [C_PREVF, C_PREVF2, C_NEXTF, C_NEXTF2, C_RENDER, C_RENDER2, C_SLIDER, C_SLIDER2, C_SLIDERF, C_SLIDER2F] )
 CALLIBRATION_IMAGES.extend([ C_LVIDEO, C_LVIDEO2, C_RVIDEO, C_RVIDEO2, C_SAVE, C_LOAD ])
 CALLIBRATION_IMAGES.extend([ C_LVIDEORED, C_LVIDEORED2, C_RVIDEORED, C_RVIDEORED2, C_CHECKMARK, C_CHECKMARK2 ])
@@ -135,11 +137,11 @@ class Bounds:
                 self.X_LEFT = 0.105
                 self.X_RIGHT = 0.8
             else:
-                self.Y_TOP = 0.406
-                self.Y_BOTTOM = 0.363
+                self.Y_TOP = 0.41
+                self.Y_BOTTOM = 0.75
                 self.X_LEFT = 0.04
-                self.X_RIGHT = 0.93
-        else:
+                self.X_RIGHT = 0.96
+        else: # field
             self.Y_TOP = 0
             self.Y_BOTTOM = 0.993
             self.X_LEFT = 0.01
@@ -155,7 +157,7 @@ class Bounds:
         mx /= c.SCALAR
         my /= c.SCALAR
         return ((distance(mx,my,self.x1,self.y1) <= self.dragRadius*3) or 
-               (distance(mx,my,self.x2s,self.y2) <= self.dragRadius*3) or 
+                (distance(mx,my,self.x2,self.y2) <= self.dragRadius*3) or 
                self.callibration != self.ALREADY_SET or
                self.dragMode != self.ALREADY_SET)
 
@@ -184,7 +186,7 @@ class Bounds:
             self.hover1 = True
             if pressDown:
                 self.dragMode = self.TOP_LEFT
-        elif distance(mx,my,self.x2s,self.y2) <= self.dragRadius*3:
+        elif distance(mx,my,self.x2,self.y2) <= self.dragRadius*3:
             self.hover2 = True
             if pressDown:
                 self.dragMode = self.BOTTOM_RIGHT
@@ -219,8 +221,7 @@ class Bounds:
             self.callibration = self.BOTTOM_RIGHT
             
         elif self.callibration == self.BOTTOM_RIGHT:
-            self.callibration = self.ALREADY_SET
-            self.notSet = False
+            self.set()
 
     # Finalize callibration
     def set(self):
@@ -236,32 +237,48 @@ class Bounds:
 
         # dx, dy, radius
         return dx, dy, (dx+dy)/2/8
-
+    
+    def setScaled(self, rect, videoSize):
+        """
+        Sets rectangle based on raw video
+        """
+        #percentage of pixel to original video
+        self.x1 = rect[0]
+        self.x2 = rect[2]
+        self.y1 = rect[1]
+        self.y2 = rect[3]
+               
+        self.updateConversions()
+        self.set()
+        
     # After change x1/y1/x2/y2, update conversions to scale
     # Generate lookup tables of locations of elements
     def updateConversions(self):
-
-        self.x1s = self.x1
-        self.y1s = self.y1
-        self.x2s = self.x2
-        self.y2s = self.y2
-
-        w = self.x2s - self.x1s
-        h = self.y2s - self.y1s
+        w = self.x2 - self.x1
+        h = self.y2 - self.y1
 
         # Generate a list of every x scaled location of the center of all 10 minos in a row
         self.xlist = []
-        x = self.x1s + w*self.X_LEFT + w / (self.horizontal*2)
+        cell_half_width = w * (self.X_RIGHT - self.X_LEFT) / self.horizontal / 2.0
+        cell_half_height = h * (self.Y_BOTTOM - self.Y_TOP) / self.vertical / 2.0
+        
+
+        x1 = (self.x1 + w*self.X_LEFT)   * c.SCALAR + c.VIDEO_X
+        y1 = (self.y1 + h*self.Y_TOP)    * c.SCALAR + c.VIDEO_Y
+        x2 = (self.x1 + w*self.X_RIGHT)  * c.SCALAR + c.VIDEO_X
+        y2 = (self.y1 + h*self.Y_BOTTOM) * c.SCALAR + c.VIDEO_Y
+
+        x = self.x1 + w*self.X_LEFT + cell_half_width
         for i in range(self.horizontal):
-            self.xlist.append( int( clamp(x, 0, c.VIDEO_WIDTH) ) )
-            x += self.X_RIGHT*(w / self.horizontal)
+            self.xlist.append( int(clamp(x, 0, c.VIDEO_WIDTH) ) )
+            x += 2*cell_half_width
 
          # Generate a list of every y scaled location of the center of all 10 minos in a row
         self.ylist = []
-        y = self.y1s + w*self.Y_TOP + h / (self.vertical*2)
+        y = self.y1 + h*self.Y_TOP + cell_half_height
         for i in range(self.vertical):
-            self.ylist.append( int( clamp(y, 0, c.VIDEO_HEIGHT) ) )
-            y += self.Y_BOTTOM*(h / self.vertical)
+            self.ylist.append( int(clamp(y, 0, c.VIDEO_HEIGHT) ) )
+            y += 2*cell_half_height
 
         # xrlist and xylist are an 5-element array of different variants of xlist and ylist.
         # Specifically, they store xlist and ylist offset by radius by different directions.
@@ -303,8 +320,8 @@ class Bounds:
         
 
     # Draw the markings for detected minos.
-    def displayBounds(self, surface, nparray = None, minos = None, dy = 0):
-
+    def displayBounds(self, surface, nparray = None, minos = None):
+        
         if self.doNotDisplay:
             return None
 
@@ -312,36 +329,42 @@ class Bounds:
             minos = self.getMinos(nparray)
         
         # draw bounds rect
-        x1 = self.x1s * c.SCALAR + c.VIDEO_X
-        y1 = self.y1s * c.SCALAR + c.VIDEO_Y
-        x2 = self.x2s * c.SCALAR + c.VIDEO_X
-        y2 = self.y2s * c.SCALAR + c.VIDEO_Y
-        pygame.draw.rect(surface, self.color, [x1, y1 + dy, x2-x1, y2-y1], width = 3)
-
+        x1 = self.x1 * c.SCALAR + c.VIDEO_X
+        y1 = self.y1 * c.SCALAR + c.VIDEO_Y
+        x2 = self.x2 * c.SCALAR + c.VIDEO_X
+        y2 = self.y2 * c.SCALAR + c.VIDEO_Y
+        pygame.draw.rect(surface, self.color, [x1, y1, x2-x1, y2-y1], width = 3)
+        
         # Draw draggable bounds dots
         pygame.draw.circle(surface, self.color, [x1,y1], self.dragRadiusBig if self.hover1 else self.dragRadius)
         pygame.draw.circle(surface, self.color, [x2,y2], self.dragRadiusBig if self.hover2 else self.dragRadius)
 
+        # draw sub-bounds rect
+        w = self.x2 - self.x1
+        h = self.y2 - self.y1
+        x1 = (self.x1 + w*self.X_LEFT)   * c.SCALAR + c.VIDEO_X
+        y1 = (self.y1 + h*self.Y_TOP)    * c.SCALAR + c.VIDEO_Y
+        x2 = (self.x1 + w*self.X_RIGHT)  * c.SCALAR + c.VIDEO_X
+        y2 = (self.y1 + h*self.Y_BOTTOM) * c.SCALAR + c.VIDEO_Y
+        pygame.draw.rect(surface, BRIGHT_BLUE, [x1, y1, x2-x1, y2-y1], width = 3)
         #  Draw cell callibration markers. Start on the center of the first cell
 
         #r = max(1,int(self.r * c.SCALAR))
         r = self.r
         for i in range(self.vertical):
-                        
             for j in range(self.horizontal):
-                
                 exists = (minos[i][j] == 1)
                 
                 x = int(self.xlist[j] * c.SCALAR + c.VIDEO_X)
                 y = int(self.ylist[i] * c.SCALAR + c.VIDEO_Y)
-                pygame.draw.circle(surface, BRIGHT_GREEN if exists else BRIGHT_RED, [x,y + dy], (r+2) if exists else r, width = (0 if exists else 3))
+                pygame.draw.circle(surface, BRIGHT_GREEN if exists else BRIGHT_RED, [x,y], (r+2) if exists else r, width = (0 if exists else 3))
 
         return minos
 
 # Slider object during callibration. Move with mousex
 class Slider:
 
-    def __init__(self,leftx, y, sliderWidth, startValue, img1, img2, imgr1 = None, imgr2 = None, margin = 0):
+    def __init__(self, leftx, y, sliderWidth, startValue, img1, img2, imgr1 = None, imgr2 = None, margin = 0):
         self.leftx = leftx
         self.x = self.leftx + startValue * sliderWidth
         self.y = y
@@ -397,7 +420,11 @@ class Slider:
         return (self.x - self.leftx) / self.sliderWidth
 
     def isHovering(self,mx,my):
-        return mx >= self.x - self.margin and mx <= self.x+self.width + self.margin and my  >= self.y - self.margin and my <= self.y+self.height + self.margin
+        left = self.x - self.margin
+        right = self.x + self.width + self.margin
+        top = self.y - self.margin
+        bottom = self.y + self.height + self.margin
+        return (left <= mx <= right and top <= my <= bottom)
 
     def draw(self,screen):
         if self.hover or self.active:
@@ -459,12 +486,18 @@ def callibrate():
     B_SAVE = 12
     B_LOAD = 13
     B_CHECK = 14
+    B_AUTOCALIBRATE = 15
 
     buttons = PygameButton.ButtonHandler()
-    buttons.addImage(B_CALLIBRATE, images[C_BOARD], 1724, 380, hydrantScale, img2 = images[C_BOARD2],
+    buttons.addImage(B_AUTOCALIBRATE, images[C_ABOARD], 1724, 380, hydrantScale, img2= images[C_ABOARD2],
+                     tooltip = ["Uses AI to try to find your board and next box.", 
+                                "Currently only works for centered or Stencil™ boards;",
+                                "But will expand over time to be more AI"])
+
+    buttons.addImage(B_CALLIBRATE, images[C_BOARD], 1724, 600, hydrantScale, img2 = images[C_BOARD2],
                      tooltip = ["Set the bounds for the tetris board. One dot",
                                 "should be centered along each mino."])
-    buttons.addImage(B_NEXTBOX, images[C_NEXT], 1724, 600, hydrantScale, img2 = images[C_NEXT2],
+    buttons.addImage(B_NEXTBOX, images[C_NEXT], 2100, 600, hydrantScale, img2 = images[C_NEXT2],
                      tooltip = ["Set the bounds across the active area of the entire",
                                 "next box. Make sure four dots are symmetrically placed",
                                 "along each mino. Press 'T' for a MaxoutClub layout"])
@@ -638,6 +671,22 @@ def callibrate():
             # load previous frame
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] - 1)
             assert(type(frame) == np.ndarray)
+
+        if buttons.get(B_AUTOCALIBRATE).clicked:
+            pixels = autofindfield.get_board(frame) #todo return multiple regions if possible
+            board_pixels = pixels or (0,0,c.VIDEO_WIDTH,c.VIDEO_HEIGHT)
+            bounds = Bounds(False,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
+            bounds.setScaled(board_pixels, (c.VIDEO_WIDTH, c.VIDEO_HEIGHT))
+            if pixels: #successfully found board
+                pixels = autofindfield.get_next_box(frame, pixels)
+                if pixels is not None:
+                    nextBounds = Bounds(True,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
+                    nextBounds.setScaled(pixels, (c.VIDEO_WIDTH, c.VIDEO_HEIGHT))
+            if nextBounds is not None:
+                nextBounds.set()
+            if bounds is not None:
+                bounds.set()
+            
 
         if buttons.get(B_CALLIBRATE).clicked:
             bounds = Bounds(False,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
