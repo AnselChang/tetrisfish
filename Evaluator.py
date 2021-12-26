@@ -26,9 +26,13 @@ def getInfo(position):
 
     # API calls only work for 18/19/29 starts. Need to do manual conversion for lower starts.
     if c.startLevel >= 18 or position.level >= 29:
-        level = position.level
-        lines = position.lines
-    else:
+        if c.isPAL:
+            level = 29 if position.level >= 19 else 19
+            lines = 0
+        else:
+            level = position.level
+            lines = position.lines
+    else: # NTSC only
         if position.level <= 19:
             lines = 0
             level = 19 if position.level == 19 else 18
@@ -41,7 +45,7 @@ def getInfo(position):
             
     # For levels lower than 18 speeds, just assume 30hz movement (unlimited piece range)
     if position.level < 16:
-        x_and_dots = TIMELINE_30_HZ
+        x_and_dots = TIMELINE_MAX_HZ
 
     return [b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots]
 
@@ -194,7 +198,7 @@ def makeAPICallEvaluation(b1Str, b2Str, currStr, nextStr, level, lines, x_and_do
         #print("rapid")
         
         url = "https://stackrabbit.herokuapp.com/rate-move?board={}&secondBoard={}&currentPiece={}&nextPiece={}&level={}&lines={}&inputFrameTimeline={}&lookaheadDepth={}"
-        url = url.format(b1Str, b2Str, currStr, nextStr, level, lines, TIMELINE_30_HZ, depth)
+        url = url.format(b1Str, b2Str, currStr, nextStr, level, lines, TIMELINE_MAX_HZ, depth)
 
         #print("url 2 ", url)
         json = getJson(url)

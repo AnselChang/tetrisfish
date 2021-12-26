@@ -513,7 +513,7 @@ def analyze(positionDatabase, hzInt):
             c.screen.blit(text, [2100,787] )
 
         # Display hz
-        c.screen.blit(c.font.render("({} Hz)".format(hzInt), True, WHITE), [1785, 88])
+        c.screen.blit(c.font.render("Top Placements ({} Hz {})".format(hzInt, "PAL" if c.isPAL else "NTSC"), True, WHITE), [1440, 88])
 
         # Display loading... if possible placements have not been loaded
         if not analysisBoard.position.hasPossible():

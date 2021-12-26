@@ -37,6 +37,8 @@ numEvalDone = 0
 isDepth3 = True
 isEvalDepth3 = False
 
+isPAL = False
+
 poolSize = 20
 hzString = None
 
@@ -100,8 +102,7 @@ realscreen = pygame.display.set_mode((REAL_WIDTH, REAL_HEIGHT), pygame.HWSURFACE
 #screen = realscreen.copy()
 #screen = pygame.Surface([1152, 685])
 screen = pygame.Surface([SCREEN_WIDTH, SCREEN_HEIGHT])
-pygame.display.set_caption('tetrisfish by Ansel, powered by StackRabbit')
-
+pygame.display.set_caption('tetrisfish (v{}) by Ansel, powered by StackRabbit'.format(version))
 
 # Get timestamp at frame
 def timestamp(frame):
