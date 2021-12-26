@@ -33,6 +33,13 @@ class Rect:
     def __str__(self):
         return str(self.to_array())
    
+    def __eq__(self, other):
+        if isinstance(other, Rect):
+            return (self.left == other.left and
+                   self.top == other.top and
+                   self.right == other.right and
+                   self.bottom == other.bottom)
+        return False
 
 def try_expand(arr, centre):
     arr = np.array(arr, copy=True)
@@ -79,8 +86,10 @@ def get_board(img):
     centre = (size[0]//2, size[1]//2) # y, x
     stencil = (int(size[0] * 563/1080.0), 
                int(size[1] * 675/1920.0))
+    right_third = (size[0]//2,
+                   int(size[1] * 0.75))
     
-    attempts = [centre, stencil]
+    attempts = [centre, stencil, right_third]
     results = []
     # check each attempt, removing them if the field is way too small or big.
     for attempt in attempts:
@@ -93,6 +102,8 @@ def get_board(img):
            result.height < 0.3 * size[0]):
             print ("field too tall or short, skipping")
             continue
+        if result in results:
+            continue # duplicate result
         results.append(result)
     
     if len(results) == 0:
@@ -112,7 +123,7 @@ def get_board(img):
 
 def adjust_board_result(rect):
     nes_pix_x = rect.width / float(NES_PIXELS_BOARD_WIDTH)
-    nes_pix_y = rect.height / float(NES_PIXELS_BOARD_HEIGHT)    
+    nes_pix_y = rect.height / float(NES_PIXELS_BOARD_HEIGHT)
     rect.right = int(rect.right + nes_pix_x*1)
     rect.bottom = int(rect.bottom + nes_pix_y*1)
     return rect
