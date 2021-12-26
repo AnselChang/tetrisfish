@@ -664,8 +664,9 @@ def callibrate():
             assert(type(frame) == np.ndarray)
 
         if buttons.get(B_AUTOCALIBRATE).clicked:
-            pixels = autofindfield.get_board(frame)
-            print("autocalibratepixels:",  pixels)
+            pixels = autofindfield.get_board(frame) #todo return multiple regions if possible
+            if pixels is None: #todo: tooltip
+                pixels = (0,0,c.VIDEO_WIDTH,c.VIDEO_HEIGHT)
             bounds = Bounds(False,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
             bounds.setScaled(pixels, (c.VIDEO_WIDTH, c.VIDEO_HEIGHT))
             if nextBounds != None:
