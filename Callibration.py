@@ -451,7 +451,7 @@ class Calibrator:
                     bound.displayBounds(c.screen, nparray = self.frame)
     
     def handle_bounds_click(self):
-        for item in [boundsManager, bounds, nextBounds]:
+        for item in [self.boundsManager, self.bounds, self.nextBounds]:
             if item is not None:
                 item.click(self.mouse_status.x,self.mouse_status.y)
         
@@ -603,8 +603,10 @@ class Calibrator:
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             self.mouse_status.start_press = True
+            self.handle_left_click_event()
         elif event.type == pygame.MOUSEBUTTONUP:
             self.mouse_status.end_press = True
+            self.handle_left_release_event()
         elif event.type == pygame.KEYDOWN:
             isTextBoxScroll = self.buttons.updateTextboxes(event.key)
             if isTextBoxScroll:
@@ -624,9 +626,7 @@ class Calibrator:
             if event.key == pygame.K_SPACE:
                 self.handle_space_release()
 
-    def handle_pygame_events(self):
-        key = None
-        enterKey = False        
+    def handle_pygame_events(self):        
         self.mouse_status.pre_update_event_loop()
         for event in pygame.event.get():
             self.handle_pygame_event(event)

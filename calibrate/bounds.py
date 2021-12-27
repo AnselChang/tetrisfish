@@ -197,7 +197,6 @@ class Bounds:
         
 
     def click(self, mx, my):
-
         if self.mouseOutOfBounds(mx ,my):
             return
         

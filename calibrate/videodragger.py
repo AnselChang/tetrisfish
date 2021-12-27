@@ -23,8 +23,8 @@ class VideoDragger:
             return
         if not self.active:
             return
-        config.VIDEO_X = self.mouse_status.x - self.dragX + self.startX
-        config.VIDEO_Y = self.mouse_status.y - self.dragY + self.startY
+        config.VIDEO_X = mouse_status.x - self.dragX + self.startX
+        config.VIDEO_Y = mouse_status.y - self.dragY + self.startY
     
     def stop(self):
         self.active = False

@@ -110,7 +110,7 @@ def get_board(img):
     # in multi layouts, we will have lots of black rectangles :)
     # discard any rectangles that are clearly too small
     results = list(filter(lambda x: x[0].area >= 0.94*max_area, results))
-    
+    results.sort(key=lambda x:x[0].area, reverse=True)
     # Convert rects to dumb tuples
     for result in results:
         result[0] = result[0].to_array()
