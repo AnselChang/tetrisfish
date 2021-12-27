@@ -111,19 +111,22 @@ def get_board(img):
     # discard any rectangles that are clearly too small
     results = list(filter(lambda x: x[0].area >= 0.94*max_area, results))
     
-    result = results[0] # get biggest item
-    result[0] = result[0].to_array()
+    # Convert rects to dumb tuples
+    for result in results:
+        result[0] = result[0].to_array()
     print("Time taken to ai find field:", time.time()-t)
     # we could instead return everything, so that
     # the user can pick the best one
-    return result # resulting rect and preview suggestion.
+    return results[0] # resulting rect and preview suggestion.
 
+"""
 def adjust_board_result(rect):
     nes_pix_x = rect.width / float(NES_PIXELS_BOARD_WIDTH)
     nes_pix_y = rect.height / float(NES_PIXELS_BOARD_HEIGHT)
     rect.right = int(rect.right + nes_pix_x*1)
     rect.bottom = int(rect.bottom + nes_pix_y*1)
     return rect
+"""
 
 def get_next_box(img, board_coord, suggested):
     """

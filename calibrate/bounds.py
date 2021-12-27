@@ -13,7 +13,11 @@ and right few pixels since they are black.
 
 import numpy as np
 import pygame
-from colors import PURE_BLUE, BRIGHT_BLUE, BRIGHT_RED, BRIGHT_GREEN  #todo: remove this dependency.
+from colors import (
+PURE_BLUE, BRIGHT_BLUE, BRIGHT_RED, BRIGHT_GREEN, COLOR_CYCLE
+)  #todo: remove this dependency.
+
+
 from TetrisUtility import clamp, distance #todo: remove this dependency
 from enum import Enum
 
@@ -130,13 +134,11 @@ class Bounds:
             self.setSubRect((0.01,0.0,0.99,0.993)) #todo, read from autolayout
             self.sub_rect_name = "field"
 
-        
+    
 
     def mouseNearDot(self, mx, my):
-        mx -= self.config.VIDEO_X
-        my -= self.config.VIDEO_Y
-        mx /= self.config.SCALAR
-        my /= self.config.SCALAR
+        mx, my = self.convert_to_video_px(mx,my)
+        
         return ((distance(mx,my,self.x1,self.y1) <= self.dragRadius*3) or 
                 (distance(mx,my,self.x2,self.y2) <= self.dragRadius*3) or 
                self.calibration_status != CalibrationStatus.ALREADY_SET or
@@ -158,11 +160,8 @@ class Bounds:
                 return False
 
         self.firstClick = False
-
-        mx -= self.config.VIDEO_X
-        my -= self.config.VIDEO_Y
-        mx /= self.config.SCALAR
-        my /= self.config.SCALAR
+        mx, my = self.convert_to_video_px(mx,my)
+        
         
         # should the corner circles be drawn bigger?
         # yes if we are hovering or we are up to that stage of calibration.
@@ -291,7 +290,17 @@ class Bounds:
         finalMinos = np.heaviside(averagedMinosInts - self.config.COLOR_CALLIBRATION, 1) # 1 means borderline case (x = COLOR_CALLIBRATION) still 1
 
         return finalMinos
-        
+    
+    def convert_to_video_px(self, mx, my):
+        mx -= self.config.VIDEO_X
+        my -= self.config.VIDEO_Y
+        mx /= self.config.SCALAR
+        my /= self.config.SCALAR
+        return mx, my
+
+    def in_bounds(self, mx, my):
+        mx,my = self.convert_to_video_px(mx,my)
+        return self.x1 <= mx <= self.x2 and self.y1 <= my <= self.y2
 
     # Draw the markings for detected minos.
     def displayBounds(self, surface, nparray = None, minos = None):
@@ -351,6 +360,29 @@ class Bounds:
         self.calibration_status = data["callibration"]
         self.sub_rect_name = data["sub_rect_name"]
         
-"""
+
 class BoundsPicker:
-"""
+    """
+    Class that displays and allows users to pick multiple bounds
+    """ 
+    def __init__(self, bounds_list, config):
+        self.bounds_list = bounds_list
+        for index, item in enumerate(bounds_list):
+            item[0].color = COLOR_CYCLE[index%len(COLOR_CYCLE)]
+        self.config = c
+    
+    def updateMouse(self, mx, my, pressDown, pressUp):
+        pass
+
+    def displayBounds(self, surface):
+        for item in self.bounds_list:
+            item[0].displayBounds(surface)
+
+    def click(self, mx, my):
+        for index, bound in bounds_list:
+            if bound[0].in_bounds(mx,my):
+                print("selected:", index)
+                break
+
+    def handle_keyboard(self):
+        pass

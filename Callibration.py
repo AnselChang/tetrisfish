@@ -328,6 +328,7 @@ def callibrate():
 
     bounds = None
     nextBounds = None
+    boundsManager = None
 
     minosMain = None # 2d array for main tetris board. 10x20
     minosNext = None # 2d array for lookahead. 8x4
@@ -398,7 +399,7 @@ def callibrate():
             assert(type(frame) == np.ndarray)
 
         if buttons.get(B_AUTOCALIBRATE).clicked:
-            pixels, suggested = autofindfield.get_board(frame) #todo return multiple regions if possible
+            pixels, suggested = autofindfield.get_board(frame) #todo return multiple regions if possible            
             board_pixels = pixels or (0,0,c.VIDEO_WIDTH,c.VIDEO_HEIGHT)
             bounds = Bounds(False, config=c)
             bounds.setRect(board_pixels)
@@ -502,12 +503,10 @@ def callibrate():
                                 buttons.get(B_LINES).value(), buttons.get(B_SCORE).value(), timelineNum[c.gamemode][hzNum]]
 
         elif click:
-            if bounds != None:
-                bounds.click(mx, my)
-            if nextBounds != None:
-                nextBounds.click(mx, my)
-            
-        
+            for item in [boundsManager, bounds, nextBounds]:
+                if item is not None:
+                    item.click(mx,my)
+
         if bounds is not None:
             delete = bounds.updateMouse(mx, my, startPress, click)
             if delete:
@@ -525,6 +524,9 @@ def callibrate():
                 x = nextBounds.displayBounds(c.screen, nparray = frame)
                 if isArray(x):
                     minosNext = x
+
+        if boundsManager is not None:
+            boundsManager.updateMouse(mx, my, startPress, click)
 
 
         if isPressed  and not mouseOutOfBounds(mx, my):
@@ -580,7 +582,7 @@ def callibrate():
 
         # Unpickle callibration settings and update to those settings
         if not bload.isAlt and bload.clicked:
-
+            
             data = pickle.load( open( "callibration_preset.p", "rb" ) )
 
             hzNum = data[0]
