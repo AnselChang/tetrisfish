@@ -11,7 +11,7 @@ class PreviewLayout:
     STANDARD=0 # NEXT text then preview
     PRECISE=1 # tightest bounding box possible
     NO_TEXT=2 # minos sames size as field; centred in a large box
-    HARDCODE=3
+    HARDCODE=3 # don't expand, just hardcode it.
     def __init__(self, name, nes_px_offset, nes_px_size, inner_box, preview_type):
         self.name = name
         self.nes_px_offset = nes_px_offset

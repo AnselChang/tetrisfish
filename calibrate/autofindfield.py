@@ -27,8 +27,9 @@ def try_expand(arr, centre):
     
     centre = centre[1], centre[0] # opencv uses x,y
     cv2.floodFill(arr, None, centre, newVal=red, loDiff=(5, 5, 5), upDiff=(5, 5, 5))
-    cv2.imshow('color image', arr) 
-    cv2.waitKey(0)
+
+    #cv2.imshow('color image', arr) 
+    #cv2.waitKey(0)
 
     red_px = np.where(np.all(arr == red, axis=-1))
     y_values = list(red_px[0])
@@ -109,7 +110,7 @@ def adjust_board_result(rect):
     nes_pix_x = rect.width / float(NES_PIXELS_BOARD_WIDTH)
     nes_pix_y = rect.height / float(NES_PIXELS_BOARD_HEIGHT)
     rect.right = int(rect.right + nes_pix_x*1)
-    rect.bottom = int(rect.bottom + nes_pix_y*1)    
+    rect.bottom = int(rect.bottom + nes_pix_y*1)
     return rect
 
 def get_next_box(img, board_coord, suggested):
