@@ -15,7 +15,7 @@ import AnalysisConstants as AC
 
 
 from TetrisUtility import *
-from Callibration import callibrate
+from Callibration import Calibrator
 from RenderVideo import render
 from Analysis import analyze
 import Evaluator
@@ -252,8 +252,8 @@ def main():
         if ".png" in filename or ".jpeg" in filename or ".jpg" in filename:
             print("Is image")
             c.isImage = True
-        
-        output = callibrate()
+        calibrator = Calibrator()
+        output = calibrator.callibrate()
         
         if output == None:
             return # exit if pygame screen closed. This also happens if it's an image an callibrate() directly calls analysis

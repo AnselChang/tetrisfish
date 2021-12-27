@@ -34,6 +34,12 @@ c.hydrantScale = hydrantScale
 def mouseOutOfBounds(mx, my):
     return mx < 0 or mx > c.X_MAX or my < 0 or my > c.Y_MAX
     
+class Calibrator:
+    def __init__(self):
+        pass
+
+    def callibrate(self):
+        callibrate()
 
 
 # Initiates user-callibrated tetris field. Returns currentFrame, bounds, nextBounds for rendering
