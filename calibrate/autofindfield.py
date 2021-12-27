@@ -96,28 +96,30 @@ def get_board(img):
            result.height < 0.35 * size[0]):
             print ("field too tall or short, skipping")
             continue
-        if result in results:
+        
+        if result in [r[0] for r in results]:
             continue # duplicate result
         results.append([result, attempt.preview])
     
     if len(results) == 0:
         print("AI could not find a board")
-        return (None, None)
+        return results
 
     results.sort(key=lambda x:x[0].area, reverse=True)
     
     max_area = results[0][0].area
     # in multi layouts, we will have lots of black rectangles :)
     # discard any rectangles that are clearly too small
-    results = list(filter(lambda x: x[0].area >= 0.94*max_area, results))
+    results = list(filter(lambda x: x[0].area >= 0.98*max_area, results))
     results.sort(key=lambda x:x[0].area, reverse=True)
     # Convert rects to dumb tuples
     for result in results:
         result[0] = result[0].to_array()
-    print("Time taken to ai find field:", time.time()-t)
+    print("Time taken to ai find fields:", time.time()-t)
     # we could instead return everything, so that
     # the user can pick the best one
-    return results[0] # resulting rect and preview suggestion.
+    print("final results:", results)
+    return results
 
 """
 def adjust_board_result(rect):
@@ -181,9 +183,9 @@ def get_next_box(img, board_coord, suggested):
             continue
         if rect.height * layout.inner_box_size[1] > 3*NES_BLOCK_PIXELS*nes_pixel_y:
             continue
-        if rect.width > 5*NES_BLOCK_PIXELS*nes_pixel_x:
+        if rect.width > 6*NES_BLOCK_PIXELS*nes_pixel_x:
             continue
-        if rect.height > 5*NES_BLOCK_PIXELS*nes_pixel_y:
+        if rect.height > 6*NES_BLOCK_PIXELS*nes_pixel_y:
             continue
         if rect in results:
             continue

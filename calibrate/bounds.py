@@ -63,6 +63,7 @@ class Bounds:
         self.dragMode = CalibrationStatus.ALREADY_SET
 
         self.notSet = True
+        self.doNotDisplay = True
 
         # cached list of calibration dots
         self.xrlist = None
@@ -76,16 +77,23 @@ class Bounds:
             self.color = PURE_BLUE
             self.horizontal = 8
             self.vertical = 4
-        else:
+        else:            
             self.color = BRIGHT_RED
             self.horizontal = self.config.NUM_HORIZONTAL_CELLS
             self.vertical = self.config.NUM_VERTICAL_CELLS
-
+        
+        self.setDotColor()
         self.sub_rect_name = None
         self.isMaxoutClub = False
         self._defineDimensions()
-            
+        
+        self.enable_drag = True
+        self.enable_click = True
 
+    def setDotColor(self, color_off=BRIGHT_RED,color_on=BRIGHT_GREEN):
+        self.dot_color_on = color_on
+        self.dot_color_off = color_off
+        
     def setRect(self, rect):
         """
         Sets the rectangles position in videospace pixels
@@ -149,8 +157,10 @@ class Bounds:
 
     # return True to delete
     def updateMouse(self, mx, my, pressDown, pressUp):
-
         self.doNotDisplay = self.notSet and self.mouseOutOfBounds(mx, my)
+        if not self.enable_drag: 
+            return
+
 
         if self.doNotDisplay:
             if pressUp and not self.firstClick:
@@ -197,6 +207,8 @@ class Bounds:
         
 
     def click(self, mx, my):
+        if not self.enable_click: 
+            return
         if self.mouseOutOfBounds(mx ,my):
             return
         
@@ -297,7 +309,7 @@ class Bounds:
         my /= self.config.SCALAR
         return mx, my
 
-    def in_bounds(self, mx, my):
+    def contains(self, mx, my):
         mx,my = self.convert_to_video_px(mx,my)
         return self.x1 <= mx <= self.x2 and self.y1 <= my <= self.y2
 
@@ -305,6 +317,7 @@ class Bounds:
     def displayBounds(self, surface, nparray = None, minos = None):
         
         if self.doNotDisplay:
+            print("not displaying :(")
             return None
 
         if type(minos) != np.ndarray:
@@ -339,7 +352,8 @@ class Bounds:
                 
                 x = int(self.xlist[j] * self.config.SCALAR + self.config.VIDEO_X)
                 y = int(self.ylist[i] * self.config.SCALAR + self.config.VIDEO_Y)
-                pygame.draw.circle(surface, BRIGHT_GREEN if exists else BRIGHT_RED, [x,y], (r+2) if exists else r, width = (0 if exists else 3))
+                color = self.dot_color_on if exists else self.dot_color_off
+                pygame.draw.circle(surface, color, [x,y], (r+2) if exists else r, width = (0 if exists else 3))
 
         return minos
 
@@ -359,28 +373,49 @@ class Bounds:
         self.calibration_status = data["callibration"]
         self.sub_rect_name = data["sub_rect_name"]
         
+    def disable_mouse_input(self):
+        self.enable_click = False
+        self.enable_drag = False
 
 class BoundsPicker:
     """
     Class that displays and allows users to pick multiple bounds
     """ 
-    def __init__(self, bounds_list, config):
-        self.bounds_list = bounds_list
-        for index, item in enumerate(bounds_list):
-            item[0].color = COLOR_CYCLE[index%len(COLOR_CYCLE)]
-        self.config = c
-    
-    def updateMouse(self, mx, my, pressDown, pressUp):
-        return
+    def __init__(self, board_list, config, on_pick, isNextBox):
+        self.boards = board_list #board + suggestion
+        self.bounds = []
+        self.config = config
+        self.on_pick = on_pick
+        
+        if len(board_list) == 1:
+            on_pick(board_list[0][0], board_list[0][1])
+            return
 
-    def displayBounds(self, surface):
-        for item in self.bounds_list:
-            item[0].displayBounds(surface)
+        
+        for index, item in enumerate(board_list):
+            print('constructing bounds')
+            board, _ = item
+            bound = Bounds(isNextBox, config)
+            bound.setRect(board)
+            bound.color = COLOR_CYCLE[index%len(COLOR_CYCLE)]
+            bound.disable_mouse_input()
+            bound.doNotDisplay = False
+            bound.setDotColor(bound.color,bound.color)
+            self.bounds.append(bound)
+
+
+    def updateMouse(self, mx, my, pressDown, pressUp):
+        return False
+
+    def displayBounds(self, surface, nparray=None, minos=None):
+        for item in self.bounds:
+            item.displayBounds(surface, nparray)
 
     def click(self, mx, my):
-        for index, bound in bounds_list:
-            if bound[0].in_bounds(mx,my):
-                print("selected:", index)
+        for index, bound in enumerate(self.bounds):
+            if bound.contains(mx,my):
+                board = self.boards[index] # result
+                self.on_pick(board[0],board[1])
                 break
 
     def handle_keyboard(self):

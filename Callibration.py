@@ -15,7 +15,7 @@ import Evaluator
 from Position import Position
 import Analysis
 from calibrate import autofindfield
-from calibrate.bounds import Bounds
+from calibrate.bounds import Bounds, BoundsPicker
 from calibrate.slider import HzSlider, Slider
 import calibrate.image_names as im_names
 from calibrate.mouse_status import MouseStatus
@@ -302,34 +302,54 @@ class Calibrator:
     def handle_auto_calibrate_button(self):
         if not self.get_button_clicked(ButtonIndices.AUTOCALIBRATE):
             return
-        #todo return multiple regions if possible
-        pixels, suggested = autofindfield.get_board(self.frame) 
-        board_pixels = pixels or (0,0,c.VIDEO_WIDTH,c.VIDEO_HEIGHT)
-        self.bounds = Bounds(False, config=c)
-        self.bounds.setRect(board_pixels)
-        if pixels: # successfully found board
-            pixels, preview_layout = autofindfield.get_next_box(self.frame, pixels, suggested)
-            if pixels is not None:
-                self.nextBounds = Bounds(True, config=c)
-                self.nextBounds.setRect(pixels)
-                self.nextBounds.setSubRect(preview_layout.inner_box)
-                self.nextBounds.sub_rect_name = preview_layout.name
-        for bounds in [self.nextBounds, self.bounds]:
-            if bounds is not None:
-                bounds.set()
+        
+        boards = autofindfield.get_board(self.frame)
+        self.bounds = None
+        self.nextBounds = None
+        self.boundsManager = None
+
+        if len(boards) == 0: #fail.
+            print("no boards...")
+            pixels = (0,0,c.VIDEO_WIDTH,c.VIDEO_HEIGHT)
+            self.bounds = Bounds(False,config=c)
+            self.bounds.setRect(pixels)
+        else:
+            self.nextBounds = None
+            self.bounds = None
+            self.boundsManager = BoundsPicker(boards, c, self.handle_auto_board_selected, False)
             
+        
+    def handle_auto_board_selected(self, board, suggested):
+        """
+        Called when the board_picker finds a suitable bound
+        """
+        self.boundsManager = None        
+        self.bounds = Bounds(False, config=c)
+        self.bounds.setRect(board)
+        self.bounds.set()
+        
+        pixels, preview_layout = autofindfield.get_next_box(self.frame, board, suggested)
+        if pixels is not None:
+            self.nextBounds = Bounds(True, config=c)
+            self.nextBounds.setRect(pixels)
+            self.nextBounds.setSubRect(preview_layout.inner_box)
+            self.nextBounds.sub_rect_name = preview_layout.name
+        
+        
     def handle_calibrate_field_button(self):
         if self.get_button_clicked(ButtonIndices.CALLIBRATE):
             self.bounds = Bounds(False, config=c)
             if self.nextBounds is not None:
                 self.nextBounds.set()
+            self.boundsManager = None
     
     def handle_calibrate_next_button(self):
         if self.get_button_clicked(ButtonIndices.NEXTBOX):
             self.nextBounds = Bounds(True, config=c)
             if self.bounds is not None:
                 self.bounds.set()
-    
+            self.boundsManager = None
+
     def handle_check_button(self):
         b = self.buttons.get(ButtonIndices.CHECK)
         if b.clicked:
@@ -441,7 +461,7 @@ class Calibrator:
     def update_bounds(self):
         for bound, deassign in [(self.bounds, self.clear_bounds),
                                 (self.nextBounds, self.clear_nextBounds),
-                                (self.boundsManager,self.clear_boundsManager)]:
+                                (self.boundsManager, self.clear_boundsManager)]:
         
             if bound is not None:
                 delete = bound.updateMouse(*self.mouse_status.bounds_handler())
@@ -466,8 +486,8 @@ class Calibrator:
         if not self.mouse_status.out_of_bounds():
             b = (self.bounds is None or not self.bounds.mouseNearDot(mx, my))
             nb = (self.nextBounds is None or not self.nextBounds.mouseNearDot(mx, my))
-                
-            if b and nb:
+            bm = (self.boundsManager is None)
+            if b and nb and bm:
                 self.video_dragger.start(mx,my,c.VIDEO_X,c.VIDEO_Y)
                    
     def handle_left_click_event(self):
