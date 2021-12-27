@@ -18,7 +18,7 @@ from calibrate import autofindfield
 from calibrate.bounds import Bounds
 from calibrate.slider import HzSlider, Slider
 import calibrate.image_names as im_names
-import calibrate.mouse_status as mouse_status
+from calibrate.mouse_status import MouseStatus
 from calibrate.error_msg import ErrorMessage
 from calibrate.videodragger import VideoDragger
 from enum import Enum
@@ -29,19 +29,19 @@ images = loadImages(c.fp("Images/Callibration/{}.png"), im_names.CALLIBRATION_IM
 
 # Image stuff
 #background = images[im_names.C_BACKDROP]
-background = [None] * 2
-background[c.NTSC] = pygame.transform.smoothscale(images[im_names.C_NTSC], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
-background[c.PAL] = pygame.transform.smoothscale(images[im_names.C_PAL], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
+BACKGROUND_IMAGE = [None] * 2
+BACKGROUND_IMAGE[c.NTSC] = pygame.transform.smoothscale(images[im_names.C_NTSC], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
+BACKGROUND_IMAGE[c.PAL] = pygame.transform.smoothscale(images[im_names.C_PAL], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
 
               
  # Hydrant-to-Primer scaling factor
-hydrantScale = c.SCREEN_WIDTH / images[im_names.C_NTSC].get_width()
-c.hydrantScale = hydrantScale
+HYDRANT_SCALE = c.SCREEN_WIDTH / images[im_names.C_NTSC].get_width()
+c.hydrantScale = HYDRANT_SCALE
 
 
 
 # Mapping of keys to how many frames to seek
-keyshift = {pygame.K_COMMA : -1, pygame.K_PERIOD : 1, pygame.K_LEFT : -20, pygame. K_RIGHT : 20}
+SCRUB_KEYSHIFT = {pygame.K_COMMA : -1, pygame.K_PERIOD : 1, pygame.K_LEFT : -20, pygame. K_RIGHT : 20}
 
 class ButtonIndices(Enum):
     CALLIBRATE = 0
@@ -85,7 +85,9 @@ class Calibrator:
         self.frame = None
         self.vidFrame = [0] * 3
 
-
+        self.init_image()
+        self.init_buttons()
+        self.init_sliders()
 
         # video slider.  todo: move into class
         self.LEFT_FRAME = 0
@@ -104,21 +106,12 @@ class Calibrator:
         self.video_dragger = VideoDragger()
         self.mouse_status = MouseStatus()
     
-        self.init_image()
-        self.init_buttons()
-        self.init_sliders()
-        # Get new frame from opencv
-        if not c.isImage:
-            self.frame = c.goToFrame(self.vcap, 0)[0]
-            b = buttons.get(B_PLAY)
-
         
-    
     def callibrate(self):
         while True:
             c.realscreen.fill([38,38,38])
             # draw backgound
-            c.screen.blit(self.background[c.gamemode],[0,0])
+            c.screen.blit(BACKGROUND_IMAGE[c.gamemode],[0,0])
 
             surf = c.displayTetrisImage(self.frame)
             self.mouse_status.start_frame_update()
@@ -174,26 +167,26 @@ class Calibrator:
     
     def init_buttons(self):
         buttons = PygameButton.ButtonHandler()
-        buttons.addImage(ButtonIndices.AUTOCALIBRATE, images[im_names.C_ABOARD], 1724, 380, hydrantScale, img2= images[im_names.C_ABOARD2],
+        buttons.addImage(ButtonIndices.AUTOCALIBRATE, images[im_names.C_ABOARD], 1724, 380, HYDRANT_SCALE, img2= images[im_names.C_ABOARD2],
                          tooltip = ["Uses AI to try to find your board and next box.", 
                                     "Currently only works for centered or Stencil™ boards;",
                                     "But will expand over time to be more AI"])
 
-        buttons.addImage(ButtonIndices.CALLIBRATE, images[im_names.C_BOARD], 1724, 600, hydrantScale, img2 = images[im_names.C_BOARD2],
+        buttons.addImage(ButtonIndices.CALLIBRATE, images[im_names.C_BOARD], 1724, 600, HYDRANT_SCALE, img2 = images[im_names.C_BOARD2],
                          tooltip = ["Set the bounds for the tetris board. One dot",
                                     "should be centered along each mino."])
-        buttons.addImage(ButtonIndices.NEXTBOX, images[im_names.C_NEXT], 2100, 600, hydrantScale, img2 = images[im_names.C_NEXT2],
+        buttons.addImage(ButtonIndices.NEXTBOX, images[im_names.C_NEXT], 2100, 600, HYDRANT_SCALE, img2 = images[im_names.C_NEXT2],
                          tooltip = ["Set the bounds across the active area of the entire",
                                     "next box. Make sure four dots are symmetrically placed",
                                     "along each mino. Press 'T' for a MaxoutClub layout"])
         if not c.isImage:
-            buttons.addImage(ButtonIndices.PLAY, images[im_names.C_PLAY], 134,1377, hydrantScale, img2 = images[im_names.C_PLAY2], alt = images[im_names.C_PAUSE],
+            buttons.addImage(ButtonIndices.PLAY, images[im_names.C_PLAY], 134,1377, HYDRANT_SCALE, img2 = images[im_names.C_PLAY2], alt = images[im_names.C_PAUSE],
                              alt2 = images[im_names.C_PAUSE2], tooltip = ["Shortcuts: , and . to move back or forward a frame", "Arrow keys to skip behind or ahead",
                                                                  "Spacebar to toggle between starting and ending frame"])
-            buttons.addImage(ButtonIndices.LEFT, images[im_names.C_PREVF], 45, 1377, hydrantScale, img2 = images[im_names.C_PREVF2])
-            buttons.addImage(ButtonIndices.RIGHT, images[im_names.C_NEXTF], 207, 1377, hydrantScale, img2 = images[im_names.C_NEXTF2])
+            buttons.addImage(ButtonIndices.LEFT, images[im_names.C_PREVF], 45, 1377, HYDRANT_SCALE, img2 = images[im_names.C_PREVF2])
+            buttons.addImage(ButtonIndices.RIGHT, images[im_names.C_NEXTF], 207, 1377, HYDRANT_SCALE, img2 = images[im_names.C_NEXTF2])
     
-        buttons.addImage(ButtonIndices.RENDER, images[im_names.C_RENDER], 1862, 1203, hydrantScale, img2 = images[im_names.C_RENDER2], tooltip = ["Shortcut: Enter key"])
+        buttons.addImage(ButtonIndices.RENDER, images[im_names.C_RENDER], 1862, 1203, HYDRANT_SCALE, img2 = images[im_names.C_RENDER2], tooltip = ["Shortcut: Enter key"])
 
 
         c1dark = images[im_names.C_CHECKMARK].copy().convert_alpha()
@@ -253,15 +246,15 @@ class Calibrator:
         SW2 = 922
         LEFT_X2 = 497
         Y = 1377
-        self.leftVideoSlider = Slider(LEFT_X2, Y, SW2, 0, scaleImage(images[im_names.C_LVIDEO],hydrantScale), scaleImage(images[im_names.C_LVIDEO2],hydrantScale),
-                                    scaleImage(images[im_names.C_LVIDEORED], hydrantScale), scaleImage(images[im_names.C_LVIDEORED2], hydrantScale), margin = 10)
-        self.rightVideoSlider = Slider(LEFT_X2, Y, SW2, 1, scaleImage(images[im_names.C_RVIDEO],hydrantScale), scaleImage(images[im_names.C_RVIDEO2],hydrantScale),
-                                    scaleImage(images[im_names.C_RVIDEORED], hydrantScale), scaleImage(images[im_names.C_RVIDEORED2], hydrantScale), margin = 10)
+        self.leftVideoSlider = Slider(LEFT_X2, Y, SW2, 0, scaleImage(images[im_names.C_LVIDEO],HYDRANT_SCALE), scaleImage(images[im_names.C_LVIDEO2],HYDRANT_SCALE),
+                                    scaleImage(images[im_names.C_LVIDEORED], HYDRANT_SCALE), scaleImage(images[im_names.C_LVIDEORED2], HYDRANT_SCALE), margin = 10)
+        self.rightVideoSlider = Slider(LEFT_X2, Y, SW2, 1, scaleImage(images[im_names.C_RVIDEO],HYDRANT_SCALE), scaleImage(images[im_names.C_RVIDEO2],HYDRANT_SCALE),
+                                    scaleImage(images[im_names.C_RVIDEORED], HYDRANT_SCALE), scaleImage(images[im_names.C_RVIDEORED2], HYDRANT_SCALE), margin = 10)
 
 
 
-        self.segmentred = scaleImage(images[im_names.C_SEGMENT], hydrantScale)
-        self.segmentgrey = scaleImage(images[im_names.C_SEGMENTGREY], hydrantScale)
+        self.segmentred = scaleImage(images[im_names.C_SEGMENT], HYDRANT_SCALE)
+        self.segmentgrey = scaleImage(images[im_names.C_SEGMENTGREY], HYDRANT_SCALE)
     
     def set_zoom_automatically(self):
         # init zoom to show full image:
@@ -273,8 +266,7 @@ class Calibrator:
     
     def handle_video_buttons(self):
         if not c.isImage:
-            self.handle_play_button()
-            self.track_video() #todo: move to event loop
+            self.handle_play_button()            
             self.handle_video_left_arrow()
             self.handle_video_right_arrow()
 
@@ -285,24 +277,25 @@ class Calibrator:
             b.isAlt = not b.isAlt
     
     def track_video(self, key):
+        """called from event loop when they 
+           press one of the valid keys in keyshift"""
         b = self.buttons.get(ButtonIndices.PLAY)
-        if key is not None:
-            b.isAlt = False
-            self.frame, self.vidFrame[currentEnd] = c.goToFrame(self.vcap, self.vidFrame[currentEnd] + self.keyshift[key])
-            assert(type(self.frame) == np.ndarray)
+        b.isAlt = False
+        self.frame, self.vidFrame[self.currentEnd] = c.goToFrame(self.vcap, self.vidFrame[self.currentEnd] + SCRUB_KEYSHIFT[key])
+        assert(type(self.frame) == np.ndarray)
     
     def handle_video_right_arrow(self):
         b = self.buttons.get(ButtonIndices.PLAY)
-        if (b.isAlt or self.buttons.get(ButtonIndices.RIGHT).clicked and self.vidFrame[currentEnd] < c.totalFrames - 100):
+        if (b.isAlt or self.get_button_clicked(ButtonIndices.RIGHT) and self.vidFrame[self.currentEnd] < c.totalFrames - 100):
             seekDistance = 2 if b.isAlt else 1
-            self.frame, self.vidFrame[currentEnd] = c.goToFrame(self.vcap, self.vidFrame[currentEnd] + seekDistance)
+            self.frame, self.vidFrame[self.currentEnd] = c.goToFrame(self.vcap, self.vidFrame[self.currentEnd] + seekDistance)
             assert(type(self.frame) == np.ndarray)
 
     def handle_video_left_arrow(self):
-        if buttons.get(ButtonIndices.LEFT).clicked and vidFrame[currentEnd] > 0:
+        if self.get_button_clicked(ButtonIndices.LEFT) and self.vidFrame[self.currentEnd] > 0:
             # load previous frame
-            self.frame, self.vidFrame[currentEnd] = c.goToFrame(self.vcap, self.vidFrame[currentEnd] - 1)
-            assert(type(frame) == np.ndarray)
+            self.frame, self.vidFrame[self.currentEnd] = c.goToFrame(self.vcap, self.vidFrame[self.currentEnd] - 1)
+            assert(type(self.frame) == np.ndarray)
 
     def handle_calibrate_buttons(self):
         self.handle_auto_calibrate_button()
@@ -310,7 +303,7 @@ class Calibrator:
         self.handle_calibrate_next_button()
 
     def handle_auto_calibrate_button(self):
-        if not self.buttons.get(ButtonIndices.AUTOCALIBRATE).clicked:
+        if not self.get_button_clicked(ButtonIndices.AUTOCALIBRATE):
             return
         #todo return multiple regions if possible
         pixels, suggested = autofindfield.get_board(self.frame) 
@@ -329,13 +322,13 @@ class Calibrator:
                 bounds.set()
             
     def handle_calibrate_field_button(self):
-        if self.buttons.get(ButtonIndices.CALLIBRATE).clicked:
+        if self.get_button_clicked(ButtonIndices.CALLIBRATE):
             self.bounds = Bounds(False, config=c)
             if self.nextBounds is not None:
                 self.nextBounds.set()
     
     def handle_calibrate_next_button(self):
-        if self.buttons.get(ButtonIndices.NEXTBOX).clicked:
+        if self.get_button_clicked(ButtonIndices.NEXTBOX):
             self.nextBounds = Bounds(True, config=c)
             if self.bounds is not None:
                 self.bounds.set()
@@ -361,7 +354,7 @@ class Calibrator:
                 return False
         return True
 
-    def handle_render_button(self, force): #force == enter key
+    def handle_render_button(self, force=False): #force == enter key
         """
         Returns None (error), 
         [] for image, and 
@@ -426,7 +419,7 @@ class Calibrator:
             # Exit callibration, initiate rendering with returned
             # parameters
             print("Hz num: ", PieceMasks.timelineNum[c.gamemode][self.hzNum])
-            c.hzString = PieceMasks.timeline[hzNum][c.gamemode]
+            c.hzString = PieceMasks.timeline[self.hzNum][c.gamemode]
             return [self.vidFrame[self.LEFT_FRAME], self.vidFrame[self.RIGHT_FRAME], 
                     self.bounds, self.nextBounds, 
                     self.get_button_value(ButtonIndices.LEVEL),
@@ -437,7 +430,10 @@ class Calibrator:
     
     def get_button_value(self, index):
         return self.buttons.get(index).value()
-    
+
+    def get_button_clicked(self, index):
+        return self.buttons.get(index).clicked
+
     def clear_bounds(self):
         self.bounds = None
     def clear_nextBounds(self):
@@ -451,7 +447,7 @@ class Calibrator:
                                 (self.boundsManager,self.clear_boundsManager)]:
         
             if bound is not None:
-                delete = bounds.updateMouse(*self.mouse_status.bounds_handler())
+                delete = bound.updateMouse(*self.mouse_status.bounds_handler())
                 if delete:
                     deassign()
                 else:
@@ -463,7 +459,7 @@ class Calibrator:
                 item.click(self.mouse_status.x,self.mouse_status.y)
         
     def update_video_drag(self):
-        self.video_dragger.update(self.mouse_status)
+        self.video_dragger.update(self.mouse_status, c)
         
     def handle_video_drag_click(self):
         """
@@ -489,7 +485,7 @@ class Calibrator:
     def handle_save_button(self):
         # Pickle callibration settings into file
         # Save hz, bounds, nextBounds, color callibration, zoom
-        if self.buttons.get(ButtonIndices.SAVE).clicked:
+        if self.get_button_clicked(ButtonIndices.SAVE):
 
             # tetris board
             if self.bounds == None:
@@ -503,7 +499,7 @@ class Calibrator:
             else:
                 nData = self.nextBounds.to_json()
 
-            data = [hzNum, bData, nData, c.COLOR_CALLIBRATION, c.SCALAR]
+            data = [self.hzNum, bData, nData, c.COLOR_CALLIBRATION, c.SCALAR]
             pickle.dump(data, open("callibration_preset.p", "wb"))
 
             print("Saved preset", data)
@@ -523,9 +519,9 @@ class Calibrator:
         c.COLOR_CALLIBRATION = data[3]
         c.SCALAR = data[4]
 
-        colorSlider.overwrite(c.COLOR_CALLIBRATION / COLOR_CALIB_CONST)
-        zoomSlider.overwrite(c.SCALAR / 4)
-        hzSlider.overwrite(self.hzNum)
+        self.colorSlider.overwrite(c.COLOR_CALLIBRATION / COLOR_CALIB_CONST)
+        self.zoomSlider.overwrite(c.SCALAR / 4)
+        self.hzSlider.overwrite(self.hzNum)
 
             
         if data[1] is None:
@@ -544,11 +540,11 @@ class Calibrator:
         self.error = ErrorMessage("Callibration preset loaded.", WHITE)
 
     def render_sliders(self):
-        slider_args = self.mouse_status.slider_arguments()
+        slider_args = self.mouse_status.slider_handler()
         # Draw sliders
         c.COLOR_CALLIBRATION = COLOR_CALIB_CONST * self.colorSlider.tick(c.screen, c.COLOR_CALLIBRATION / COLOR_CALIB_CONST, *slider_args)
         c.SCALAR = max(0.1,4 * self.zoomSlider.tick(c.screen, c.SCALAR / 4, *slider_args))
-        self.hzNum = hzSlider.tick(c.screen, hzNum, *slider_args)
+        self.hzNum = self.hzSlider.tick(c.screen, self.hzNum, *slider_args)
         c.screen.blit(c.font.render(str(int(c.COLOR_CALLIBRATION)), True, WHITE), [1650, 900])
         
 
@@ -557,7 +553,7 @@ class Calibrator:
             slider_args = slider_args + [True]
             self.vidFrame[self.RIGHT_FRAME] = self.rightVideoSlider.tick(c.screen, self.vidFrame[self.RIGHT_FRAME] / (c.totalFrames - 1), *slider_args)
             self.vidFrame[self.RIGHT_FRAME] = clamp(int(self.vidFrame[self.RIGHT_FRAME] * c.totalFrames), 0, c.totalFrames - 100)
-            slider_args = [slider_args[0] and not rightVideoSlider.active] + slider_args[1:]
+            slider_args = [slider_args[0] and not self.rightVideoSlider.active] + slider_args[1:]
             self.vidFrame[self.LEFT_FRAME] = self.leftVideoSlider.tick(c.screen, self.vidFrame[self.LEFT_FRAME] / (c.totalFrames - 1), *slider_args)
             self.vidFrame[self.LEFT_FRAME] = clamp(int(self.vidFrame[self.LEFT_FRAME] * c.totalFrames),0,c.totalFrames - 100)
 
@@ -586,7 +582,7 @@ class Calibrator:
         inVideoSlider = (mx > LEFT_X2 - 20 and mx < LEFT_X2 + SW2 + 20 and my > Y - 30 and my < Y + 60)
         # calculate whether we are active.
 
-        if not self.leftVideoSlider.active and not rightVideoSlider.active and inVideoSlider and not c.isImage:
+        if not self.leftVideoSlider.active and not self.rightVideoSlider.active and inVideoSlider and not c.isImage:
             if self.mouse_status.left_pressed:
                 self.segmentActive = True
                 self.rightVideoSlider.setAlt(False)
@@ -594,11 +590,11 @@ class Calibrator:
                 self.currentEnd = self.SEGMENT_FRAME
                 self.vidFrame[self.SEGMENT_FRAME] = clamp((c.totalFrames) * (mx - LEFT_X2) / SW2, 0, c.totalFrames - 100)
                 self.frame, self.vidFrame[self.currentEnd] = c.goToFrame(self.vcap, self.vidFrame[self.currentEnd])
-            elif not leftVideoSlider.isHovering(mx,my) and not rightVideoSlider.isHovering(mx,my):
+            elif not self.leftVideoSlider.isHovering(mx,my) and not self.rightVideoSlider.isHovering(mx,my):
                 c.screen.blit(self.segmentgrey, [mx - 10, Y])
 
         if self.segmentActive:
-            c.screen.blit(segmentred, [LEFT_X2 - 5 + SW2 * self.vidFrame[self.SEGMENT_FRAME] / (c.totalFrames - 1) , Y])
+            c.screen.blit(self.segmentred, [LEFT_X2 - 5 + SW2 * self.vidFrame[self.SEGMENT_FRAME] / (c.totalFrames - 1) , Y])
 
     def handle_space_release(self):
         """changes current end point of video"""
@@ -617,23 +613,24 @@ class Calibrator:
             self.segmentActive = False
         self.frame, self.vidFrame[self.currentEnd] = c.goToFrame(self.vcap, self.vidFrame[self.currentEnd])
 
-        assert(type(frame) == np.ndarray)
+        assert(type(self.frame) == np.ndarray)
 
     def render_error(self):
         # Draw error message
         if self.error is not None:
-            if error.expired():
-                error = None
+            if self.error.expired():
+                self.error = None
             else:
-                text = c.font2.render(error.text, True, error.color)
+                text = c.font2.render(self.error.text, True, self.error.color)
                 c.screen.blit(text, [1670,1380])
+
     def render_text(self):
         # Draw timestamp
         if c.isImage:
             text = c.font.render("[No video controls]", True, WHITE)
             c.screen.blit(text, [80, 1373])
         else:
-            text = c.font.render(c.timestamp(vidFrame[currentEnd]), True, WHITE)
+            text = c.font.render(c.timestamp(self.vidFrame[self.currentEnd]), True, WHITE)
             c.screen.blit(text, [300, 1383])
 
         # Draw Level/Lines/Score text

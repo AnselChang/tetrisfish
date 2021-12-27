@@ -6,15 +6,15 @@ import config as c #todo: remove this dependency
 
 class MouseStatus:
     def __init__(self):
-        self.x = x
-        self.y = y
+        self.x = 0
+        self.y = 0
         self.left_pressed = False
         self.left_release = False
         self.start_press = False #whether we just mouse-downed 
         self.end_press = False #whether we just mouse-up'ed
 
     def slider_handler(self):
-        return (self.start_press, self.left_pressed, self.x, self.y)
+        return [self.start_press, self.left_pressed, self.x, self.y]
 
     def bounds_handler(self):
         return (self.x, self.y, self.start_press, self.end_press)
@@ -35,6 +35,6 @@ class MouseStatus:
         self.end_press = False
         self.start_press = False
 
-    def mouseOutOfBounds(self):
+    def out_of_bounds(self):
         return not (0 <= self.x <= c.X_MAX and
                     0 <= self.y <= c.Y_MAX)

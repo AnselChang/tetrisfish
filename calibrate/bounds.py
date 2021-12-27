@@ -372,7 +372,7 @@ class BoundsPicker:
         self.config = c
     
     def updateMouse(self, mx, my, pressDown, pressUp):
-        pass
+        return
 
     def displayBounds(self, surface):
         for item in self.bounds_list:
