@@ -106,7 +106,7 @@ def calculateSummary(positionDatabase):
 
         e = min(120,max(BLUNDER_THRESHOLD, p.playerFinal - p.bestFinal)) # limit difference to -50, rather rapid max 120
 
-        if p.level >= 29:
+        if p.level >= 29 and c.gamemode == c.NTSC:
             ksNum += 1
             ksSum += e
         elif p.level >= 19 or p.level > pre:
@@ -161,9 +161,10 @@ def calculateSummary(positionDatabase):
     blitCenterText(summary, c.fontbold, "Post: ", WHITE, 180, s = 1)
     blitCenterText(summary, c.fontbold,  acc3T, AC.scoreToColor(acc3, False), 180, s = 0)
 
-    acc4T, acc4 = getAccuracy(ksNum, ksSum) 
-    blitCenterText(summary, c.fontbold, "KS: ", WHITE, 220, s = 1)
-    blitCenterText(summary, c.fontbold,  acc4T, AC.scoreToColor(acc4, True), 220, s = 0)
+    if c.gamemode == c.NTSC:
+        acc4T, acc4 = getAccuracy(ksNum, ksSum) 
+        blitCenterText(summary, c.fontbold, "KS: ", WHITE, 220, s = 1)
+        blitCenterText(summary, c.fontbold,  acc4T, AC.scoreToColor(acc4, True), 220, s = 0)
 
     return keyPositions, gsummary, summary
     
@@ -181,6 +182,8 @@ def analyze(positionDatabase, hzInt):
 
     if not c.isDepth3:
         threading.Thread(target=handleAPIEvalCalls, args=(positionDatabase,)).start()
+    else:
+        c.doneEval = True
 
     print("startanalysis2")
 
@@ -322,10 +325,12 @@ def analyze(positionDatabase, hzInt):
         
         updateEvalCounter = (updateEvalCounter + 1) % 100
         if not c.doneEval and updateEvalCounter == 0:
+            print("update summary")
             keyPositions, gsummary, summary = calculateSummary(positionDatabase)
 
         # The first frame in which all calcuations for depth 3 eval are done. Then, update the stats and graph
         if c.doneEval and not updatedGraph:
+            print("updateGraph")
             
             updatedGraph = True
             
@@ -517,8 +522,7 @@ def analyze(positionDatabase, hzInt):
             c.screen.blit(text, [2100,787] )
 
         # Display hz
-        c.screen.blit(c.font.render("Top Placements ({} Hz {})".format(hzInt, "PAL" if c.isPAL else "NTSC"), True, WHITE), [1440, 88])
-
+        c.screen.blit(c.font.render("Analysis ({} Hz {})".format(hzInt, "PAL" if c.gamemode == c.PAL else "NTSC"), True, WHITE), [1440, 88])
         # Display loading... if possible placements have not been loaded
         if not analysisBoard.position.hasPossible():
             c.screen.blit(c.fontbold.render("Loading...", True, WHITE), [1590, 300])

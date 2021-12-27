@@ -16,7 +16,8 @@ import autofindfield
 PygameButton.init(c.font)
 
 
-C_BACKDROP = "Background"
+C_NTSC = "ntsc"
+C_PAL = "pal"
 C_ABOARD = "autocaliboard"
 C_ABOARD2 = "autocaliboard2"
 C_BOARD = "calliboard"
@@ -56,7 +57,7 @@ C_CHECKMARK = "checkmark"
 C_CHECKMARK2 = "checkmark2"
 
 
-CALLIBRATION_IMAGES = [C_BACKDROP, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2, C_SEGMENT, C_SEGMENTGREY, C_ABOARD, C_ABOARD2]
+CALLIBRATION_IMAGES = [C_NTSC, C_PAL, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2, C_SEGMENT, C_SEGMENTGREY, C_ABOARD, C_ABOARD2]
 CALLIBRATION_IMAGES.extend( [C_PREVF, C_PREVF2, C_NEXTF, C_NEXTF2, C_RENDER, C_RENDER2, C_SLIDER, C_SLIDER2, C_SLIDERF, C_SLIDER2F] )
 CALLIBRATION_IMAGES.extend([ C_LVIDEO, C_LVIDEO2, C_RVIDEO, C_RVIDEO2, C_SAVE, C_LOAD ])
 CALLIBRATION_IMAGES.extend([ C_LVIDEORED, C_LVIDEORED2, C_RVIDEORED, C_RVIDEORED2, C_CHECKMARK, C_CHECKMARK2 ])
@@ -68,9 +69,13 @@ images = loadImages(c.fp("Images/Callibration/{}.png"), CALLIBRATION_IMAGES)
 
 # Image stuff
 #background = images[C_BACKDROP]
-background = pygame.transform.smoothscale(images[C_BACKDROP], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
+background = [None]*2
+background[c.NTSC] = pygame.transform.smoothscale(images[C_NTSC], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
+background[c.PAL] = pygame.transform.smoothscale(images[C_PAL], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
+
+              
  # Hydrant-to-Primer scaling factor
-hydrantScale = background.get_width() / images[C_BACKDROP].get_width()
+hydrantScale = c.SCREEN_WIDTH / images[C_NTSC].get_width()
 c.hydrantScale = hydrantScale
 
 def mouseOutOfBounds(mx, my):
@@ -645,7 +650,7 @@ def callibrate():
         c.realscreen.fill([38,38,38])
 
         # draw backgound
-        c.screen.blit(background,[0,0])
+        c.screen.blit(background[c.gamemode],[0,0])
         #c.screen.blit(pygame.transform.smoothscale(background,[c.SCREEN_WIDTH, c.SCREEN_HEIGHT]), [0,0])
         surf = c.displayTetrisImage(frame)
 
@@ -711,15 +716,15 @@ def callibrate():
         elif buttons.get(B_PAL).clicked:
             b = buttons.get(B_PAL)
             b.isAlt = not b.isAlt
-            c.isPAL = b.isAlt
+            c.gamemode = c.PAL if b.isAlt else c.NTSC
 
         elif buttons.get(B_RENDER).clicked or enterKey:
 
             c.startLevel = buttons.get(B_LEVEL).value()
 
-            if c.isPAL and buttons.get(B_LEVEL).value() < 18:
+            if c.gamemode == c.PAL and not buttons.get(B_LEVEL).value() in [18,19]:
                 errorMsg = time.time()  # display error message by logging time to display for 3 seconds
-                errorText = "Only level 18 or higher is supported for PAL."
+                errorText = "Only level 18 and 19 are supported for PAL."
                 errorColor = RED
 
             # If not callibrated, do not allow render
@@ -760,10 +765,10 @@ def callibrate():
                         board -= mask # remove current piece from board to get pure board state
                         print2d(board)
                         nextPiece = getNextBox(minosNext)
-                        c.hzString = timeline[hzNum][PAL if c.isPAL else NTSC]
+                        c.hzString = timeline[hzNum][c.gamemode]
                         pos = Position(board, currPiece, nextPiece, level = buttons.get(B_LEVEL).value(),
                                        lines = buttons.get(B_LINES).value(), score = buttons.get(B_SCORE).value())
-                        analyze([pos], timelineNum[hzNum])
+                        analyze([pos], timelineNum[c.gamemode][hzNum])
 
                         return None
 
@@ -773,10 +778,10 @@ def callibrate():
                         vcap.release()
 
                         # Exit callibration, initiate rendering with returned parameters
-                        print("Hz num: ", timelineNum[hzNum])
-                        c.hzString = timeline[hzNum][PAL if c.isPAL else NTSC]
+                        print("Hz num: ", timelineNum[c.gamemode][hzNum])
+                        c.hzString = timeline[hzNum][c.gamemode]
                         return [vidFrame[LEFT_FRAME], vidFrame[RIGHT_FRAME], bounds, nextBounds, buttons.get(B_LEVEL).value(),
-                                buttons.get(B_LINES).value(), buttons.get(B_SCORE).value(), timelineNum[hzNum]]
+                                buttons.get(B_LINES).value(), buttons.get(B_SCORE).value(), timelineNum[c.gamemode][hzNum]]
 
         elif click:
             if bounds != None:

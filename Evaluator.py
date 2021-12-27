@@ -26,7 +26,7 @@ def getInfo(position):
 
     # API calls only work for 18/19/29 starts. Need to do manual conversion for lower starts.
     if c.startLevel >= 18 or position.level >= 29:
-        if c.isPAL:
+        if c.gamemode == c.PAL:
             level = 29 if position.level >= 19 else 19
             lines = 0
         else:
@@ -200,7 +200,7 @@ def makeAPICallEvaluation(b1Str, b2Str, currStr, nextStr, level, lines, x_and_do
         url = "https://stackrabbit.herokuapp.com/rate-move?board={}&secondBoard={}&currentPiece={}&nextPiece={}&level={}&lines={}&inputFrameTimeline={}&lookaheadDepth={}"
         url = url.format(b1Str, b2Str, currStr, nextStr, level, lines, TIMELINE_MAX_HZ, depth)
 
-        #print("url 2 ", url)
+        print("url 2 ", url)
         json = getJson(url)
         try:
             playerNNB, playerFinal = float(json['playerMoveNoAdjustment']), float(json['playerMoveAfterAdjustment'])

@@ -37,7 +37,9 @@ numEvalDone = 0
 isDepth3 = True
 isEvalDepth3 = False
 
-isPAL = False
+NTSC = 0
+PAL = 1
+gamemode = NTSC
 
 poolSize = 20
 hzString = None
