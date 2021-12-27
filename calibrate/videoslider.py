@@ -140,7 +140,7 @@ class VideoSlider:
         else:
             self.active_frame = ActiveSubSlider.LEFT
         self.rightSlider.setAlt(self.active_frame == ActiveSubSlider.RIGHT)
-        self.leftSlider.setAlt(False)
+        self.leftSlider.setAlt(self.active_frame == ActiveSubSlider.LEFT)
         
 
         return self.update_active_frame(self.get_active_frame_number())

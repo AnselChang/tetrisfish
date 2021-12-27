@@ -175,7 +175,8 @@ def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, pre
     # If it's a line clear, we want to find the first frame it starts, as the frame before that is the locking frame where we can get the final piece placement.
     #  Sometimes it's possible it can detect double line clear during the animation. This is way we make sure that there can't be two line clears in a row
     # (must wait until new piece spawns before looking for line clears again)
-    elif not wasLineClear and count <= stableCount - 2:
+    # Additionally, check that prevMinosMain actually had a filled line. if not, it's an interlacing false positive
+    elif not wasLineClear and count < stableCount and countFilledLines(prevMinosMain) > 0:
 
         # To check that it really is the start of the line clear, we go forward to the next DISTINCT (keep going to next frame until frame is different)
         # frame and make sure there is at least a 2+ mino decrease there as well
@@ -185,7 +186,7 @@ def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, pre
             return "Error, trying to get next distinct frame but none found"
 
         # This is now the new distinct frame. If this frame has also 2+ decreasing number of minos, then it's confirmed to be a line clear.
-        if np.count_nonzero(minos) <= stableCount - 4:
+        if np.count_nonzero(minos) < count:
             # The frame before the start of of the line clear is the locking frame. We use this to get final piece placement.
             #print("line clear")
             #print2d(prevMinosMain)
@@ -237,8 +238,9 @@ def displayGraphics(positionDatabase, firstFrame, lastFrame):
                 "Special thanks to:",
                 "Gregory Cannon (StackRabbit)",
                 "HydrantDude (UI Design and bugtesting)",
+                "Xeal (Auto-callibration and major refactoring)",
                 "Xenophilius (Advising and logo)",
-                "Grzechooo (Prolific bugfixing)",
+                "Grzechooo (Bugfixing and windows/linux releases)",
                 "TegaMech (Analysis fine-tuning)",
                 "...and many beta testers that made this possible!"]
 
@@ -296,7 +298,7 @@ def displayGraphics(positionDatabase, firstFrame, lastFrame):
 
         # Draw text for special thanks
         x = c.screen.get_width() / 2
-        y = 1060
+        y = 1040
         color = [200,200,200]
         for line in text:
            blitCenterText(c.screen, c.font, line, color, y, cx = x)

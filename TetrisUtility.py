@@ -181,6 +181,10 @@ def getNextBox(array):
     else:
         return bestPiece
 
+
+def countFilledLines(array):
+    return len(np.where(array.all(axis=1))[0])
+
 # Return a new array that computes line clears of given one
 #  https://stackoverflow.com/questions/23726026/finding-which-rows-have-all-elements-as-zeros-in-a-matrix-with-numpy
 def lineClear(array):

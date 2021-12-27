@@ -487,8 +487,7 @@ class Calibrator:
         if not self.mouse_status.out_of_bounds():
             b = (self.bounds is None or not self.bounds.mouseNearDot(mx, my))
             nb = (self.nextBounds is None or not self.nextBounds.mouseNearDot(mx, my))
-            bm = (self.boundsManager is None)
-            if b and nb and bm:
+            if b and nb:
                 self.video_dragger.start(mx,my,c.VIDEO_X,c.VIDEO_Y)
                    
     def handle_left_click_event(self):
@@ -579,7 +578,7 @@ class Calibrator:
         """swaps the active videoSlider subcomponent"""
         if c.isImage:
             return
-        frame = self.video_slider.toggle_active_slider()
+        frame = self.video_slider.toggle_active_frame()
         if frame is not None:
             self.frame = frame
 

@@ -148,8 +148,14 @@ def calculateSummary(positionDatabase):
     # Generate  summary surface
     summary = pygame.Surface([300,400], pygame.SRCALPHA)
     blitCenterText(summary, c.font, "Accuracy", WHITE, 14)
-    
-    accT, acc = getAccuracy(preNum+postNum, preSum+postSum, overall = True)
+
+    if positionDatabase[0].level == 29:
+        num = ksNum
+        summ = ksSum
+    else:
+        num = preNum+postNum
+        summ = preSum+postSum
+    accT, acc = getAccuracy(num, summ, overall = True)
     blitCenterText(summary, c.fontbigbold, accT, AC.scoreToColor(acc, False), 50)
 
     acc2T, acc2 = getAccuracy(preNum, preSum)
