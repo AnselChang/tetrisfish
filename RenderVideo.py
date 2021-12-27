@@ -52,7 +52,7 @@ def getNextBoxResilient(vcap, nextBounds):
         # we check if piece is detected in next box from both frames
         for frame in [frame2,frame1]:
             nextPiece = getNextBox(nextBounds.getMinos(frame))
-            if nextPiece != None:
+            if nextPiece is not None:
                 c.COLOR_CALLIBRATION = temp
                 return nextPiece
 
@@ -139,7 +139,7 @@ def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, pre
         # If currentP == None (no piece found), it's a false positive. This could be due to piece not fully shown yet, or interlacing
 
         # Otherwise, we have a new position
-        if currentP != None:
+        if currentP is not None:
 
             board = minosMain - currentMask # To get the board at this position, we simply remove "extract" the piecemask of the current piece
             #print("piece spawn")
@@ -377,7 +377,7 @@ def doRender(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
         # Possibly update positionDatabase given the current frame.
         error = parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, prevMinosMain)
 
-        if error != None:
+        if error is not None:
             print(error)
             if True or frameCount - firstFrame >= (lastFrame - firstFrame) * 0.5:
                 print("Render failure, but analyzing working portion")

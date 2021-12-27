@@ -210,17 +210,17 @@ class AnalysisBoard:
         print("__________")
         pos = self.positionDatabase[self.positionNum]
         pos.print()
-        while (pos.next != None):
+        while (pos.next is not None):
             pos.print()
             pos = pos.next
 
     # return whether there exists a previous hypothetical position
     def hasHypoLeft(self):
-        return self.position.prev != None
+        return self.position.prev is not None
 
     # return whether there exists a next hypothetical position
     def hasHypoRight(self):
-        return self.position.next != None
+        return self.position.next is not None
 
     def hypoLeft(self):
         self.position = self.position.prev
@@ -504,7 +504,7 @@ class AnalysisBoard:
         self.nextBox.blit(self.position.level)
 
         # When mouse is hovering over a possible placement
-        if hoveredPlacement != None:
+        if hoveredPlacement is not None:
 
             board += colorMinos(hoveredPlacement.move1, curr, white2 = True)
             if np.logical_and(board, hoveredPlacement.move2).any(): # There was some sort of line clear, so can't just put next piece.
@@ -547,7 +547,7 @@ class AnalysisBoard:
         
         surf = drawGeneralBoard(self.position.level, board, hover = finalHoverArray)
 
-        if hoveredPlacement != None:
+        if hoveredPlacement is not None:
             addHueToSurface(surf, MID_GREY, 0.23)
 
         HT.blit("tetris", surf ,[self.x,self.y])

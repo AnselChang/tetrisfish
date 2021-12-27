@@ -58,7 +58,7 @@ def evaluate(position):
     number = position.id
     print("Start eval ", number)
 
-    assert(position.nextPiece != None)
+    assert(position.nextPiece is not None)
     assert(type(position.placement) == ndarray)
     
     try:
@@ -184,7 +184,7 @@ def makeAPICallEvaluation(b1Str, b2Str, currStr, nextStr, level, lines, x_and_do
 
     isFailed = False
 
-    if json != None:
+    if json is not None:
         playerNNB, playerFinal, bestNNB, bestFinal = json['playerMoveNoAdjustment'], json['playerMoveAfterAdjustment'], float(json['bestMoveNoAdjustment']), float(json['bestMoveAfterAdjustment'])
     else:
         playerNNB, playerFinal, bestNNB, bestFinal  = -1,-1,-1,-1

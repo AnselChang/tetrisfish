@@ -107,7 +107,7 @@ class ButtonHandler:
         # Draw tooltips
         for ID in self.buttons:
             b = self.buttons[ID]
-            if b.tooltip != None and b.pressed:
+            if b.tooltip is not None and b.pressed:
                 self.displayTooltip(b.tooltipSurface, mx, my, isinstance(b, PlacementButton), b.y)
 
         # Draw invisible tooltips
@@ -172,7 +172,7 @@ class Button(ABC):
     # Precompute the tooltip surface. If not none, stores a list of strings (that will be separated by newlines)
     def setTooltip(self, text, colors = None):
         self.tooltip = text
-        if self.tooltip != None:
+        if self.tooltip is not None:
             self.tooltipSurface = getTooltipSurface(self.tooltip, colors)
             
             
@@ -408,17 +408,17 @@ class ImageButton(Button):
         self.img = scaleImage(img, scale)
         self.bigimage = scaleImage(img, scale * bscale)
 
-        if alt != None:
+        if alt is not None:
             self.alt = scaleImage(alt, scale)
         else:
             self.alt = None
 
-        if alt2 != None:
+        if alt2 is not None:
             self.alt2 = scaleImage(alt2, scale)
         else:
             self.alt2 = None
 
-        if img2 != None:
+        if img2 is not None:
             self.img2 = scaleImage(img2, scale)
         else:
             self.img2 = None
@@ -433,7 +433,7 @@ class ImageButton(Button):
     def get(self):
 
         if self.isAlt:
-            if self.pressed and self.alt2 != None:
+            if self.pressed and self.alt2 is not None:
                 return self.alt2, [self.x, self.y]
             else:
                 return self.alt, [self.x, self.y]

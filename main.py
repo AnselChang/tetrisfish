@@ -269,7 +269,7 @@ def main():
         print("Num positions: ", len(positionDatabase))
         
 
-    if positionDatabase != None:
+    if positionDatabase is not None:
         analyze(positionDatabase, hzInt)
 
 if __name__ == "__main__":

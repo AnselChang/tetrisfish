@@ -102,7 +102,7 @@ class Slider:
 
         self.alternate = False
 
-        if self.imgr1 != None:
+        if self.imgr1 is not None:
             self.width = self.imgr1.get_width()
             self.height = self.imgr1.get_height()
         else:
@@ -382,7 +382,7 @@ def callibrate():
                 b.isAlt = not b.isAlt
 
 
-        if not c.isImage and key != None:
+        if not c.isImage and key is not None:
             b.isAlt = False
             frame, vidFrame[currentEnd] = c.goToFrame(vcap, vidFrame[currentEnd] + keyshift[key])
             assert(type(frame) == np.ndarray)
@@ -417,12 +417,12 @@ def callibrate():
 
         if buttons.get(B_CALLIBRATE).clicked:
             bounds = Bounds(False, config=c)
-            if nextBounds != None:
+            if nextBounds is not None:
                 nextBounds.set()
 
         elif buttons.get(B_NEXTBOX).clicked:
             nextBounds = Bounds(True, config=c)
-            if bounds != None:
+            if bounds is not None:
                 bounds.set()
 
         elif buttons.get(B_CHECK).clicked:
@@ -508,7 +508,7 @@ def callibrate():
                 nextBounds.click(mx, my)
             
         
-        if bounds != None:
+        if bounds is not None:
             delete = bounds.updateMouse(mx, my, startPress, click)
             if delete:
                 bounds = None
@@ -517,7 +517,7 @@ def callibrate():
                 if isArray(x):
                     minosMain = x
 
-        if nextBounds != None:
+        if nextBounds is not None:
             delete = nextBounds.updateMouse(mx, my, startPress, click)
             if delete:
                 nextBounds = None
@@ -679,7 +679,7 @@ def callibrate():
         
 
         # Draw error message
-        if errorMsg != None:
+        if errorMsg is not None:
             if time.time() - errorMsg < ERROR_TIME:
                 text = c.font2.render(errorText, True, errorColor)
                 c.screen.blit(text, [1670,1380] )
@@ -722,7 +722,7 @@ def callibrate():
                     enterKey = True
                 elif event.key == pygame.K_t:
                     # toggle next box subrectangle between maxoutclub/regular/precise
-                    if nextBounds != None:
+                    if nextBounds is not None:
                         nextBounds.cycle_sub_rect()
                         print("toggle")
 

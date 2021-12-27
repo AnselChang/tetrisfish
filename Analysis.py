@@ -399,12 +399,12 @@ def analyze(positionDatabase, hzInt):
         # Update Graphs
         if showGraphs:
             o = smallGraph.update(positionNum, mx,my, pressed, startPressed, click)
-            if o != None:
+            if o is not None:
                 positionNum = o
                 analysisBoard.updatePosition(positionNum)
             if showBig:
                 o = bigGraph.update(positionNum, mx, my, pressed, startPressed, click)
-                if o != None:
+                if o is not None:
                     positionNum = o
                     analysisBoard.updatePosition(positionNum)
         
@@ -456,7 +456,7 @@ def analyze(positionDatabase, hzInt):
                 break
 
         # If a possible placement is clicked, make that move
-        if hoveredPlacement != None and click:
+        if hoveredPlacement is not None and click:
             print("press possible move")
             analysisBoard.placeSelectedPiece(hoveredPlacement.move1)
         
@@ -517,7 +517,7 @@ def analyze(positionDatabase, hzInt):
 
         # Draw timestamp
         frameNum = analysisBoard.positionDatabase[analysisBoard.positionNum].frame
-        if frameNum != None:
+        if frameNum is not None:
             text = c.font.render(c.timestamp(frameNum), True, WHITE)
             c.screen.blit(text, [2100,787] )
 
