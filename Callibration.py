@@ -395,14 +395,14 @@ def callibrate():
         if buttons.get(B_AUTOCALIBRATE).clicked:
             pixels, suggested = autofindfield.get_board(frame) #todo return multiple regions if possible
             board_pixels = pixels or (0,0,c.VIDEO_WIDTH,c.VIDEO_HEIGHT)
-            bounds = Bounds(False, 0, 0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR, config=c)
-            bounds.setScaled(board_pixels, (c.VIDEO_WIDTH, c.VIDEO_HEIGHT))
+            bounds = Bounds(False, config=c)
+            bounds.setRect(board_pixels)
             if pixels: # successfully found board
                 pixels, subrect = autofindfield.get_next_box(frame, pixels, suggested)
                 if pixels is not None:
-                    nextBounds = Bounds(True,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR, config=c)
-                    nextBounds.setScaled(pixels, (c.VIDEO_WIDTH, c.VIDEO_HEIGHT))
-                    nextBounds.setDimensions(subrect)
+                    nextBounds = Bounds(True, config=c)
+                    nextBounds.setRect(pixels)
+                    nextBounds.setSubRect(subrect)
             if nextBounds is not None:
                 nextBounds.set()
             if bounds is not None:
@@ -410,12 +410,12 @@ def callibrate():
             
 
         if buttons.get(B_CALLIBRATE).clicked:
-            bounds = Bounds(False,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
+            bounds = Bounds(False, config=c)
             if nextBounds != None:
                 nextBounds.set()
 
         elif buttons.get(B_NEXTBOX).clicked:
-            nextBounds = Bounds(True,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
+            nextBounds = Bounds(True, config=c)
             if bounds != None:
                 bounds.set()
 
@@ -555,13 +555,13 @@ def callibrate():
             if bounds == None:
                 bData = None
             else:
-                bData = [bounds.x1, bounds.y1, bounds.x2, bounds.y2]
+                bData = bounds.to_json()
 
             # next box
             if nextBounds == None:
                 nData = None
             else:
-                nData = [[nextBounds.x1, nextBounds.y1, nextBounds.x2, nextBounds.y2], nextBounds.isMaxoutClub]
+                nData = nextBounds.to_json()
 
             data = [hzNum, bData, nData, c.COLOR_CALLIBRATION, c.SCALAR]
             pickle.dump( data, open( "callibration_preset.p", "wb" ) )
@@ -586,16 +586,16 @@ def callibrate():
             hzSlider.overwrite(hzNum)
 
             
-            if data[1] == None:
+            if data[1] is None:
                 bounds = None
             else:
-                bounds = Bounds(False, *data[1], config=c)
+                bounds = Bounds(data[1], config=c)
                 bounds.notSet = False
 
-            if data[2] == None:
+            if data[2] is None:
                 nextBounds = None
             else:
-                nextBounds = Bounds(True, *data[2][0], config=c)
+                nextBounds = Bounds(data[2], config=c)
                 nextBounds.notSet = False
             
             print("loaded preset", data)
@@ -715,9 +715,9 @@ def callibrate():
                 elif not isTextBoxScroll and event.key == pygame.K_RETURN:
                     enterKey = True
                 elif event.key == pygame.K_t:
-                    # toggle next box maxoutclub/regular
+                    # toggle next box subrectangle between maxoutclub/regular/precise
                     if nextBounds != None:
-                        nextBounds.defineDimensions(toggle = True)
+                        nextBounds.cycle_sub_rect()
                         print("toggle")
 
             elif event.type == pygame.KEYUP:

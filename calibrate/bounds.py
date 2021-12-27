@@ -1,46 +1,72 @@
 ﻿"""
 Class representing the bounds on a video or image
 They can also draw themselves onto surfaces
+
+It contains a raw rectangle, and a subrectangle.
+
+For example, a raw rectangle would be the entire next box, and a sub rectangle would
+be the minimal rectangle for the preview piece.
+
+Or another example, raw rectangle is the field, but sub rectangle crops out bottom few
+and right few pixels since they are black.
 """
 
 import numpy as np
 import pygame
 from colors import PURE_BLUE, BRIGHT_BLUE, BRIGHT_RED, BRIGHT_GREEN  #todo: remove this dependency.
 from TetrisUtility import clamp, distance #todo: remove this dependency
+from enum import Enum
 
-class Bounds:
+from calibrate.autolayout import PREVIEW_LAYOUTS
+
+class CalibrationStatus(Enum):
     TOP_LEFT = 1
     BOTTOM_RIGHT = 2
     ALREADY_SET = 0
-    def __init__(self, isNextBox, x1,y1,x2,y2, mode = 1, isMaxoutClub = False, config=None):
 
-        self.first = True
+class Bounds:
+    # Pseudo random pixel offsets for sampling each block
+    PIXEL_SAMPLE_OFFSETS = [[0,0],
+                            [1,0],
+                            [-1,0],
+                            [0,1],
+                            [0,-1]]
+
+    def __init__(self, isNextBox, config=None):
+        # alternate constructor; json dictionary
+        if isinstance(isNextBox, dict):
+            self._from_json(isNextBox, config)
+            return
+
+        self.firstClick = True
         self.config = config # todo: remove this dependency.
         self.isNB = isNextBox
-        self.x1 = x1
-        self.y1 = y1
-        self.x2 = x2
-        self.y2 = y2
-        self.callibration = mode # 1 = setting top-left point, 2 = setting bottom-right point, 0 = already set
+        # bounding rect
+        self.x1 = 0
+        self.y1 = 0
+        self.x2 = 0
+        self.y2 = 0
+
+        # offset rect
+        self.X_LEFT = 0
+        self.Y_TOP = 0
+        self.X_RIGHT = 0
+        self.Y_BOTTOM = 0
+        self.calibration_status = CalibrationStatus.TOP_LEFT
         self.r = 4 if isNextBox else 8
         self.dragRadius = 10
         self.dragRadiusBig = 13
-        self.dragMode = 0
+        self.dragMode = CalibrationStatus.ALREADY_SET
 
         self.notSet = True
 
+        # cached list of calibration dots
         self.xrlist = None
         self.yrlist = None
 
-        self.hovering_top_left = False
-        self.hovering_bottom_right = False
-
-        self.directions = [
-            [0,0],
-            [1,0],
-            [-1,0],
-            [0,1],
-            [0,-1] ]
+        # whether to draw the corner circles big or not
+        self.draw_big_top_left = False
+        self.draw_big_bot_right = False
 
         if self.isNB:
             self.color = PURE_BLUE
@@ -51,27 +77,56 @@ class Bounds:
             self.horizontal = self.config.NUM_HORIZONTAL_CELLS
             self.vertical = self.config.NUM_VERTICAL_CELLS
 
-
-        self.isMaxoutClub = isMaxoutClub
-        self.defineDimensions(False)
+        self.sub_rect_name = None
+        self.isMaxoutClub = False
+        self._defineDimensions()
             
-    def setDimensions(self, rect):
+
+    def setRect(self, rect):
+        """
+        Sets the rectangles position in videospace pixels
+        """
+        #percentage of pixel to original video
+        self.x1 = rect[0]
+        self.x2 = rect[2]
+        self.y1 = rect[1]
+        self.y2 = rect[3]
+               
+        self.updateConversions()
+        self.set()
+        
+    def setSubRect(self, rect):
+        """
+        sets the subrect proportions
+        """
         self.X_LEFT, self.Y_TOP, self.X_RIGHT, self.Y_BOTTOM = rect
         # initialize lookup tables for bounds
         self.updateConversions()
-
-    def defineDimensions(self, toggle = False):
-
-        if toggle:
-            self.isMaxoutClub = not self.isMaxoutClub
-
+    
+    def cycle_sub_rect(self):
+        """
+        cycles to the next available subrect for previews
+        """
         if self.isNB:
-            if self.isMaxoutClub:
-                self.setDimensions((0.11, 0.16, 0.87, 0.90))
-            else:
-                self.setDimensions((0.04, 0.41, 0.96, 0.75))
+            names = list(PREVIEW_LAYOUTS.keys())
+            idx = names.index(self.sub_rect_name)
+            idx = idx + 1 % len(names)
+            self.sub_rect_name = names[idx]
+        self._defineDimensions()
+
+    def _defineDimensions(self):
+        """
+        Reads sub_rect from autolayouts
+        """
+        if self.isNB:
+            if self.sub_rect_name is None:
+                self.sub_rect_name = list(PREVIEW_LAYOUTS.keys())[0]
+            layout = PREVIEW_LAYOUTS[self.sub_rect_name]
+            self.setSubRect(layout.inner_box)
+
         else: # field
-            self.setDimensions((0.01,0.0,0.99,0.993))
+            self.setSubRect((0.01,0.0,0.99,0.993)) #todo, read from autolayout
+            self.sub_rect_name = "field"
 
         
 
@@ -82,8 +137,8 @@ class Bounds:
         my /= self.config.SCALAR
         return ((distance(mx,my,self.x1,self.y1) <= self.dragRadius*3) or 
                 (distance(mx,my,self.x2,self.y2) <= self.dragRadius*3) or 
-               self.callibration != self.ALREADY_SET or
-               self.dragMode != self.ALREADY_SET)
+               self.calibration_status != CalibrationStatus.ALREADY_SET or
+               self.dragMode != CalibrationStatus.ALREADY_SET)
 
     def mouseOutOfBounds(self, mx, my):
         return not (0 <= mx <= self.config.X_MAX and 0 <= my <= self.config.Y_MAX) 
@@ -94,44 +149,45 @@ class Bounds:
         self.doNotDisplay = self.notSet and self.mouseOutOfBounds(mx, my)
 
         if self.doNotDisplay:
-            if pressUp and not self.first:
+            if pressUp and not self.firstClick:
                 return True
             elif not pressUp:
-                self.first = False
+                self.firstClick = False
                 return False
 
-        self.first = False
+        self.firstClick = False
 
         mx -= self.config.VIDEO_X
         my -= self.config.VIDEO_Y
         mx /= self.config.SCALAR
         my /= self.config.SCALAR
         
-        self.hovering_top_left = self.dragMode == self.TOP_LEFT
-        self.hovering_bottom_right = self.dragMode == self.BOTTOM_RIGHT
+        # should the corner circles be drawn bigger?
+        # yes if we are hovering or we are up to that stage of calibration.
+        self.draw_big_top_left = self.dragMode == CalibrationStatus.TOP_LEFT
+        self.draw_big_bot_right = self.dragMode == CalibrationStatus.BOTTOM_RIGHT
         if distance(mx,my,self.x1,self.y1) <= self.dragRadius*3:
-            self.hovering_top_left = True
+            self.draw_big_top_left = True
             if pressDown:
-                self.dragMode = self.TOP_LEFT
+                self.dragMode = CalibrationStatus.TOP_LEFT
         elif distance(mx,my,self.x2,self.y2) <= self.dragRadius*3:
-            self.hovering_bottom_right = True
+            self.draw_big_bot_right = True
             if pressDown:
-                self.dragMode = self.BOTTOM_RIGHT
-            
+                self.dragMode = CalibrationStatus.BOTTOM_RIGHT
 
         if pressUp:
-            self.dragMode = self.ALREADY_SET
+            self.dragMode = CalibrationStatus.ALREADY_SET
 
         minimumLength = 20
         
         
-        if (self.callibration == self.TOP_LEFT or
-            self.dragMode == self.TOP_LEFT):
+        if (self.calibration_status == CalibrationStatus.TOP_LEFT or
+            self.dragMode == CalibrationStatus.TOP_LEFT):
             self.x1 = min(mx, self.x2 - minimumLength)
             self.y1 = min(my, self.y2 - minimumLength)
             self.updateConversions()
-        elif (self.callibration == self.BOTTOM_RIGHT or 
-             self.dragMode == self.BOTTOM_RIGHT):
+        elif (self.calibration_status == CalibrationStatus.BOTTOM_RIGHT or 
+             self.dragMode == CalibrationStatus.BOTTOM_RIGHT):
             self.x2 = max(mx, self.x1 + minimumLength)
             self.y2 = max(my, self.y1 + minimumLength)
             self.updateConversions()
@@ -144,15 +200,15 @@ class Bounds:
         if self.mouseOutOfBounds(mx ,my):
             return
         
-        if self.callibration == self.TOP_LEFT:
-            self.callibration = self.BOTTOM_RIGHT
+        if self.calibration_status == CalibrationStatus.TOP_LEFT:
+            self.calibration_status = CalibrationStatus.BOTTOM_RIGHT
             
-        elif self.callibration == self.BOTTOM_RIGHT:
+        elif self.calibration_status == CalibrationStatus.BOTTOM_RIGHT:
             self.set()
 
     # Finalize callibration
     def set(self):
-        self.callibration = self.ALREADY_SET
+        self.calibration_status = CalibrationStatus.ALREADY_SET
         self.notSet = False
 
 
@@ -165,18 +221,7 @@ class Bounds:
         # dx, dy, radius
         return dx, dy, (dx+dy)/2/8
     
-    def setScaled(self, rect, videoSize):
-        """
-        Sets rectangle based on raw video
-        """
-        #percentage of pixel to original video
-        self.x1 = rect[0]
-        self.x2 = rect[2]
-        self.y1 = rect[1]
-        self.y2 = rect[3]
-               
-        self.updateConversions()
-        self.set()
+ 
         
     # After change x1/y1/x2/y2, update conversions to scale
     # Generate lookup tables of locations of elements
@@ -214,7 +259,7 @@ class Bounds:
         #   constitute a filled or empty cell
         self.xrlist = [ self.xlist ]
         self.yrlist = [ self.ylist ]
-        for a,b in self.directions: # (a,b) represent some (x,y) offset from the center
+        for a,b in self.PIXEL_SAMPLE_OFFSETS: # (a,b) represent some (x,y) offset from the center
             # abbreviated: current x/y list. List comprehension to generate copies of lists with given offset
             self.cxl = [(x+a) for x in self.xlist]
             self.cyl = [(y+b) for y in self.ylist]
@@ -263,8 +308,8 @@ class Bounds:
         pygame.draw.rect(surface, self.color, [x1, y1, x2-x1, y2-y1], width = 3)
         
         # Draw draggable bounds dots
-        pygame.draw.circle(surface, self.color, [x1,y1], self.dragRadiusBig if self.hovering_top_left else self.dragRadius)
-        pygame.draw.circle(surface, self.color, [x2,y2], self.dragRadiusBig if self.hovering_bottom_right else self.dragRadius)
+        pygame.draw.circle(surface, self.color, [x1,y1], self.dragRadiusBig if self.draw_big_top_left else self.dragRadius)
+        pygame.draw.circle(surface, self.color, [x2,y2], self.dragRadiusBig if self.draw_big_bot_right else self.dragRadius)
 
         # draw sub-bounds rect
         w = self.x2 - self.x1
@@ -287,3 +332,20 @@ class Bounds:
                 pygame.draw.circle(surface, BRIGHT_GREEN if exists else BRIGHT_RED, [x,y], (r+2) if exists else r, width = (0 if exists else 3))
 
         return minos
+
+    def to_json(self):
+        return {"firstClick": self.firstClick,
+                "isNextBox": self.isNB,
+                "bounding_rect": [self.x1,self.y1,self.x2,self.y2],
+                "sub_rect": [self.X_LEFT, self.Y_TOP, self.X_RIGHT, self.Y_BOTTOM],
+                "callibration" : self.calibration_status,
+                "sub_rect_name": self.sub_rect_name}
+
+
+    def _from_json(self, data, c):
+        self.__init__(data["isNextBox"], c)
+        self.setRect(data["bounding_rect"])
+        self.setSubRect(data["sub_rect"])
+        self.calibration_status = data["callibration"]
+        self.sub_rect_name = data["sub_rect_name"]
+        
