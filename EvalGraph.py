@@ -26,7 +26,7 @@ def getEquivalentLevel(level):
     elif level <= 28:
         return 19
     else:
-        return 29
+        return 29 if c.gamemode == c.NTSC else 19
 
 def abs_sqrt(x):
     if x > 0:

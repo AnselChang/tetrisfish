@@ -240,21 +240,21 @@ MINO_COLORS = [WHITE_MINO, WHITE_MINO_2, FIRST_MINO, SECOND_MINO]
 START_LEVELS = [9, 12, 15, 18, 19, 29]
 
 # Multiply by 6/5 by PAL. Format is [NTSC, PAL]
-NTSC = 0
-PAL = 1
-TIMELINE_10_HZ = ["X.....", "X...."] # 12hz = 0.2 = 1/5
-TIMELINE_11_HZ = ["X.....X....X....", "X....X..."] # 13.2hz = 0.22 ~ 2/9
-TIMELINE_12_HZ = ["X....", "X....X...X...X...X...X..."] # 14.4hz = 0.24 = 6/25
-TIMELINE_12_5_HZ = ["X....X....X....X....X...", "X..."] # 15 hz
-TIMELINE_13_HZ = ["X....X...", "X...X...X...X...X.."] # 15.6hz = 0.26 ~ 5/19
-TIMELINE_14_HZ = ["X....X...X...X...", "X...X...X...X...X..X..X.."] # 16.8hz = 0.28 = 7/25
-TIMELINE_15_HZ = ["X...", "X...X..X.."] # 18hz = 0.3 = 3/10
-TIMELINE_20_HZ = ["X..", "X..X."] # 24hz = 0.4 = 2/5
-TIMELINE_MAX_HZ = "X." # 30 hz NTSC, 25 hz PAL
+timelineNum = [None] * 2
+timelineNum[c.NTSC] = [10, 11, 12, 13, 14, 15, 20, 24, 30]
+timelineNum[c.PAL] = [10, 11, 12.5, 13, 14, 15, 17, 20, 25]
 
-timeline = [TIMELINE_10_HZ,TIMELINE_11_HZ,TIMELINE_12_HZ,TIMELINE_12_5_HZ,TIMELINE_13_HZ,TIMELINE_14_HZ,
-            TIMELINE_15_HZ,TIMELINE_20_HZ, [TIMELINE_MAX_HZ,TIMELINE_MAX_HZ] ]
-timelineNum = [10,11,12,12.5,13,14,15,20,30]
+timeline = []
+TIMELINE_MAX_HZ = "X."
+timeline.append( ["X.....", "X...."] ) # 10, 12hz
+timeline.append( ["X.....X....X....", "X....X..."] ) # 11, 13.2hz
+timeline.append( ["X....", "X..."] ) # 12,15hz
+timeline.append( ["X....X...", "X...X...X...X...X.."] ) # 13, 15.6hz
+timeline.append( ["X....X...X...X...", "X...X...X...X...X..X..X.."] ) # 14, 16.8hz
+timeline.append( ["X...", "X...X..X.."] ) # 15, 18hz
+timeline.append( ["X..", "X.."] ) # 20, 20 (17)
+timeline.append( ["X..X.", "X..X."] ) # 24, 24 (20)
+timeline.append( [TIMELINE_MAX_HZ,TIMELINE_MAX_HZ] ) # 30 hz NTSC, 25 hz PAL
 
 def getTransitionFromLevel(level):
     if level <= 9:
