@@ -399,13 +399,11 @@ class Calibrator:
         currPiece = getPieceMaskType(mask)
         preview = self.nextBounds.getMinos(frame)
         if currPiece is None:
-            self.error = ErrorMessage("The current piece must be near the top ",
-                                      "with all four minos fully visible.")
+            self.error = ErrorMessage("The current piece must be near the top, fully visible.")
             return
 
         if getNextBox(preview) is None:
-            self.error = ErrorMessage("The next box must be callibrated so that",
-                                      "four dots are inside each mino.")
+            self.error = ErrorMessage("Four dots must be centered inside each mino for next box.")
             return
         
         print2d(board)
