@@ -13,69 +13,22 @@ from Analysis import analyze
 from calibrate import autofindfield
 from calibrate.bounds import Bounds
 from calibrate.slider import HzSlider, Slider
+import calibrate.image_names as im_names
+
 PygameButton.init(c.font)
 
-
-C_NTSC = "ntsc"
-C_PAL = "pal"
-C_ABOARD = "autocaliboard"
-C_ABOARD2 = "autocaliboard2"
-C_BOARD = "calliboard"
-C_BOARD2 = "calliboard2"
-C_NEXT = "nextbox"
-C_NEXT2 = "nextbox2"
-C_PLAY = "play"
-C_PLAY2 = "play2"
-C_PAUSE = "pause"
-C_PAUSE2 = "pause2"
-C_PREVF = "prevframe"
-C_PREVF2 = "prevframe2"
-C_NEXTF = "nextframe"
-C_NEXTF2 = "nextframe2"
-C_RENDER = "render"
-C_RENDER2 = "render2"
-C_SLIDER = "slider"
-C_SLIDER2 = "slider2"
-C_SLIDERF = "sliderflipped"
-C_SLIDER2F = "slider2flipped"
-
-C_LVIDEO = "leftvideo"
-C_LVIDEO2 = "leftvideo2"
-C_RVIDEO = "rightvideo"
-C_RVIDEO2 = "rightvideo2"
-C_LVIDEORED = "leftvideored"
-C_LVIDEORED2 = "leftvideored2"
-C_RVIDEORED = "rightvideored"
-C_RVIDEORED2 = "rightvideored2"
-C_SEGMENT = "segment"
-C_SEGMENTGREY = "segmentgrey"
-
-C_SAVE = "upload"
-C_LOAD = "download"
-
-C_CHECKMARK = "checkmark"
-C_CHECKMARK2 = "checkmark2"
-
-
-CALLIBRATION_IMAGES = [C_NTSC, C_PAL, C_BOARD, C_BOARD2, C_NEXT, C_NEXT2, C_PLAY, C_PLAY2, C_PAUSE, C_PAUSE2, C_SEGMENT, C_SEGMENTGREY, C_ABOARD, C_ABOARD2]
-CALLIBRATION_IMAGES.extend( [C_PREVF, C_PREVF2, C_NEXTF, C_NEXTF2, C_RENDER, C_RENDER2, C_SLIDER, C_SLIDER2, C_SLIDERF, C_SLIDER2F] )
-CALLIBRATION_IMAGES.extend([ C_LVIDEO, C_LVIDEO2, C_RVIDEO, C_RVIDEO2, C_SAVE, C_LOAD ])
-CALLIBRATION_IMAGES.extend([ C_LVIDEORED, C_LVIDEORED2, C_RVIDEORED, C_RVIDEORED2, C_CHECKMARK, C_CHECKMARK2 ])
-images = loadImages(c.fp("Images/Callibration/{}.png"), CALLIBRATION_IMAGES)
-
-
-    
+images = loadImages(c.fp("Images/Callibration/{}.png"), im_names.CALLIBRATION_IMAGES)
 
 
 # Image stuff
-#background = images[C_BACKDROP]
+#background = images[im_names.C_BACKDROP]
 background = [None]*2
-background[c.NTSC] = pygame.transform.smoothscale(images[C_NTSC], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
-background[c.PAL] = pygame.transform.smoothscale(images[C_PAL], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
+background[c.NTSC] = pygame.transform.smoothscale(images[im_names.C_NTSC], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
+background[c.PAL] = pygame.transform.smoothscale(images[im_names.C_PAL], [c.SCREEN_WIDTH, c.SCREEN_HEIGHT])
 
               
  # Hydrant-to-Primer scaling factor
-hydrantScale = c.SCREEN_WIDTH / images[C_NTSC].get_width()
+hydrantScale = c.SCREEN_WIDTH / images[im_names.C_NTSC].get_width()
 c.hydrantScale = hydrantScale
 
 def mouseOutOfBounds(mx, my):
@@ -121,39 +74,39 @@ def callibrate():
     B_PAL = 16
 
     buttons = PygameButton.ButtonHandler()
-    buttons.addImage(B_AUTOCALIBRATE, images[C_ABOARD], 1724, 380, hydrantScale, img2= images[C_ABOARD2],
+    buttons.addImage(B_AUTOCALIBRATE, images[im_names.C_ABOARD], 1724, 380, hydrantScale, img2= images[im_names.C_ABOARD2],
                      tooltip = ["Uses AI to try to find your board and next box.", 
                                 "Currently only works for centered or Stencil™ boards;",
                                 "But will expand over time to be more AI"])
 
-    buttons.addImage(B_CALLIBRATE, images[C_BOARD], 1724, 600, hydrantScale, img2 = images[C_BOARD2],
+    buttons.addImage(B_CALLIBRATE, images[im_names.C_BOARD], 1724, 600, hydrantScale, img2 = images[im_names.C_BOARD2],
                      tooltip = ["Set the bounds for the tetris board. One dot",
                                 "should be centered along each mino."])
-    buttons.addImage(B_NEXTBOX, images[C_NEXT], 2100, 600, hydrantScale, img2 = images[C_NEXT2],
+    buttons.addImage(B_NEXTBOX, images[im_names.C_NEXT], 2100, 600, hydrantScale, img2 = images[im_names.C_NEXT2],
                      tooltip = ["Set the bounds across the active area of the entire",
                                 "next box. Make sure four dots are symmetrically placed",
                                 "along each mino. Press 'T' for a MaxoutClub layout"])
 
     if not c.isImage:
-        buttons.addImage(B_PLAY, images[C_PLAY], 134,1377, hydrantScale, img2 = images[C_PLAY2], alt = images[C_PAUSE],
-                         alt2 = images[C_PAUSE2], tooltip = ["Shortcuts: , and . to move back or forward a frame", "Arrow keys to skip behind or ahead",
+        buttons.addImage(B_PLAY, images[im_names.C_PLAY], 134,1377, hydrantScale, img2 = images[im_names.C_PLAY2], alt = images[im_names.C_PAUSE],
+                         alt2 = images[im_names.C_PAUSE2], tooltip = ["Shortcuts: , and . to move back or forward a frame", "Arrow keys to skip behind or ahead",
                                                              "Spacebar to toggle between starting and ending frame"])
-        buttons.addImage(B_LEFT, images[C_PREVF], 45, 1377, hydrantScale, img2 = images[C_PREVF2])
-        buttons.addImage(B_RIGHT, images[C_NEXTF], 207, 1377, hydrantScale, img2 = images[C_NEXTF2])
+        buttons.addImage(B_LEFT, images[im_names.C_PREVF], 45, 1377, hydrantScale, img2 = images[im_names.C_PREVF2])
+        buttons.addImage(B_RIGHT, images[im_names.C_NEXTF], 207, 1377, hydrantScale, img2 = images[im_names.C_NEXTF2])
     
-    buttons.addImage(B_RENDER, images[C_RENDER], 1862, 1203, hydrantScale, img2 = images[C_RENDER2], tooltip = ["Shortcut: Enter key"])
+    buttons.addImage(B_RENDER, images[im_names.C_RENDER], 1862, 1203, hydrantScale, img2 = images[im_names.C_RENDER2], tooltip = ["Shortcut: Enter key"])
 
 
-    c1dark = images[C_CHECKMARK].copy().convert_alpha()
+    c1dark = images[im_names.C_CHECKMARK].copy().convert_alpha()
     addHueToSurface(c1dark, BLACK, 0.3)
-    c2dark = images[C_CHECKMARK2].copy().convert_alpha()
+    c2dark = images[im_names.C_CHECKMARK2].copy().convert_alpha()
     addHueToSurface(c2dark, BLACK, 0.3)
-    buttons.addImage(B_CHECK, images[C_CHECKMARK], 1714, 1268, 0.3, img2 = c1dark, alt = images[C_CHECKMARK2],
+    buttons.addImage(B_CHECK, images[im_names.C_CHECKMARK], 1714, 1268, 0.3, img2 = c1dark, alt = images[im_names.C_CHECKMARK2],
                      alt2 = c2dark, tooltip = ["Depth 3 search takes longer but is more accurate.", "Depth 2 is faster, but will self-correct to depth 3 eventually."])
 
     buttons.get(B_CHECK).isAlt = True
 
-    buttons.addImage(B_PAL, images[C_CHECKMARK], 1890, 30, 0.3, img2 = c1dark, alt = images[C_CHECKMARK2],
+    buttons.addImage(B_PAL, images[im_names.C_CHECKMARK], 1890, 30, 0.3, img2 = c1dark, alt = images[im_names.C_CHECKMARK2],
                      alt2 = c2dark, tooltip = ["PAL mode. Only configured for level 18+"])
 
     buttons.addInvisible(1726,880, 2480, 953, tooltip = [
@@ -162,15 +115,15 @@ def callibrate():
         "this value for scuffed captures. Check especially",
         "that level 21 and 27 colors are captured properly"])
 
-    save2 = images[C_SAVE].copy().convert_alpha()
-    load2 = images[C_LOAD].copy().convert_alpha()
+    save2 = images[im_names.C_SAVE].copy().convert_alpha()
+    load2 = images[im_names.C_LOAD].copy().convert_alpha()
     addHueToSurface(save2,BLACK,0.2)
     addHueToSurface(load2,BLACK,0.2)
-    load3 = images[C_LOAD].copy().convert_alpha()
+    load3 = images[im_names.C_LOAD].copy().convert_alpha()
     addHueToSurface(load3,BLACK,0.6)
     print(load2)
-    buttons.addImage(B_LOAD, images[C_LOAD], 1462, 1364, 0.063, img2 = load2, alt = load3, alt2 = load3, tooltip = ["Load callibration settings"])
-    buttons.addImage(B_SAVE, images[C_SAVE], 1555, 1364, 0.27, img2 = save2, tooltip = ["Save callibration settings"])
+    buttons.addImage(B_LOAD, images[im_names.C_LOAD], 1462, 1364, 0.063, img2 = load2, alt = load3, alt2 = load3, tooltip = ["Load callibration settings"])
+    buttons.addImage(B_SAVE, images[im_names.C_SAVE], 1555, 1364, 0.27, img2 = save2, tooltip = ["Save callibration settings"])
     print(buttons.get(B_SAVE).img2)
 
 
@@ -186,10 +139,10 @@ def callibrate():
     SW = 680 # slider width
     LEFT_X = 1720
     SLIDER_SCALE = 0.6
-    sliderImage = scaleImage(images[C_SLIDERF], SLIDER_SCALE)
-    sliderImage2 = scaleImage(images[C_SLIDER2F], SLIDER_SCALE)
-    sliderImage3 = scaleImage(images[C_SLIDER], SLIDER_SCALE)
-    sliderImage4 = scaleImage(images[C_SLIDER2], SLIDER_SCALE)
+    sliderImage = scaleImage(images[im_names.C_SLIDERF], SLIDER_SCALE)
+    sliderImage2 = scaleImage(images[im_names.C_SLIDER2F], SLIDER_SCALE)
+    sliderImage3 = scaleImage(images[im_names.C_SLIDER], SLIDER_SCALE)
+    sliderImage4 = scaleImage(images[im_names.C_SLIDER2], SLIDER_SCALE)
 
     rect = pygame.Surface([30,75])
     rect2 = rect.copy()
@@ -213,15 +166,15 @@ def callibrate():
     SW2 = 922
     LEFT_X2 = 497
     Y = 1377
-    leftVideoSlider = Slider(LEFT_X2, Y, SW2, 0, scaleImage(images[C_LVIDEO],hydrantScale), scaleImage(images[C_LVIDEO2],hydrantScale),
-                                scaleImage(images[C_LVIDEORED], hydrantScale), scaleImage(images[C_LVIDEORED2], hydrantScale), margin = 10 )
-    rightVideoSlider = Slider(LEFT_X2, Y, SW2, 1, scaleImage(images[C_RVIDEO],hydrantScale), scaleImage(images[C_RVIDEO2],hydrantScale),
-                                scaleImage(images[C_RVIDEORED], hydrantScale), scaleImage(images[C_RVIDEORED2], hydrantScale), margin = 10 )
+    leftVideoSlider = Slider(LEFT_X2, Y, SW2, 0, scaleImage(images[im_names.C_LVIDEO],hydrantScale), scaleImage(images[im_names.C_LVIDEO2],hydrantScale),
+                                scaleImage(images[im_names.C_LVIDEORED], hydrantScale), scaleImage(images[im_names.C_LVIDEORED2], hydrantScale), margin = 10 )
+    rightVideoSlider = Slider(LEFT_X2, Y, SW2, 1, scaleImage(images[im_names.C_RVIDEO],hydrantScale), scaleImage(images[im_names.C_RVIDEO2],hydrantScale),
+                                scaleImage(images[im_names.C_RVIDEORED], hydrantScale), scaleImage(images[im_names.C_RVIDEORED2], hydrantScale), margin = 10 )
 
 
 
-    segmentred = scaleImage(images[C_SEGMENT], hydrantScale)
-    segmentgrey = scaleImage(images[C_SEGMENTGREY], hydrantScale)
+    segmentred = scaleImage(images[im_names.C_SEGMENT], hydrantScale)
+    segmentgrey = scaleImage(images[im_names.C_SEGMENTGREY], hydrantScale)
 
     vidFrame = [0]*3
     LEFT_FRAME = 0
