@@ -13,6 +13,10 @@ class MouseStatus:
         self.start_press = False #whether we just mouse-downed 
         self.end_press = False #whether we just mouse-up'ed
 
+    @property
+    def pos(self):
+        return (self.x, self.y)
+
     def slider_handler(self):
         return [self.start_press, self.left_pressed, self.x, self.y]
 
