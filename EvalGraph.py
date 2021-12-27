@@ -194,7 +194,7 @@ class Graph:
         for x2,y2 in self.points:
             x2 = int(x2)
             y2 = int(y2)-self.VERT_OFFSET
-            if x1 != None:
+            if x1 is not None:
                 # https://stackoverflow.com/questions/30578068/pygame-draw-anti-aliased-thick-line
                 center_L1 = [(x1+x2) / 2, (y1+y2)/2]
                 angle = math.atan2(y1 - y2, x1 - x2)

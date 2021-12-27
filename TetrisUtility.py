@@ -210,8 +210,8 @@ def loadImages(fileFormat, nameList, scale = None):
         img = pygame.image.load(fileFormat.format(name))
         images[name] = pygame.Surface(img.get_size(), pygame.SRCALPHA)
         images[name].blit(img.convert_alpha(), [0,0])
-        assert(images[name] != None)
-        if scale != None:
+        assert(images[name] is not None)
+        if scale is not None:
             images[name] = scaleImage(images[name], scale)
     return images
 

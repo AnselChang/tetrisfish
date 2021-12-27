@@ -99,7 +99,7 @@ class Position:
     def distToRoot(self):
         count = 0
         node = self
-        while node.prev != None:
+        while node.prev is not None:
             node = node.prev
             count += 1
         return count

@@ -18,3 +18,20 @@ LIGHT_GREY = [236,236,236]
 MID_GREY = [200, 200, 200]
 DARK_GREY = [50,50,50]
 BACKGROUND = LIGHT_GREY
+
+# cycle colors with high contrast on every change.
+COLOR_CYCLE = [BRIGHT_RED,
+            BRIGHT_GREEN,
+            BRIGHT_BLUE,
+            ORANGE,
+            LIGHT_BLUE,
+            RED,
+            LIGHT_PURPLE,
+            GREEN,
+            YELLOW,
+            BLUE,
+            LIGHT_RED,
+            PURE_BLUE
+            ]
+
+
