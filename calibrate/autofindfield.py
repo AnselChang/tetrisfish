@@ -14,12 +14,14 @@ def is_blackish(tuple):
     print(tuple)
     return tuple[0] < 20 and tuple[1] < 20 and tuple[2] < 20
 
+
 def try_expand(arr, centre):
     """
     flood fills array from centre (y,x)
     Returns rect class
     """    
-    if not is_blackish(arr[centre[0],centre[1]]):
+    not_blackish = not is_blackish(arr[centre[0],centre[1]])
+    if not_blackish:
         return Rect(centre[1],centre[0],centre[1],centre[0])
 
     arr = np.array(arr, copy=True)
@@ -39,7 +41,8 @@ def try_expand(arr, centre):
     
     top, bot = y_values[0], y_values[-1]
     left, right = x_values[0], x_values[-1]
-
+    #if not_blackish:
+    #    return Rect(centre[1],centre[0],centre[1],centre[0])
     return Rect(left, top, right, bot)
 
 def convert_to_grayscale(arr):
@@ -80,11 +83,6 @@ def get_board(img):
         # grab offset and swap x/y to y/x
         centre = list(attempt.fillpoint)
         
-        # don't bother running this if we've already got this with a different fill
-        for result in results:
-            if result[0].contains(centre):
-                continue
-
         centre[0], centre[1] = int(centre[1]*size[0]), int(centre[0]*size[1]) # end result is y/x
         
         result = try_expand(arr, centre)
@@ -153,6 +151,7 @@ def get_next_box(img, board_coord, suggested):
     for layout in layouts:
         left = board_rect.left + nes_pixel_x * layout.nes_px_offset[0]
         top = board_rect.top + nes_pixel_y * layout.nes_px_offset[1]
+        
         if layout.preview_type == PreviewLayout.HARDCODE: # e.g. ctm layout
             right = left + nes_pixel_x * layout.nes_px_size[0]
             bot = top + nes_pixel_y * layout.nes_px_size[1]
@@ -162,33 +161,37 @@ def get_next_box(img, board_coord, suggested):
                           int(left + layout.fillpoint[0] * nes_pixel_x)]
             if not (0 <= fill_point[0] <= size[0] and 0 <= fill_point[1] <= size[1]):
                 continue
+            
+            # debug_draw_rect(arr, layout, board_rect)
             rect = try_expand(arr, fill_point)
+            print("Filled:", rect, "w", rect.width,"h",rect.height)
         if not rect.within(size):
+            print("rect is not within size")
             continue
         
-        if layout.preview_type == PreviewLayout.STANDARD:
+        if layout.preview_type in [PreviewLayout.STANDARD, PreviewLayout.TIGHT]:
             pass
             #todo: use template matching, and then use this to determine where the internal
             #bounding box is            
             #layout = layout.clone()
             #layout.redefine_inner_box(block_size)
 
-        # The preview's size is equal to rect multiplied by inner-box size.
-        # it needs to be close to 1:1 ratio with board.
+        # The preview's size should match the reference's size
         # this means it should be roughly 4 Blocks wide and 2 blocks tall
-        if rect.width * layout.inner_box_size[0] > 5*NES_BLOCK_PIXELS* nes_pixel_x:
+        ref_piece_width = layout.preview_size * 4 * NES_BLOCK_PIXELS * nes_pixel_x
+        ref_piece_height = layout.preview_size * 2 * NES_BLOCK_PIXELS * nes_pixel_y
+        
+        piece_width = layout.inner_box_size[0] * rect.width
+        piece_height = layout.inner_box_size[1] * rect.height
+
+        if not ref_piece_width * 0.7 <= piece_width <= ref_piece_width * 1.3:
+            # print("inner_rect is too wide / skinny:", ref_piece_width, piece_width)
             continue
-        if rect.height * layout.inner_box_size[1] > 3*NES_BLOCK_PIXELS*nes_pixel_y:
-            continue
-        if rect.width > 6*NES_BLOCK_PIXELS*nes_pixel_x:
-            continue
-        if rect.width < 4*NES_BLOCK_PIXELS*nes_pixel_x:
-            continue
-        if rect.height < 2*NES_BLOCK_PIXELS*nes_pixel_y:
-            continue
-        if rect.height > 6*NES_BLOCK_PIXELS*nes_pixel_y:
+        if not ref_piece_height * 0.7 <= piece_height <= ref_piece_height * 1.3:
+            # print("inner_rect is too short / tall", ref_piece_height, piece_height)
             continue
         if rect in results:
+            # print("rectangle already exists")
             continue
         results.append((rect, layout))
     
@@ -199,6 +202,26 @@ def get_next_box(img, board_coord, suggested):
     result = results[0]
     return (result[0].to_array(), result[1])
     
+def debug_draw_rect(arr, layout, board_rect):
+    arr = np.array(arr, copy=True)
+    red = (0,0,255) #Blue green red
+    blue = (255,0,0)
+    nes_pixel_x = board_rect.width / float(NES_PIXELS_BOARD_WIDTH) 
+    nes_pixel_y = board_rect.height / float(NES_PIXELS_BOARD_HEIGHT)
+    left = int(board_rect.left + nes_pixel_x * layout.nes_px_offset[0])
+    top = int(board_rect.top + nes_pixel_y * layout.nes_px_offset[1])
+    right = int(left + nes_pixel_x * layout.nes_px_size[0])
+    bot = int(top + nes_pixel_y * layout.nes_px_size[1])
+    
+    cv2.rectangle(arr, (left,top), (right,bot), red, -1)
+    left2 = int(left + layout.inner_box_nespx[0] * nes_pixel_x)
+    top2 = int(top + layout.inner_box_nespx[1] * nes_pixel_y)
+    right2 = int(left + layout.inner_box_nespx[2] * nes_pixel_x)
+    bot2 = int(top + layout.inner_box_nespx[3] * nes_pixel_y)
+
+    cv2.rectangle(arr, (left2,top2), (right2,bot2), blue, -1)
+    cv2.imshow('color image', arr) 
+    cv2.waitKey(0)
 
 def convert_img_to_nparray(img):
     if not isinstance(img, np.ndarray):
