@@ -334,7 +334,8 @@ class Calibrator:
             self.nextBounds.setRect(pixels)
             self.nextBounds.setSubRect(preview_layout.inner_box)
             self.nextBounds.sub_rect_name = preview_layout.name
-        
+        else:
+            print("no next box found")
         
     def handle_calibrate_field_button(self):
         if self.get_button_clicked(ButtonIndices.CALLIBRATE):

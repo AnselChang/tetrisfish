@@ -189,7 +189,7 @@ class Bounds:
         if pressUp:
             self.dragMode = CalibrationStatus.ALREADY_SET
 
-        minimumLength = 20
+        minimumLength = 10
         
         
         if (self.calibration_status == CalibrationStatus.TOP_LEFT or
@@ -209,6 +209,7 @@ class Bounds:
     def click(self, mx, my):
         if not self.enable_click: 
             return
+        
         if self.mouseOutOfBounds(mx ,my):
             return
         
@@ -222,17 +223,6 @@ class Bounds:
     def set(self):
         self.calibration_status = CalibrationStatus.ALREADY_SET
         self.notSet = False
-
-
-    def _getPosition(self):
-        
-        dx = self.X_RIGHT*(self.x2-self.x1) / self.horizontal
-        margin = (self.y2-self.y1)*self.Y_TOP
-        dy = self.Y_BOTTOM*(self.y2-self.y1-margin) / self.vertical
-
-        # dx, dy, radius
-        return dx, dy, (dx+dy)/2/8
-    
  
         
     # After change x1/y1/x2/y2, update conversions to scale
@@ -317,7 +307,6 @@ class Bounds:
     def displayBounds(self, surface, nparray = None, minos = None):
         
         if self.doNotDisplay:
-            print("not displaying :(")
             return None
 
         if type(minos) != np.ndarray:

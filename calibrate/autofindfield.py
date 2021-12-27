@@ -148,7 +148,7 @@ def get_next_box(img, board_coord, suggested):
 
     nes_pixel_x = board_rect.width / float(NES_PIXELS_BOARD_WIDTH) 
     nes_pixel_y = board_rect.height / float(NES_PIXELS_BOARD_HEIGHT)
-
+    
     results = []
     for layout in layouts:
         left = board_rect.left + nes_pixel_x * layout.nes_px_offset[0]
@@ -162,10 +162,7 @@ def get_next_box(img, board_coord, suggested):
                           int(left + layout.fillpoint[0] * nes_pixel_x)]
             if not (0 <= fill_point[0] <= size[0] and 0 <= fill_point[1] <= size[1]):
                 continue
-            print(layout.name, fill_point, "/", size)
-            print("Trying to expand", layout.name)
             rect = try_expand(arr, fill_point)
-        
         if not rect.within(size):
             continue
         
@@ -185,11 +182,14 @@ def get_next_box(img, board_coord, suggested):
             continue
         if rect.width > 6*NES_BLOCK_PIXELS*nes_pixel_x:
             continue
+        if rect.width < 4*NES_BLOCK_PIXELS*nes_pixel_x:
+            continue
+        if rect.height < 2*NES_BLOCK_PIXELS*nes_pixel_y:
+            continue
         if rect.height > 6*NES_BLOCK_PIXELS*nes_pixel_y:
             continue
         if rect in results:
             continue
-
         results.append((rect, layout))
     
     if len(results) == 0:

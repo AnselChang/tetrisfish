@@ -8,7 +8,8 @@ class Layout:
         self.preview = preview # preview type
 
 class PreviewLayout:    
-    STANDARD=2 # flood fill the box, then choose subset based on nes_px_size
+    TIGHT=1
+    STANDARD=2 # flood fill the box, then choose subset based on nes_px_size    
     HARDCODE=3 # don't expand, just hardcode it.
     
     def __init__(self, name, nes_px_offset, nes_px_size, inner_box, preview_type):
@@ -36,10 +37,10 @@ class PreviewLayout:
         if self.preview_type == self.STANDARD:
             return 3, 11
         else: #fill from top left of rect, offset by 2 nes pixels 
-            return 2, 2
+            return 0, 0
         
     def __str__(self):
-        return (f"PreviewLayout: {self.preview_type}")
+        return (f"PreviewLayout: {self.nes_px_offset}, {self.preview_type}")
     
     def __eq__(self, other):
         if not isinstance(other, PreviewLayout):
@@ -61,10 +62,10 @@ class PreviewLayout:
 PREVIEW_LAYOUTS = { # stencil, stock capture etc.
                     "STANDARD": PreviewLayout("STANDARD", (96,56),(32,42), (0.04,0.41,0.96,0.75), PreviewLayout.STANDARD),
                     # ctwc 2p                    
-                    "MOC": PreviewLayout("MOC", (5.5*8,-3*8), None, (0.11,0.16,0.87,0.89),PreviewLayout.STANDARD),
+                    "MOC": PreviewLayout("MOC", (5.5*8,-3*8), None, (0.11,0.16,0.87,0.89),PreviewLayout.TIGHT),
                     # ctwc 4p
-                    "MOC4pLeft": PreviewLayout("MOC4pLeft", (-5.1*8,4.6*8), None, (0.05,0.30,0.95,0.70), PreviewLayout.STANDARD),
-                    "MOC4pRight": PreviewLayout("MOC4pRight", (10.7*8,4.6*8), None, (0.05,0.30,0.95,0.70),PreviewLayout.STANDARD),
+                    "MOC4pLeft": PreviewLayout("MOC4pLeft", (-3*8,4.65*8), None, (0.11,0.16,0.87,0.89), PreviewLayout.TIGHT),
+                    "MOC4pRight": PreviewLayout("MOC4pRight", (10.9*8,4.6*8), None, (0.11,0.16,0.87,0.89),PreviewLayout.TIGHT),
                     # "CTM": #2p
                     # "CTM": #4p
                   }
