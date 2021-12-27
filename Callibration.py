@@ -10,8 +10,7 @@ from colors import *
 import Evaluator
 from Position import Position
 from Analysis import analyze
-import autofindfield
-
+from calibrate import autofindfield
 
 PygameButton.init(c.font)
 
@@ -123,7 +122,11 @@ class Bounds:
 
         self.isMaxoutClub = isMaxoutClub
         self.defineDimensions(False)
-        
+            
+    def setDimensions(self, rect):
+        self.X_LEFT, self.Y_TOP, self.X_RIGHT, self.Y_BOTTOM = rect
+        # initialize lookup tables for bounds
+        self.updateConversions()
 
     def defineDimensions(self, toggle = False):
 
@@ -132,23 +135,12 @@ class Bounds:
 
         if self.isNB:
             if self.isMaxoutClub:
-                self.Y_TOP = 0.055
-                self.Y_BOTTOM = 0.7
-                self.X_LEFT = 0.105
-                self.X_RIGHT = 0.8
+                self.setDimensions((0.11, 0.16, 0.87, 0.90))
             else:
-                self.Y_TOP = 0.41
-                self.Y_BOTTOM = 0.75
-                self.X_LEFT = 0.04
-                self.X_RIGHT = 0.96
+                self.setDimensions((0.04, 0.41, 0.96, 0.75))
         else: # field
-            self.Y_TOP = 0
-            self.Y_BOTTOM = 0.993
-            self.X_LEFT = 0.01
-            self.X_RIGHT = 0.99
+            self.setDimensions((0.01,0.0,0.99,0.993))
 
-        # initialize lookup tables for bounds
-        self.updateConversions()
         
 
     def mouseNearDot(self, mx, my):
@@ -673,15 +665,16 @@ def callibrate():
             assert(type(frame) == np.ndarray)
 
         if buttons.get(B_AUTOCALIBRATE).clicked:
-            pixels = autofindfield.get_board(frame) #todo return multiple regions if possible
+            pixels, suggested = autofindfield.get_board(frame) #todo return multiple regions if possible
             board_pixels = pixels or (0,0,c.VIDEO_WIDTH,c.VIDEO_HEIGHT)
             bounds = Bounds(False,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
             bounds.setScaled(board_pixels, (c.VIDEO_WIDTH, c.VIDEO_HEIGHT))
-            if pixels: #successfully found board
-                pixels = autofindfield.get_next_box(frame, pixels)
+            if pixels: # successfully found board
+                pixels, subrect = autofindfield.get_next_box(frame, pixels, suggested)
                 if pixels is not None:
                     nextBounds = Bounds(True,0,0, c.X_MAX / c.SCALAR, c.Y_MAX / c.SCALAR)
                     nextBounds.setScaled(pixels, (c.VIDEO_WIDTH, c.VIDEO_HEIGHT))
+                    nextBounds.setDimensions(subrect)
             if nextBounds is not None:
                 nextBounds.set()
             if bounds is not None:
