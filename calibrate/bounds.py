@@ -44,8 +44,8 @@ class Bounds:
         # bounding rect
         self.x1 = 0
         self.y1 = 0
-        self.x2 = 0
-        self.y2 = 0
+        self.x2 = self.config.VIDEO_WIDTH
+        self.y2 = self.config.VIDEO_HEIGHT
 
         # offset rect
         self.X_LEFT = 0
@@ -95,11 +95,13 @@ class Bounds:
         self.updateConversions()
         self.set()
         
+    
     def setSubRect(self, rect):
         """
         sets the subrect proportions
         """
         self.X_LEFT, self.Y_TOP, self.X_RIGHT, self.Y_BOTTOM = rect
+        
         # initialize lookup tables for bounds
         self.updateConversions()
     
@@ -349,3 +351,6 @@ class Bounds:
         self.calibration_status = data["callibration"]
         self.sub_rect_name = data["sub_rect_name"]
         
+"""
+class BoundsPicker:
+"""

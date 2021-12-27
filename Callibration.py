@@ -403,11 +403,12 @@ def callibrate():
             bounds = Bounds(False, config=c)
             bounds.setRect(board_pixels)
             if pixels: # successfully found board
-                pixels, subrect = autofindfield.get_next_box(frame, pixels, suggested)
+                pixels, preview_layout = autofindfield.get_next_box(frame, pixels, suggested)
                 if pixels is not None:
                     nextBounds = Bounds(True, config=c)
                     nextBounds.setRect(pixels)
-                    nextBounds.setSubRect(subrect)
+                    nextBounds.setSubRect(preview_layout.inner_box)
+                    nextBounds.sub_rect_name = preview_layout.name
             if nextBounds is not None:
                 nextBounds.set()
             if bounds is not None:
@@ -508,7 +509,7 @@ def callibrate():
             
         
         if bounds != None:
-            delete = bounds.updateMouse(mx,my, startPress, click)
+            delete = bounds.updateMouse(mx, my, startPress, click)
             if delete:
                 bounds = None
             else:
@@ -517,7 +518,7 @@ def callibrate():
                     minosMain = x
 
         if nextBounds != None:
-            delete = nextBounds.updateMouse(mx,my, startPress, click)
+            delete = nextBounds.updateMouse(mx, my, startPress, click)
             if delete:
                 nextBounds = None
             else:
@@ -642,7 +643,7 @@ def callibrate():
         LEFT_X2 = 497
         Y = 1377
         inVideoSlider = (mx > LEFT_X2 - 20 and mx < LEFT_X2 + SW2 + 20 and my > Y - 30 and my < Y + 60)
-        if not leftVideoSlider.active and not rightVideoSlider.active and inVideoSlider:
+        if not leftVideoSlider.active and not rightVideoSlider.active and inVideoSlider and not c.isImage:
             if isPressed:
                 segmentActive = True
                 rightVideoSlider.setAlt(False)

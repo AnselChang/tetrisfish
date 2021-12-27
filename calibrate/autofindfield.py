@@ -55,12 +55,13 @@ def convert_to_grayscale(arr):
     arr[:,:,2] = gray
     return arr
 
-
+import time
 def get_board(img):
     """
     Takes an nparray image, or a PIL image
     Returns a board rect and suggested Preview position.
     """
+    t = time.time()
     arr = convert_img_to_nparray(img)
     arr = convert_to_grayscale(arr)
 
@@ -78,8 +79,14 @@ def get_board(img):
     for attempt in LAYOUTS.values():
         # grab offset and swap x/y to y/x
         centre = list(attempt.fillpoint)
-        centre[0], centre[1] = int(centre[1]*size[0]), int(centre[0]*size[1]) # end result is y/x
+        
+        # don't bother running this if we've already got this with a different fill
+        for result in results:
+            if result[0].contains(centre):
+                continue
 
+        centre[0], centre[1] = int(centre[1]*size[0]), int(centre[0]*size[1]) # end result is y/x
+        
         result = try_expand(arr, centre)
         print("potential field:", result)
         if (result.width < 0.10 * size[1]):
@@ -99,9 +106,14 @@ def get_board(img):
 
     results.sort(key=lambda x:x[0].area, reverse=True)
     
+    max_area = results[0][0].area
+    # in multi layouts, we will have lots of black rectangles :)
+    # discard any rectangles that are clearly too small
+    results = list(filter(lambda x: x[0].area >= 0.94*max_area, results))
+    
     result = results[0] # get biggest item
     result[0] = result[0].to_array()
-    
+    print("Time taken to ai find field:", time.time()-t)
     # we could instead return everything, so that
     # the user can pick the best one
     return result # resulting rect and preview suggestion.
@@ -136,9 +148,9 @@ def get_next_box(img, board_coord, suggested):
     for layout in layouts:
         left = board_rect.left + nes_pixel_x * layout.nes_px_offset[0]
         top = board_rect.top + nes_pixel_y * layout.nes_px_offset[1]
-        right = left + nes_pixel_x * layout.nes_px_size[0]
-        bot = top + nes_pixel_y * layout.nes_px_size[1]
         if layout.preview_type == PreviewLayout.HARDCODE: # e.g. ctm layout
+            right = left + nes_pixel_x * layout.nes_px_size[0]
+            bot = top + nes_pixel_y * layout.nes_px_size[1]
             rect = Rect(left,top,right,bot)
         else:            
             fill_point = [int(top + layout.fillpoint[1] * nes_pixel_y),
@@ -148,9 +160,17 @@ def get_next_box(img, board_coord, suggested):
             print(layout.name, fill_point, "/", size)
             print("Trying to expand", layout.name)
             rect = try_expand(arr, fill_point)
+        
         if not rect.within(size):
             continue
         
+        if layout.preview_type == PreviewLayout.STANDARD:
+            pass
+            #todo: use template matching, and then use this to determine where the internal
+            #bounding box is            
+            #layout = layout.clone()
+            #layout.redefine_inner_box(block_size)
+
         # The preview's size is equal to rect multiplied by inner-box size.
         # it needs to be close to 1:1 ratio with board.
         # this means it should be roughly 4 Blocks wide and 2 blocks tall
@@ -158,8 +178,17 @@ def get_next_box(img, board_coord, suggested):
             continue
         if rect.height * layout.inner_box_size[1] > 3*NES_BLOCK_PIXELS*nes_pixel_y:
             continue
-        results.append((rect, layout.inner_box))
+        if rect.width > 5*NES_BLOCK_PIXELS*nes_pixel_x:
+            continue
+        if rect.height > 5*NES_BLOCK_PIXELS*nes_pixel_y:
+            continue
+        if rect in results:
+            continue
+
+        results.append((rect, layout))
     
+    if len(results) == 0:
+        return None, None
     # we could return *all* the results for user to pick, but for now we just return
     # the first one and its subrect.
     result = results[0]
