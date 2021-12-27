@@ -479,6 +479,7 @@ def callibrate():
     B_LOAD = 13
     B_CHECK = 14
     B_AUTOCALIBRATE = 15
+    B_PAL = 16
 
     buttons = PygameButton.ButtonHandler()
     buttons.addImage(B_AUTOCALIBRATE, images[C_ABOARD], 1724, 380, hydrantScale, img2= images[C_ABOARD2],
@@ -513,6 +514,9 @@ def callibrate():
 
     buttons.get(B_CHECK).isAlt = True
 
+    buttons.addImage(B_PAL, images[C_CHECKMARK], 1890, 30, 0.3, img2 = c1dark, alt = images[C_CHECKMARK2],
+                     alt2 = c2dark, tooltip = ["PAL mode. Only configured for level 18+"])
+
     buttons.addInvisible(1726,880, 2480, 953, tooltip = [
         "The threshold for how bright the pixel must be to",
         "be considered a mino. You may need to increase",
@@ -535,9 +539,9 @@ def callibrate():
     B_LEVEL = 9
     B_LINES = 10
     B_SCORE = 11
-    buttons.addTextBox(B_LEVEL, 1960, 40, 70, 50, 2, "18", tooltip = ["Level at GAME start, not", "at the render selection start"])
-    buttons.addTextBox(B_LINES, 2410, 40, 90, 50, 3, "0")
-    buttons.addTextBox(B_SCORE, 2150, 125, 170, 50, 7, "0")
+    buttons.addTextBox(B_LEVEL, 1940, 125, 70, 50, 2, "18", tooltip = ["Level at GAME start, not", "at the render selection start"])
+    buttons.addTextBox(B_LINES, 2410, 125, 90, 50, 3, "0")
+    buttons.addTextBox(B_SCORE, 2330, 40, 170, 50, 7, "0")
     
     # Slider stuff
     SW = 680 # slider width
@@ -697,19 +701,29 @@ def callibrate():
             c.isDepth3 = b.isAlt
             c.isEvalDepth3 = b.isAlt
 
+        elif buttons.get(B_PAL).clicked:
+            b = buttons.get(B_PAL)
+            b.isAlt = not b.isAlt
+            c.isPAL = b.isAlt
+
         elif buttons.get(B_RENDER).clicked or enterKey:
 
             c.startLevel = buttons.get(B_LEVEL).value()
 
+            if c.isPAL and buttons.get(B_LEVEL).value() < 18:
+                errorMsg = time.time()  # display error message by logging time to display for 3 seconds
+                errorText = "Only level 18 or higher is supported for PAL."
+                errorColor = RED
 
             # If not callibrated, do not allow render
-            if bounds == None or nextBounds == None or bounds.notSet or nextBounds.notSet:
+            elif bounds == None or nextBounds == None or bounds.notSet or nextBounds.notSet:
                 errorMsg = time.time()  # display error message by logging time to display for 3 seconds
                 errorText = "You must set bounds for the board and next box."
                 errorColor = RED
 
             else:
-                frame, vidFrame[LEFT_FRAME] = c.goToFrame(vcap, vidFrame[LEFT_FRAME])
+                if not c.isImage:
+                    frame, _ = c.goToFrame(vcap, vidFrame[LEFT_FRAME])
                 
                 board = bounds.getMinos(frame)
                 mask = extractCurrentPiece(board)
@@ -739,7 +753,7 @@ def callibrate():
                         board -= mask # remove current piece from board to get pure board state
                         print2d(board)
                         nextPiece = getNextBox(minosNext)
-                        c.hzString = timeline[hzNum]
+                        c.hzString = timeline[hzNum][PAL if c.isPAL else NTSC]
                         pos = Position(board, currPiece, nextPiece, level = buttons.get(B_LEVEL).value(),
                                        lines = buttons.get(B_LINES).value(), score = buttons.get(B_SCORE).value())
                         analyze([pos], timelineNum[hzNum])
@@ -753,7 +767,7 @@ def callibrate():
 
                         # Exit callibration, initiate rendering with returned parameters
                         print("Hz num: ", timelineNum[hzNum])
-                        c.hzString = timeline[hzNum]
+                        c.hzString = timeline[hzNum][PAL if c.isPAL else NTSC]
                         return [vidFrame[LEFT_FRAME], vidFrame[RIGHT_FRAME], bounds, nextBounds, buttons.get(B_LEVEL).value(),
                                 buttons.get(B_LINES).value(), buttons.get(B_SCORE).value(), timelineNum[hzNum]]
 
@@ -926,9 +940,10 @@ def callibrate():
             c.screen.blit(text, [300, 1383] )
 
         # Draw Level/Lines/Score text
-        c.screen.blit(c.fontbold.render("Start Level:", True, WHITE), [1700, 40])
-        c.screen.blit(c.fontbold.render("Current Lines:", True, WHITE), [2100, 40])
-        c.screen.blit(c.fontbold.render("Current Score:", True, WHITE), [1830, 125])
+        c.screen.blit(c.fontbold.render("PAL?", True, WHITE), [1770, 40])
+        c.screen.blit(c.fontbold.render("Start Level:", True, WHITE), [1700, 125])
+        c.screen.blit(c.fontbold.render("Current Lines:", True, WHITE), [2100, 125])
+        c.screen.blit(c.fontbold.render("Current Score:", True, WHITE), [2050, 40])
 
         c.screen.blit(c.fontbold.render("Deep?", True, WHITE), [1700, 1215])
         
