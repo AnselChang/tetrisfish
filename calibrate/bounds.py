@@ -110,7 +110,7 @@ class Bounds:
         if self.isNB:
             names = list(PREVIEW_LAYOUTS.keys())
             idx = names.index(self.sub_rect_name)
-            idx = idx + 1 % len(names)
+            idx = (idx + 1) % len(names)
             self.sub_rect_name = names[idx]
         self._defineDimensions()
 
