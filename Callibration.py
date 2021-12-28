@@ -249,10 +249,10 @@ class Calibrator:
     
     def set_zoom_automatically(self):
         # init zoom to show full image:
-        widthRatio = c.X_MAX / c.VIDEO_WIDTH
-        heightRatio = c.Y_MAX / c.VIDEO_HEIGHT
+        widthRatio = c.X_MAX / float(c.VIDEO_WIDTH)
+        heightRatio = c.Y_MAX / float(c.VIDEO_HEIGHT)
         autoZoom = min(widthRatio,heightRatio, 4) # magic, the four is max zoom
-        c.SCALAR = autoZoom
+        c.SCALAR = float(autoZoom)
         self.zoomSlider.overwrite(autoZoom / 4) # lol magic
     
     def handle_video_buttons(self):

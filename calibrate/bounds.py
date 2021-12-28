@@ -98,11 +98,13 @@ class Bounds:
         """
         Sets the rectangles position in videospace pixels
         """
-        #percentage of pixel to original video
+        # percentage of pixel to original video
+        # There might be a conversion factor of +1 width and height
+        # from opencv to pygame. This is unconfirmed but seems to work better
         self.x1 = rect[0]
-        self.x2 = rect[2]
+        self.x2 = rect[2] + 1
         self.y1 = rect[1]
-        self.y2 = rect[3]
+        self.y2 = rect[3] + 1
                
         self.updateConversions()
         self.set()

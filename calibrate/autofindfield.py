@@ -11,7 +11,6 @@ NES_BLOCK_PIXELS = 8
 from calibrate.autolayout import Rect, PREVIEW_LAYOUTS, LAYOUTS, PreviewLayout
 
 def is_blackish(tuple):
-    print(tuple)
     return tuple[0] < 20 and tuple[1] < 20 and tuple[2] < 20
 
 
