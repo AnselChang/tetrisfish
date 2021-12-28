@@ -20,6 +20,15 @@ class PreviewLayout:
         self.preview_type = preview_type
         self.preview_size = preview_size #e.g. 1.0
 
+    def recalc_sub_rect(self, new_sub_rect):
+        """Given a new subrect in nes_pixels, calculates inner_box"""
+        print (new_sub_rect, self.nes_px_size)
+        result = (new_sub_rect.left / float(self.nes_px_size[0]),
+                  new_sub_rect.top / float(self.nes_px_size[1]),
+                  new_sub_rect.right / float(self.nes_px_size[0]),
+                  new_sub_rect.bottom / float(self.nes_px_size[1]))
+        self.inner_box = result
+
     @property
     def inner_box_size(self):
         return [self.inner_box[2] - self.inner_box[0],
@@ -39,6 +48,14 @@ class PreviewLayout:
         right = self.nes_px_size[0] * self.inner_box[2]
         bot = self.nes_px_size[1] * self.inner_box[3]
         return (left,top,right,bot)
+    
+    @property
+    def inner_box_corners_nespx(self):
+        box = self.inner_box_nespx
+        return [(box[0],box[1]), #tl
+                (box[0],box[3]), #bl
+                (box[2],box[1]), #tr
+                (box[2],box[3])] #br
         
     def __str__(self):
         return (f"PreviewLayout: {self.nes_px_offset}, {self.preview_type}")
@@ -56,7 +73,8 @@ class PreviewLayout:
                                self.nes_px_offset,
                                self.nes_px_size,
                                self.inner_box,
-                               self.preview_type)
+                               self.preview_type,
+                               self.preview_size)
 
 
 #A bug/quirk; the key and name must match 1:1 for preview layouts
@@ -127,4 +145,14 @@ class Rect:
         return (0 <= self.left <= self.right <= yx[1] and 
                 0 <= self.top <= self.bottom <= yx[0])
            
-        
+    def multiply(self, constant):
+        self.left = self.left * constant
+        self.top = self.top * constant
+        self.right = self.right * constant
+        self.bottom = self.bottom* constant
+    
+    def round_to_int(self):
+        self.left = round(self.left)
+        self.top = round(self.top)
+        self.right = round(self.right)
+        self.bottom= round(self.bottom)
