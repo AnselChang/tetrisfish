@@ -63,7 +63,7 @@ class PreviewLayout:
 PREVIEW_LAYOUTS = { # stencil, stock capture etc.
                     "STANDARD": PreviewLayout("STANDARD", (96,56),(32,42), (0.04,0.41,0.96,0.75), PreviewLayout.STANDARD, 1.0),
                     # ctwc 2p                    
-                    "MOC": PreviewLayout("MOC", (5.6*8,-3*8), (36,20), (0.11,0.16,0.87,0.89),PreviewLayout.TIGHT, 1.0),
+                    "MOC": PreviewLayout("MOC", (5.4*8,-3.1*8), (37,19), (0.08,0.16,0.90,0.89),PreviewLayout.TIGHT, 1.0),
                     # ctwc 4p
                     "MOC4pLeft": PreviewLayout("MOC4pLeft", (-5*8,4.5*8), (34,18), (0.05,0.07,0.97,0.95), PreviewLayout.TIGHT, 1.0),
                     "MOC4pRight": PreviewLayout("MOC4pRight", (10.8*8,4.5*8), (34,18), (0.05,0.07,0.97,0.95),PreviewLayout.TIGHT, 1.0),
