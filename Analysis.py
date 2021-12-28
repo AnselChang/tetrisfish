@@ -198,7 +198,7 @@ def analyze(positionDatabase, hzInt):
 
 
     IMAGE_NAMES = [BOARD, CURRENT, NEXT, PANEL]
-    IMAGE_NAMES.extend( [LEFTARROW, RIGHTARROW, STRIPES ])
+    IMAGE_NAMES.extend( [LEFTARROW, RIGHTARROW, STRIPES, LOGO, LOGO2 ])
     IMAGE_NAMES.extend( [LEFTARROW_FAST, RIGHTARROW_FAST, LEFTARROW_FAST2, RIGHTARROW_FAST2] )
     IMAGE_NAMES.extend( [LEFTARROW_MAX, RIGHTARROW_MAX, LEFTARROW2_MAX, RIGHTARROW2_MAX] )
     IMAGE_NAMES.extend( [A_BACKDROP, "question"] )
@@ -230,6 +230,7 @@ def analyze(positionDatabase, hzInt):
     B_HYP_RIGHT = "RightArrowHypothetical"
     B_HYP_MAXLEFT = "MaxLeftArrowHypothetical"
     B_HYP_MAXRIGHT = "MaxRightArrowHypothetical"
+    B_LOGO = "logo"
     
     buttons = PygameButton.ButtonHandler()
 
@@ -272,6 +273,8 @@ def analyze(positionDatabase, hzInt):
     buttons.addImage(B_HYP_MAXRIGHT, images[RIGHTARROW_MAX], x+250, y, hydrantScale, margin = -10, img2 = images[RIGHTARROW2_MAX], alt = rightMaxAlt)
 
     buttons.addPlacementButtons(5, 1440, 160, 27, 460, 87)
+
+    buttons.addImage(B_LOGO, images[LOGO], 70, 30, hydrantScale, margin = 0, img2 = images[LOGO2], tooltip = ["Exit to callibration page"])
     
 
     positionNum = 0
@@ -400,6 +403,10 @@ def analyze(positionDatabase, hzInt):
             # Go to next key position
             positionNum = keyPositions[keyPositions > positionNum].min()
             analysisBoard.updatePosition(positionNum)
+
+        elif buttons.get(B_LOGO).clicked:
+            # exit to calibration
+            return True
 
 
         # Update Graphs
@@ -574,7 +581,7 @@ def analyze(positionDatabase, hzInt):
             if event.type == pygame.QUIT:
                 pygame.display.quit()
                 sys.exit()
-                return True
+                return False
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 3 or (event.button == 1 and pygame.key.get_pressed()[pygame.K_LCTRL]):

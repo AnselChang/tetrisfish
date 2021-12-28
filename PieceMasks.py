@@ -228,6 +228,8 @@ RIGHTARROW2_MAX = "nextframe2"
 
 PANEL = "panel"
 STRIPES = "stripes"
+LOGO = "tfish"
+LOGO2 = "tfish2"
 
 # Mino colors
 EMPTY = 0
