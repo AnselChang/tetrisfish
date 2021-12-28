@@ -159,7 +159,7 @@ def get_next_box(img, board_coord, suggested):
         left = board_rect.left + nes_pixel_x * layout.nes_px_offset[0]
         top = board_rect.top + nes_pixel_y * layout.nes_px_offset[1]
         
-        debug_draw_layout(arr, layout, board_rect)
+        
         if layout.preview_type == PreviewLayout.HARDCODE: # e.g. ctm layout
             right = left + nes_pixel_x * layout.nes_px_size[0]
             bot = top + nes_pixel_y * layout.nes_px_size[1]
@@ -180,6 +180,7 @@ def get_next_box(img, board_coord, suggested):
                 break
             
             if best_corner is None:
+                #debug_draw_layout(arr, layout, board_rect)
                 continue
 
             rect, temp_image = try_expand(arr, fill_point)
@@ -198,6 +199,7 @@ def get_next_box(img, board_coord, suggested):
     
     if result is None:
         return None, None
+
     rect, layout = result
 
     if layout.preview_type != PreviewLayout.HARDCODE:

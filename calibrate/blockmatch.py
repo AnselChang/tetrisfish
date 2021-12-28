@@ -71,10 +71,15 @@ def process_image(image, template):
         return [0, None]
     # unpack the bookkeeping variable and compute the (x, y) coordinates
     # of the bounding box based on the resized ratio
-    (maxVal, maxLoc, r) = found    
+    (maxVal, maxLoc, r) = found
     rx, ry = r
     (startX, startY) = (int(maxLoc[0] * rx), int(maxLoc[1] * ry))
     (endX, endY) = (int((maxLoc[0] + tW) * rx), int((maxLoc[1] + tH) * ry))
+    # remove 2px black border
+    startX += 2
+    startY += 2
+    endX -= 2
+    endY -= 2
     
     # draw a bounding box around the detected result and display the image
     end_rect = (startX,startY,endX,endY)
@@ -98,7 +103,7 @@ def find_piece(image):
     if len(image.shape) > 2 and image.shape[2] > 1:
        image = convert_to_grayscale_8u(image)
     
-    _, image = cv2.threshold(image,50,255,cv2.THRESH_BINARY)
+    _, image = cv2.threshold(image,100,255,cv2.THRESH_BINARY)
 
     for letter in templates.keys():
         template = templates[letter]
