@@ -331,6 +331,9 @@ def analyze(positionDatabase, hzInt):
 
     updateEvalCounter = 0
     while True:
+
+        if not c.done and possibleCount >= len(positionDatabase) - 1:
+            c.done = True
         
         updateEvalCounter = (updateEvalCounter + 1) % 100
         if not c.doneEval and updateEvalCounter == 0:

@@ -84,6 +84,8 @@ def run(calibrator):
         if positionDatabase is not None:
             # If true, logo clicked and go back to calibration
             running = analyze(positionDatabase, hzInt)
+            if running:
+                calibrator.init_image()
  
     
 

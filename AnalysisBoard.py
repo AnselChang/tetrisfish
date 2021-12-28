@@ -181,6 +181,7 @@ class AnalysisBoard:
     # Change the position by index amount delta
     def updatePosition(self, delta):
 
+
         # So that random method calls won't reset the hypothetical state
         if self.positionNum == delta:
             return
@@ -191,6 +192,7 @@ class AnalysisBoard:
         self.position = self.positionDatabase[self.positionNum]
         
         self.init()
+        self.isHoverPiece = False
         self.newAdjust = True
 
     def init(self):
@@ -409,6 +411,7 @@ class AnalysisBoard:
                 self.position = self.position.prev
                 self.position.next = None
                 self.nextBox.updatePiece(self.position.nextPiece)
+
 
     
         
