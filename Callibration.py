@@ -90,6 +90,8 @@ class Calibrator:
         self.error = None # current error message to render
         self.video_dragger = VideoDragger()
         self.mouse_status = MouseStatus()
+
+        self.enterPressed = False
     
         
     def callibrate(self):
@@ -111,7 +113,7 @@ class Calibrator:
             self.update_bounds()
             self.update_video_drag()
             
-            result = self.handle_render_button()
+            result = self.handle_render_button(force = self.enterPressed)
             if result is not None:
                 if len(result) == 0:
                     return None
@@ -153,8 +155,9 @@ class Calibrator:
     def init_buttons(self):
         buttons = PygameButton.ButtonHandler()
         buttons.addImage(ButtonIndices.AUTOCALIBRATE, images[im_names.C_ABOARD], 1724, 380, HYDRANT_SCALE, img2= images[im_names.C_ABOARD2],
-                         tooltip = ["Uses AI to try to find your board and next box.", 
-                                    "Currently only works for centered or Stencil™ boards;",
+                         tooltip = ["Uses AI to try to find your board and next box.",
+                                    "Works better on frames with near-empty boards.",
+                                    "Currently only works for centered or Stencil™ boards,",
                                     "But will expand over time to be more AI"])
 
         buttons.addImage(ButtonIndices.CALLIBRATE, images[im_names.C_BOARD], 1724, 600, HYDRANT_SCALE, img2 = images[im_names.C_BOARD2],
@@ -378,7 +381,7 @@ class Calibrator:
         [] for image, and 
         [list of data] for video
         """
-        if not self.buttons.get(ButtonIndices.RENDER).clicked and not force: 
+        if not self.buttons.get(ButtonIndices.RENDER).clicked and not force:
             return
 
         c.startLevel = self.get_button_value(ButtonIndices.LEVEL)
@@ -632,7 +635,7 @@ class Calibrator:
             if event.key in list(SCRUB_KEYSHIFT.keys()):
                 self.track_video(event.key)
             elif event.key == pygame.K_RETURN:
-                self.handle_render_button(force=True)
+                self.enterPressed = True
             elif event.key == pygame.K_t:
                 # toggle next box subrectangle between
                 # maxoutclub/regular/precise
@@ -646,5 +649,6 @@ class Calibrator:
 
     def handle_pygame_events(self):        
         self.mouse_status.pre_update_event_loop()
+        self.enterPressed = False
         for event in pygame.event.get():
             self.handle_pygame_event(event)

@@ -238,7 +238,7 @@ class Graph:
             
             
         # First frame of press
-        if not self.active and startPressed and my >= self.y and my < self.y + self.realheight and self.index >= self.intervalIndex - self.intervalSize / self.resolution / 2 and self.index < self.intervalIndex + self.intervalSize / self.resolution / 2:
+        if not self.active and startPressed and mx >= self.x and my >= self.y and my < self.y + self.realheight and self.index >= self.intervalIndex - self.intervalSize / self.resolution / 2 and self.index < self.intervalIndex + self.intervalSize / self.resolution / 2:
             self.active  = True
             self.dragLoc = self.index - self.intervalIndex
 

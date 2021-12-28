@@ -147,6 +147,8 @@ def goToFrame(vcap, framecount, frame = None):
     if type(newframe) == np.ndarray:
         frame = np.flip(newframe,2)
     else:
+        print(newframe)
+        print("framecount: ", framecount)
         assert(False)
     return frame, framecount
 

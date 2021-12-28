@@ -59,6 +59,34 @@ def dragFile():
         pygame.display.update()
 
         pygame.time.wait(20)
+
+
+def run(calibrator):
+
+    running = True
+    while running:
+    
+        output = calibrator.callibrate()
+            
+        if output == None:
+            return # exit if pygame screen closed. This also happens if it's an image an callibrate() directly calls analysis
+        
+        firstFrame, lastFrame, bounds, nextBounds, level, lines, score, hzInt = output
+        print("Level: {}, Lines: {}, Score: {}, hz: {}, depth 3: {}".format(level,lines,score,c.hzString, c.isDepth3))
+
+        print("Successfully callibrated video.")
+        print("First, last:", firstFrame, lastFrame)
+        
+
+        positionDatabase = render(firstFrame, lastFrame, bounds, nextBounds, level, lines, score)
+        print("Num positions: ", len(positionDatabase))
+            
+        if positionDatabase is not None:
+            # If true, logo clicked and go back to calibration
+            running = analyze(positionDatabase, hzInt)
+            if running:
+                calibrator.init_image()
+ 
     
 
 def main():
@@ -253,24 +281,10 @@ def main():
             print("Is image")
             c.isImage = True
         calibrator = Calibrator()
-        output = calibrator.callibrate()
-        
-        if output == None:
-            return # exit if pygame screen closed. This also happens if it's an image an callibrate() directly calls analysis
-        
-        firstFrame, lastFrame, bounds, nextBounds, level, lines, score, hzInt = output
-        print("Level: {}, Lines: {}, Score: {}, hz: {}, depth 3: {}".format(level,lines,score,c.hzString, c.isDepth3))
 
-        print("Successfully callibrated video.")
-        print("First, last:", firstFrame, lastFrame)
-        
 
-        positionDatabase = render(firstFrame, lastFrame, bounds, nextBounds, level, lines, score)
-        print("Num positions: ", len(positionDatabase))
+        run(calibrator)
         
-
-    if positionDatabase is not None:
-        analyze(positionDatabase, hzInt)
 
 if __name__ == "__main__":
     main()
