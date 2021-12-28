@@ -55,6 +55,7 @@ def process_image(image, template):
             
             if resized.shape[0] < tH or resized.shape[1] < tW:
                 break
+
             # detect edges in the resized, grayscale image and apply template
             # matching to find the template in the image
             edged = resized
@@ -66,7 +67,8 @@ def process_image(image, template):
             if found is None or maxVal > found[0]:
                 found = (maxVal, maxLoc, r)
             
-    
+    if not found:
+        return [0, None]
     # unpack the bookkeeping variable and compute the (x, y) coordinates
     # of the bounding box based on the resized ratio
     (maxVal, maxLoc, r) = found    
@@ -93,7 +95,7 @@ def find_piece(image):
     results = []
     source = image
     
-    if image.shape[2] > 1:
+    if len(image.shape) > 2 and image.shape[2] > 1:
        image = convert_to_grayscale_8u(image)
     
     _, image = cv2.threshold(image,50,255,cv2.THRESH_BINARY)
