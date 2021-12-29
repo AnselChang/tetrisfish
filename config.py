@@ -131,7 +131,7 @@ def getVideo():
 # Draw video frame
 def displayTetrisImage(frame):
 
-    frame = frame.transpose(1,0,2)
+    frame = frame.transpose(1,0,2) # convert from BGR to RGB
     surf = pygame.surfarray.make_surface(frame)
     surf = scaleImage(surf, SCALAR)
     boundedSurf = pygame.Surface([X_MAX,Y_MAX])
