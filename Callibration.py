@@ -88,6 +88,7 @@ class Calibrator:
 
         
         self.error = None # current error message to render
+        self.ai_error = None # current error message for AI
         self.video_dragger = VideoDragger()
         self.mouse_status = MouseStatus()
 
@@ -157,8 +158,7 @@ class Calibrator:
         buttons.addImage(ButtonIndices.AUTOCALIBRATE, images[im_names.C_ABOARD], 1724, 380, HYDRANT_SCALE, img2= images[im_names.C_ABOARD2],
                          tooltip = ["Uses AI to try to find your board and next box.",
                                     "Works better on frames with near-empty boards.",
-                                    "Currently only works for centered or Stencil™ boards,",
-                                    "But will expand over time to be more AI"])
+                                    "Has good compatibility with  Standard, MaxoutClub and Stencil™ boards"])
 
         buttons.addImage(ButtonIndices.CALLIBRATE, images[im_names.C_BOARD], 1724, 600, HYDRANT_SCALE, img2 = images[im_names.C_BOARD2],
                          tooltip = ["Set the bounds for the tetris board. One dot",
@@ -166,7 +166,7 @@ class Calibrator:
         buttons.addImage(ButtonIndices.NEXTBOX, images[im_names.C_NEXT], 2100, 600, HYDRANT_SCALE, img2 = images[im_names.C_NEXT2],
                          tooltip = ["Set the bounds across the active area of the entire",
                                     "next box. Make sure four dots are symmetrically placed",
-                                    "along each mino. Press 'T' for a MaxoutClub layout"])
+                                    "along each mino. Press 'T' to switch inner bounds"])
         if not c.isImage:
             buttons.addImage(ButtonIndices.PLAY, images[im_names.C_PLAY], 134,1377, HYDRANT_SCALE, img2 = images[im_names.C_PLAY2], alt = images[im_names.C_PAUSE],
                              alt2 = images[im_names.C_PAUSE2], tooltip = ["Shortcuts: , and . to move back or forward a frame", "Arrow keys to skip behind or ahead",
@@ -306,20 +306,20 @@ class Calibrator:
         if not self.get_button_clicked(ButtonIndices.AUTOCALIBRATE):
             return
         
+        self.ai_error = None
         boards = autofindfield.get_board(self.frame)
         self.bounds = None
         self.nextBounds = None
         self.boundsManager = None
 
         if len(boards) == 0: #fail.
-            print("no boards...")
-            pixels = (0,0,c.VIDEO_WIDTH,c.VIDEO_HEIGHT)
-            self.bounds = Bounds(False,config=c)
-            self.bounds.setRect(pixels)
+            self.ai_error = ErrorMessage("Couldn't find any Tetris boards")
         else:
             self.nextBounds = None
             self.bounds = None
             self.boundsManager = BoundsPicker(boards, c, self.handle_auto_board_selected, False)
+            if len(boards) > 1:
+                self.ai_error = ErrorMessage("Multiple boards detected; please click one!", BRIGHT_GREEN)
             
         
     def handle_auto_board_selected(self, board, suggested):
@@ -330,7 +330,7 @@ class Calibrator:
         self.bounds = Bounds(False, config=c)
         self.bounds.setRect(board)
         self.bounds.set()
-        
+        self.ai_error = None
         pixels, preview_layout = autofindfield.get_next_box(self.frame, board, suggested)
         if pixels is not None:
             self.nextBounds = Bounds(True, config=c)
@@ -338,21 +338,25 @@ class Calibrator:
             self.nextBounds.setSubRect(preview_layout.inner_box)
             self.nextBounds.sub_rect_name = preview_layout.name
         else:
-            print("no next box found")
+            self.ai_error = ErrorMessage("Couldn't find the Next box could not be found")
         
     def handle_calibrate_field_button(self):
-        if self.get_button_clicked(ButtonIndices.CALLIBRATE):
-            self.bounds = Bounds(False, config=c)
-            if self.nextBounds is not None:
-                self.nextBounds.set()
-            self.boundsManager = None
+        if not self.get_button_clicked(ButtonIndices.CALLIBRATE):
+            return
+        self.ai_error = None
+        self.bounds = Bounds(False, config=c)
+        if self.nextBounds is not None:
+            self.nextBounds.set()
+        self.boundsManager = None
     
     def handle_calibrate_next_button(self):
-        if self.get_button_clicked(ButtonIndices.NEXTBOX):
-            self.nextBounds = Bounds(True, config=c)
-            if self.bounds is not None:
-                self.bounds.set()
-            self.boundsManager = None
+        if not self.get_button_clicked(ButtonIndices.NEXTBOX):
+            return
+        self.ai_error = None
+        self.nextBounds = Bounds(True, config=c)
+        if self.bounds is not None:
+            self.bounds.set()
+        self.boundsManager = None
 
     def handle_check_button(self):
         b = self.buttons.get(ButtonIndices.CHECK)
@@ -592,7 +596,12 @@ class Calibrator:
             else:
                 text = c.font2.render(self.error.text, True, self.error.color)
                 c.screen.blit(text, [1670,1380])
-
+        
+        # this one doesnt expire; they have to click button to proceed
+        if self.ai_error is not None:
+            text = c.font2.render(self.ai_error.text, True, self.ai_error.color)
+            c.screen.blit(text, [1730, 560])
+            
     def render_text(self):
         # Draw timestamp
         if c.isImage:
