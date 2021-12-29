@@ -48,6 +48,9 @@ jobs:
           - os: windows-latest
             zip_end: _win.zip
             build_script: ./build_windows.ps1
+          - os: ubuntu-latest
+            zip_end: _linux.zip
+            build_script: sh build_mac_os.sh
     steps:
     - name: Checkout Code
       uses: actions/checkout@v2
@@ -72,6 +75,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:         
         upload_url: ${{ needs.create_release.outputs.upload_url }}
-        asset_path: ./bundle/TetrisFish_${{ steps.get_version.outputs.VERSION }}${{matrix.zip_end}}
+        asset_path: ./bundle/TetrisFish_${{ steps.get_version.outputs.VERSION }}.zip
         asset_name: TetrisFish_${{ steps.get_version.outputs.VERSION }}${{matrix.zip_end}}
         asset_content_type: application/zip
