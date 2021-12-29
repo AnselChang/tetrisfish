@@ -220,7 +220,7 @@ def get_next_box(img, board_coord, suggested):
             layout.recalc_sub_rect(sub_rect)
 
     
-    debug_draw_layout(arr, layout, board_rect)
+    #debug_draw_layout(arr, layout, board_rect)
 
     return (rect.to_array(), layout)
 
@@ -303,8 +303,7 @@ def debug_draw_layout(arr, layout, board_rect):
     bot2 = int(top + layout.inner_box_nespx[3] * nes_pixel_y)
 
     cv2.rectangle(arr, (left2,top2), (right2,bot2), blue, 2)
-    cv2.imshow('color image', arr) 
-    cv2.waitKey(0)
+    show_image(arr)    
 
 def convert_img_to_nparray(img):
     if not isinstance(img, np.ndarray):
