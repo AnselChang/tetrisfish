@@ -50,6 +50,13 @@ class PreviewLayout:
         return (left,top,right,bot)
     
     @property
+    def should_suboptimize(self):
+        """
+        we should only do template matching if we have heaps of 
+        black space around. Otherwise we will fail horrendously
+        """
+        return self.inner_box_size[0] * self.inner_box_size[1] < 0.5
+    @property
     def inner_box_corners_nespx(self):
         box = self.inner_box_nespx
         return [(box[0],box[1]), #tl

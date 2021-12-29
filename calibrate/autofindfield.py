@@ -213,11 +213,11 @@ def get_next_box(img, board_coord, suggested):
     rect, layout = result
 
     if layout.preview_type != PreviewLayout.HARDCODE:
-        sub_rect = optimize_preview(arr, rect, layout)
-        if sub_rect is not None: #optimization passed
-            print ("customizing subrect")
-            layout = layout.clone()
-            layout.recalc_sub_rect(sub_rect)
+        if layout.should_suboptimize:
+            sub_rect = optimize_preview(arr, rect, layout)
+            if sub_rect is not None: #optimization passed
+                layout = layout.clone()
+                layout.recalc_sub_rect(sub_rect)
 
     
     #debug_draw_layout(arr, layout, board_rect)
