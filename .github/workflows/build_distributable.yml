@@ -7,9 +7,47 @@ on:
         
 
 jobs:
-  build:
 
-    runs-on: windows-latest    
+  create_release:
+    name: Create release
+    runs-on: windows-latest
+    # Note this. We are going to use that in further jobs.
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # This is important for the Git history
+      - name: Generate Incremental Changelog
+        id: create_inc_changelog
+        working-directory: ./bundle
+        run: ./gen_changelog.ps1
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: true
+          prerelease: false
+          body_path: changelog.txt
+          
+  build_release:
+    name: Build Executables
+    needs: create_release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            zip_end: _mac.zip
+            build_script: sh build_mac_os.sh
+          - os: windows-latest
+            zip_end: _win.zip
+            build_script: ./build_windows.ps1
     steps:
     - name: Checkout Code
       uses: actions/checkout@v2
@@ -18,35 +56,22 @@ jobs:
     - name: Set up Python 3.9
       uses: actions/setup-python@v1
       with:
-        python-version: 3.9  
-        architecture: 'x86' # we dont support x64
+        python-version: 3.9          
     - name: Get the version
       id: get_version
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-      shell: bash        
+      shell: bash 
     - name: Install dependencies
-      working-directory: bundle
+      working-directory: ./bundle
       run: |      
-        build_windows.bat ${{ steps.get_version.outputs.VERSION }}
-      shell: cmd
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1.1.2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.ref }}
-        body_path: changelog.txt
-        draft: true
-        prerelease: false
+        ${{ matrix.build_script }} ${{ steps.get_version.outputs.VERSION }}
     - name: Upload Release Asset
       id: upload-release-asset 
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-        asset_path: ./bundle/TetrisFish_${{ steps.get_version.outputs.VERSION }}_win.zip
-        asset_name: TetrisFish_${{ steps.get_version.outputs.VERSION }}_win.zip
+      with:         
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: ./bundle/TetrisFish_${{ steps.get_version.outputs.VERSION }}${{matrix.zip_end}}
+        asset_name: TetrisFish_${{ steps.get_version.outputs.VERSION }}${{matrix.zip_end}}
         asset_content_type: application/zip

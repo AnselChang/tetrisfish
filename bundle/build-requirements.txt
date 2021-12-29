@@ -1,0 +1,4 @@
+pyinstaller==4.7
+zip-files
+gitchangelog
+pystache
