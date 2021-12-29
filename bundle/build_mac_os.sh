@@ -15,5 +15,5 @@ gitchangelog > bundle/dist/changelog.md
 
 cd bundle
 # zip everything neatly.
-zip-folder dist -f TetrisFish_$1_mac -o TetrisFish_$1_mac.zip
+zip-folder dist -f TetrisFish_$1_mac -o TetrisFish_$1.zip
 
