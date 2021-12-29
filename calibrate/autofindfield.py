@@ -38,8 +38,7 @@ def try_expand(arr, centre):
 
     #cv2.imshow('color image', arr) 
     #cv2.waitKey(0)
-
-    red_px = np.where(np.all(arr == red, axis=-1))
+        
     y_values = list(red_px[0])
     y_values.sort()
     x_values = list(red_px[1])
@@ -47,8 +46,10 @@ def try_expand(arr, centre):
     
     top, bot = y_values[0], y_values[-1]
     left, right = x_values[0], x_values[-1]
-    #if not_blackish:
-    #    return Rect(centre[1],centre[0],centre[1],centre[0])
+    
+    # todo: check percentage of red pixels, it better be at least 50%:
+    # reject if there's an overwhelming amount of non-red
+    
     return (Rect(left, top, right, bot), arr)
 
 def convert_to_grayscale(arr):
@@ -96,12 +97,19 @@ def get_board(img):
         print("potential field:", result)
         if (result.width < 0.10 * size[1]):
             print ("Field too skinny, skipping")
+            #show_image(temp_image)
             continue
         if (result.height > 0.95 * size[0] or
            result.height < 0.35 * size[0]):
             print ("field too tall or short, skipping")
+            #show_image(temp_image)
             continue
-        
+        # field can't touch top or bottom of screen
+        if (result.left < 5 or result.top < 5 or
+           result.right > size[1] -5 or result.bottom > size[0] - 5):
+            print ("field too close to edge of image")
+            #show_image(temp_image)
+            continue
         if result in [r[0] for r in results]:
             continue # duplicate result
         results.append([result, attempt.preview])
