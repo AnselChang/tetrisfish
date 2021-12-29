@@ -38,7 +38,9 @@ def try_expand(arr, centre):
 
     #cv2.imshow('color image', arr) 
     #cv2.waitKey(0)
-        
+    
+    red_px = np.where(np.all(arr == red, axis=-1))
+    
     y_values = list(red_px[0])
     y_values.sort()
     x_values = list(red_px[1])
@@ -49,7 +51,7 @@ def try_expand(arr, centre):
     
     # todo: check percentage of red pixels, it better be at least 50%:
     # reject if there's an overwhelming amount of non-red
-    
+
     return (Rect(left, top, right, bot), arr)
 
 def convert_to_grayscale(arr):
