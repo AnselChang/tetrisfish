@@ -151,6 +151,7 @@ class Calibrator:
             c.fps = self.vcap.get(cv2.CAP_PROP_FPS)
             self.frame = c.goToFrame(self.vcap, 0)[0]
         print(c.VIDEO_WIDTH, c.VIDEO_HEIGHT)
+        print("vcap initialized: ", self.vcap)
     
     def init_buttons(self):
         buttons = PygameButton.ButtonHandler()

@@ -84,8 +84,12 @@ def run(calibrator):
         if positionDatabase is not None:
             # If true, logo clicked and go back to calibration
             running = analyze(positionDatabase, hzInt)
+            print("Running: ", running)
             if running:
                 calibrator.init_image()
+                c.done = False
+                c.isEvalDepth3 = c.isDepth3
+                c.doneEval = c.isDepth3
  
     
 
