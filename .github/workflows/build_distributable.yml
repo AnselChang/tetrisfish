@@ -48,6 +48,9 @@ jobs:
           - os: windows-latest
             zip_end: _win.zip
             build_script: ./build_windows.ps1
+          - os: ubuntu-latest
+            zip_end: _linux.zip
+            build_script: sh build_mac_os.sh
     steps:
     - name: Checkout Code
       uses: actions/checkout@v2
