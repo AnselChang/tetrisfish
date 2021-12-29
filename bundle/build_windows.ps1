@@ -17,5 +17,5 @@ gitchangelog > bundle/dist/changelog.md
 
 cd bundle
 # zip everything neatly.
-zip-folder dist -f "TetrisFish_$($tagname)_win" -o "TetrisFish_$($tagname).zip"
+zip-folder dist -f "TetrisFish_$($tagname)" -o "TetrisFish_$($tagname).zip"
 
