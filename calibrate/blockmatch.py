@@ -181,11 +181,12 @@ def shrink_bounding_box(image, block_size, rect):
     # gets subset of image, so any manipulations we make will still be on base image.
     piece_type = PIECE_TYPES[block_size]
     image = image[rect.top:rect.bottom, rect.left:rect.right]
-    dark, bright, _, _ = cv2.minMaxLoc(image)
-    # y = alpha * x + beta
-    # we want to do a simple rescale to fill 0-255 range
+    
+    # fill the dynamic range of the image
+    image = auto_level(image)
     image, levels = posterise_image(image, 5)
     #show_image(image, "posterised")
+
     levels = [item[0] for item in levels]
     levels.sort(reverse=True)
     
