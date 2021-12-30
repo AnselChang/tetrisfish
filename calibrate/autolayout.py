@@ -55,7 +55,10 @@ class PreviewLayout:
         we should only do template matching if we have heaps of 
         black space around. Otherwise we will fail horrendously
         """
-        return self.inner_box_size[0] * self.inner_box_size[1] < 0.5
+        perc = self.inner_box_size[0] * self.inner_box_size[1]
+        print(f"optimize_perc = {perc}")
+        return perc < 0.9
+
     @property
     def inner_box_corners_nespx(self):
         box = self.inner_box_nespx
@@ -127,6 +130,11 @@ class Rect:
     def area(self):
         return self.width * self.height
 
+    @property
+    def centre(self):
+        return (self.left + 0.5* self.width,
+               self.top + 0.5 * self.height)
+
     def to_array(self):
         return (self.left, self.top, self.right, self.bottom)
     
@@ -163,3 +171,14 @@ class Rect:
         self.top = round(self.top)
         self.right = round(self.right)
         self.bottom= round(self.bottom)
+
+    def sq_distance(self, point):
+        """
+        square distance from center of rect to point.
+        Because math.sqrt is expensive yo
+        """
+        you = self.centre #you self.centred b****
+        xdist = (you[0] - point[0]) 
+        ydist = (you[1] - point[1])
+        result = xdist*xdist + ydist*ydist
+        return result
