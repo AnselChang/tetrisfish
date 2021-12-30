@@ -52,13 +52,15 @@ def plus(num):
 
 def handleAPICalls(positionDatabase):
     print("Started pool possible")
+    c.possibleCount = 0
     pool = ThreadPool(c.poolSize)
     for pos in positionDatabase:
         pos.startPossible = True
     pool.map(Evaluator.makeAPICallPossible, positionDatabase)
     pool.close()
     pool.join()
-    c.done = True
+    if c.isAnalysis:
+        c.done = True
     print("Ended pool possible")
 
 def handleAPIEvalCalls(positionDatabase):
@@ -70,7 +72,8 @@ def handleAPIEvalCalls(positionDatabase):
     pool.map(Evaluator.evaluate, positionDatabase)
     pool.close()
     pool.join()
-    c.doneEval = True
+    if c.isAnalysis:
+        c.doneEval = True
     print("Ended pool eval")
 
 
@@ -179,6 +182,8 @@ def analyze(positionDatabase, hzInt):
     global realscreen
 
     print("START ANALYSIS")
+
+    c.isAnalysis = True
 
     c.isEvalDepth3 = True
     updatedGraph = c.isDepth3
@@ -331,7 +336,6 @@ def analyze(positionDatabase, hzInt):
 
     updateEvalCounter = 0
     while True:
-
         if not c.done and c.possibleCount >= len(positionDatabase) - 1:
             c.done = True
         
@@ -497,7 +501,7 @@ def analyze(positionDatabase, hzInt):
         if positionDatabaseLen <= 0:
             positionDatabaseLen = 1
         # Possible moves processing % text
-        if not c.done:            
+        if not c.done:
             percent = round(100*c.possibleCount / positionDatabaseLen)
             blitCenterText(c.screen, c.font2, "Processing... {}/{} positions ({}%)".format(
                 c.possibleCount, len(positionDatabase)-1,percent), BRIGHT_RED, 100, cx = 320, s = 0)

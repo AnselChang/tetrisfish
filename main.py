@@ -86,10 +86,9 @@ def run(calibrator):
             running = analyze(positionDatabase, hzInt)
             print("Running: ", running)
             if running:
-                calibrator.init_image()
-                c.done = False
-                c.isEvalDepth3 = c.isDepth3
-                c.doneEval = c.isDepth3
+                calibrator.reset()
+                
+    calibrator.exit()
  
     
 

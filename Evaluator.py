@@ -55,6 +55,10 @@ def getInfo(position):
 # Given current position, generate analysis from StackRabbit call
 def evaluate(position):
 
+    if not c.isAnalysis:
+        print("exit")
+        return
+
     number = position.id
     print("Start eval ", number)
 
@@ -106,6 +110,10 @@ def printData(position):
     print(url)
 
 def makeAPICallPossible(position):
+
+    if not c.isAnalysis:
+        print("exit")
+        return
 
     print("Start possible ", position.id)
     

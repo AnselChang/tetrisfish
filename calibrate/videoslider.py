@@ -156,3 +156,6 @@ class VideoSlider:
         frame, new_value = self.c.goToFrame(self.vcap, target)
         self.set_active_frame_number(new_value)
         return frame
+
+    def go_to_active_frame(self):
+        self.update_active_frame(self.get_active_frame_number())
