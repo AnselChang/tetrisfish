@@ -136,14 +136,6 @@ def get_board(img):
     print("final results:", results)
     return results
 
-"""
-def adjust_board_result(rect):
-    nes_pix_x = rect.width / float(NES_PIXELS_BOARD_WIDTH)
-    nes_pix_y = rect.height / float(NES_PIXELS_BOARD_HEIGHT)
-    rect.right = int(rect.right + nes_pix_x*1)
-    rect.bottom = int(rect.bottom + nes_pix_y*1)
-    return rect
-"""
 
 def get_next_box(img, board_coord, suggested):
     """
@@ -175,7 +167,7 @@ def get_next_box(img, board_coord, suggested):
             bot = top + nes_pixel_y * layout.nes_px_size[1]
             rect = Rect(left,top,right,bot)
         else:
-            best_corner = None            
+            best_corner = None
             for corner in layout.inner_box_corners_nespx:
                 print (corner, top, nes_pixel_y)
                 print (corner, left, nes_pixel_x)
@@ -259,17 +251,14 @@ def optimize_preview(arr, rect, layout):
     red_area_resized = cv2.resize(red_area, target_size)
     
     #show_image(red_area_resized)
-    score, rect, letter = find_piece(red_area_resized)
-    if score < 0.6:
-        print ("unsuccessful match...", score)
-        #debug_show_preview(red_area_resized, rect)
+    rect = find_piece(red_area_resized)
+    if rect is None:
         return None
     
-    result = calc_new_rect(letter,rect)
-    result.multiply(1.0/BLOCKMATCH_SCALE_FACTOR)
-    result.round_to_int()
+    rect.multiply(1.0/BLOCKMATCH_SCALE_FACTOR)
+    rect.round_to_int()
     #debug_show_preview(red_area_resized, result)
-    return result
+    return rect
     
 def show_image(image):
     cv2.imshow("Image", image)
