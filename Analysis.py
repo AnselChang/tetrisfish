@@ -284,7 +284,7 @@ def analyze(positionDatabase, hzInt):
     buttons.addPlacementButtons(5, 1440, 160, 27, 460, 87)
 
     buttons.addImage(B_LOGO, images[LOGO], 70, 30, hydrantScale, margin = 0,
-                     img2 = images[LOGO] if c.isLoad else images[LOGO2], tooltip = ["Cannot callibrate from loaded data" if c.isLoad else "Exit to callibration page"])
+                     img2 = images[LOGO] if c.isLoad else images[LOGO2], tooltip = ["Cannot calibrate from loaded data" if c.isLoad else "Exit to callibration page"])
     
 
     positionNum = 0

@@ -6,7 +6,7 @@ import config as c
 
 
 # For main playing field. 4x4x4 (rotation x row x col)
-I_PIECESHAPE = [
+I_PIECESHAPE = np.array([
     [
         [0,0,0,0],
         [1,1,1,1],
@@ -19,9 +19,9 @@ I_PIECESHAPE = [
         [0,0,1,0],
         [0,0,1,0]
     ]
-]
+])
 
-L_PIECESHAPE = [
+L_PIECESHAPE = np.array([
     [
         [0,0,0,0],
         [0,1,1,1],
@@ -46,9 +46,9 @@ L_PIECESHAPE = [
         [0,0,1,1],
         [0,0,0,0]
     ]
-]
+])
 
-Z_PIECESHAPE = [
+Z_PIECESHAPE = np.array([
     [
         [0,0,0,0],
         [0,1,1,0],
@@ -61,9 +61,9 @@ Z_PIECESHAPE = [
         [0,0,1,0],
         [0,0,0,0]
     ]
-]
+])
 
-S_PIECESHAPE = [
+S_PIECESHAPE = np.array([
     [
         [0,0,0,0],
         [0,0,1,1],
@@ -76,9 +76,9 @@ S_PIECESHAPE = [
         [0,0,0,1],
         [0,0,0,0]
     ]
-]
+])
 
-J_PIECESHAPE = [
+J_PIECESHAPE = np.array([
     [
         [0,0,0,0],
         [0,1,1,1],
@@ -103,9 +103,9 @@ J_PIECESHAPE = [
         [0,0,1,0],
         [0,0,0,0]
     ]
-]
+])
 
-T_PIECESHAPE = [
+T_PIECESHAPE = np.array([
     [
         [0,0,0,0],
         [0,1,1,1],
@@ -130,67 +130,67 @@ T_PIECESHAPE = [
         [0,0,1,0],
         [0,0,0,0]
     ]
-]
+])
 
-O_PIECESHAPE = [
+O_PIECESHAPE = np.array([
     [
         [0,0,0,0],
         [0,1,1,0],
         [0,1,1,0],
         [0,0,0,0]
     ]
-]
+])
 
 
 # for nextbox usage
-I_PIECEMASK = [
+I_PIECEMASK = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0],
     [1, 1, 1, 1, 1, 1, 1, 1],
     [1, 1, 1, 1, 1, 1, 1, 1],
     [0, 0, 0, 0, 0, 0, 0, 0],
-]
+])
 
-L_PIECEMASK  = [
+L_PIECEMASK  = np.array([
     [0, 1, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 0, 0, 0, 0, 0],
     [0, 1, 1, 0, 0, 0, 0, 0],
-]
+])
 
-Z_PIECEMASK  = [
+Z_PIECEMASK  = np.array([
     [0, 1, 1, 1, 1, 0, 0, 0],
     [0, 1, 1, 1, 1, 0, 0, 0],
     [0, 0, 0, 1, 1, 1, 1, 0],
     [0, 0, 0, 1, 1, 1, 1, 0],
-]
+])
 
-S_PIECEMASK  = [
+S_PIECEMASK  = np.array([
     [0, 0, 0, 1, 1, 1, 1, 0],
     [0, 0, 0, 1, 1, 1, 1, 0],
     [0, 1, 1, 1, 1, 0, 0, 0],
     [0, 1, 1, 1, 1, 0, 0, 0],
-]
+])
 
-J_PIECEMASK  = [
+J_PIECEMASK  = np.array([
     [0, 1, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 0],
     [0, 0, 0, 0, 0, 1, 1, 0],
     [0, 0, 0, 0, 0, 1, 1, 0],
-]
+])
 
-T_PIECEMASK  = [
+T_PIECEMASK  = np.array([
     [0, 1, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 0],
     [0, 0, 0, 1, 1, 0, 0, 0],
     [0, 0, 0, 1, 1, 0, 0, 0],
-]
+])
 
-O_PIECEMASK  = [
+O_PIECEMASK  = np.array([
     [0, 0, 1, 1, 1, 1, 0, 0],
     [0, 0, 1, 1, 1, 1, 0, 0],
     [0, 0, 1, 1, 1, 1, 0, 0],
     [0, 0, 1, 1, 1, 1, 0, 0],
-]
+])
 
 TETRONIMO_MASKS = [I_PIECEMASK, L_PIECEMASK, Z_PIECEMASK, S_PIECEMASK, J_PIECEMASK, T_PIECEMASK, O_PIECEMASK]
 TETRONIMO_SHAPES = [I_PIECESHAPE, L_PIECESHAPE, Z_PIECESHAPE, S_PIECESHAPE, J_PIECESHAPE, T_PIECESHAPE, O_PIECESHAPE]
