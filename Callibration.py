@@ -93,9 +93,22 @@ class Calibrator:
         self.mouse_status = MouseStatus()
 
         self.enterPressed = False
+
+    def reset(self):
+        
+        #self.init_image()
+        
+        c.reset()
+        
+        self.video_slider.go_to_active_frame()
+
+    def exit(self):
+        
+        self.vcap.release()
     
         
     def callibrate(self):
+        c.isAnalysis = False
         while True:
             c.realscreen.fill([38,38,38])
             # draw backgound
@@ -151,7 +164,7 @@ class Calibrator:
             c.totalFrames = int(self.vcap.get(cv2.CAP_PROP_FRAME_COUNT))
             c.fps = self.vcap.get(cv2.CAP_PROP_FPS)
             self.frame = c.goToFrame(self.vcap, 0)[0]
-        print(c.VIDEO_WIDTH, c.VIDEO_HEIGHT)
+        print(c.VIDEO_WIDTH, c.VIDEO_HEIGHT, c.totalFrames, c.fps)
         print("vcap initialized: ", self.vcap)
     
     def init_buttons(self):
@@ -159,6 +172,7 @@ class Calibrator:
         buttons.addImage(ButtonIndices.AUTOCALIBRATE, images[im_names.C_ABOARD], 1724, 380, HYDRANT_SCALE, img2= images[im_names.C_ABOARD2],
                          tooltip = ["Uses AI to try to find your board and next box.",
                                     "Works better on frames with near-empty boards.",
+                                    "Auto next-box does not work well with longbars.",
                                     "Has good compatibility with  Standard, MaxoutClub and Stencil™ boards"])
 
         buttons.addImage(ButtonIndices.CALLIBRATE, images[im_names.C_BOARD], 1724, 600, HYDRANT_SCALE, img2 = images[im_names.C_BOARD2],
@@ -438,7 +452,7 @@ class Calibrator:
                         
         else:
             # When everything done, release the capture
-            self.vcap.release()
+            #self.vcap.release()
 
             # Exit callibration, initiate rendering with returned
             # parameters

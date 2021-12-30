@@ -2,7 +2,7 @@ import os, sys, requests
 #https://pyinstaller.readthedocs.io/en/stable/runtime-information.html
 #print(os.environ)
 
-version = "1.2"
+version = "1.3"
 
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     print('running in a PyInstaller bundle', sys._MEIPASS)
@@ -36,6 +36,10 @@ numEvalDone = 0
 
 isDepth3 = True
 isEvalDepth3 = False
+
+isAnalysis = False
+
+isLoad = False # true if loaded from analysis text file
 
 NTSC = 0
 PAL = 1
@@ -105,6 +109,14 @@ realscreen = pygame.display.set_mode((REAL_WIDTH, REAL_HEIGHT), pygame.HWSURFACE
 #screen = pygame.Surface([1152, 685])
 screen = pygame.Surface([SCREEN_WIDTH, SCREEN_HEIGHT])
 pygame.display.set_caption('tetrisfish (v{}) by Ansel, powered by StackRabbit'.format(version))
+
+def reset():
+    global isEvalDepth3, doneEval, done, possibleCount, numEvalDone
+    isEvalDepth3 = isDepth3
+    doneEval = isDepth3
+    done = False
+    possibleCount = 0
+    numEvalDone = 0
 
 # Get timestamp at frame
 def timestamp(frame):

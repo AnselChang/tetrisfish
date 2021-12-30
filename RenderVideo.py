@@ -318,9 +318,14 @@ def displayGraphics(positionDatabase, firstFrame, lastFrame):
 def doRender(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
     global pool
     pool = ThreadPool(c.poolSize)
+
+    global first, wasLineClear
+    first = True
+    wasLineClear = False
     
 
     global lineClears, transition, level, totalLineClears, score, done, positionDatabase
+    
 
     transition = getTransitionFromLevel(levelP)
     print(transition)
@@ -420,7 +425,12 @@ renderThread = None
 def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
     print("Beginning render...")
 
+    global done
+    c.isAnalysis = True
+    done = False
+
     global positionDatabase, renderThread
+    positionDatabase = []
     renderThread = threading.Thread(target=doRender, args=(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP))
     renderThread.start()
     displayGraphics(positionDatabase, firstFrame, lastFrame)

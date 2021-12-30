@@ -277,7 +277,8 @@ def colorMinos(minos, piece, white2 = False):
     if num == WHITE_MINO and white2:
         num = WHITE_MINO_2
 
-    return [[i*num for i in row] for row in minos]
+    return minos.copy() * num
+    #return [[i*num for i in row] for row in minos]
 
 def colorOfPiece(piece):
 

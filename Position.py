@@ -10,11 +10,17 @@ BLUNDER_THRESHOLD = -50
 class PossibleMove:
 
     # numpy 2d arrays
-    def __init__(self, evaluation, move1, move2, currentPiece, nextPiece, depth3Text, colors):
+    def __init__(self, evaluation, move1, move2, currentPiece, nextPiece, depth3Text, colors, move1Str = None, move2Str = None):
         
         self.evaluation = evaluation
-        self.move1Str = getPlacementStr(move1, currentPiece)
-        self.move2Str = getPlacementStr(move2, nextPiece)
+        
+        if move1Str == None or move2Str == None:
+            self.move1Str = getPlacementStr(move1, currentPiece)
+            self.move2Str = getPlacementStr(move2, nextPiece)
+        else:
+            self.move1Str = move1Str
+            self.move2Str = move2Str
+        
         self.depth3Text = depth3Text
         self.colors = colors
         
