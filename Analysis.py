@@ -10,6 +10,7 @@ from PieceMasks import *
 import HitboxTracker as HT
 from TetrisUtility import loadImages, lighten, scaleImage, addHueToSurface, getPlacementStr, blitCenterText
 import EvalGraph, Evaluator
+import SaveAnalysis
 import AnalysisConstants as AC
 
 MS_PER_FRAME = 25
@@ -183,18 +184,21 @@ def analyze(positionDatabase, hzInt):
 
     print("START ANALYSIS")
 
+
     c.isAnalysis = True
 
     c.isEvalDepth3 = True
     updatedGraph = c.isDepth3
 
-    # Get started with possible placements api calls in the background
-    threading.Thread(target=handleAPICalls, args=(positionDatabase,)).start()
+    # make api calls only if not loaded from text file (because otherwise info already there)
+    if not c.isLoad:
+        # Get started with possible placements api calls in the background
+        threading.Thread(target=handleAPICalls, args=(positionDatabase,)).start()
 
-    if not c.isDepth3:
-        threading.Thread(target=handleAPIEvalCalls, args=(positionDatabase,)).start()
-    else:
-        c.doneEval = True
+        if not c.isDepth3:
+            threading.Thread(target=handleAPIEvalCalls, args=(positionDatabase,)).start()
+        else:
+            c.doneEval = True
 
     print("startanalysis2")
 
@@ -279,7 +283,8 @@ def analyze(positionDatabase, hzInt):
 
     buttons.addPlacementButtons(5, 1440, 160, 27, 460, 87)
 
-    buttons.addImage(B_LOGO, images[LOGO], 70, 30, hydrantScale, margin = 0, img2 = images[LOGO2], tooltip = ["Exit to callibration page"])
+    buttons.addImage(B_LOGO, images[LOGO], 70, 30, hydrantScale, margin = 0,
+                     img2 = images[LOGO] if c.isLoad else images[LOGO2], tooltip = ["Cannot callibrate from loaded data" if c.isLoad else "Exit to callibration page"])
     
 
     positionNum = 0
@@ -334,8 +339,16 @@ def analyze(positionDatabase, hzInt):
     click = False
     rightClick = False
 
+    savedFile = c.isLoad
+
     updateEvalCounter = 0
     while True:
+
+        # save file once depth 3 analysis is complete
+        if not savedFile and c.done and c.doneEval:
+            savedFile = True
+            SaveAnalysis.write(positionDatabase, c.gamemode, hzInt, c.hzString)
+        
         if not c.done and c.possibleCount >= len(positionDatabase) - 1:
             c.done = True
         
@@ -411,7 +424,7 @@ def analyze(positionDatabase, hzInt):
             positionNum = keyPositions[keyPositions > positionNum].min()
             analysisBoard.updatePosition(positionNum)
 
-        elif buttons.get(B_LOGO).clicked:
+        elif buttons.get(B_LOGO).clicked and not c.isLoad:
             # exit to calibration
             return True
 

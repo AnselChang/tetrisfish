@@ -2,7 +2,7 @@ import os, sys, requests
 #https://pyinstaller.readthedocs.io/en/stable/runtime-information.html
 #print(os.environ)
 
-version = "1.2"
+version = "1.3"
 
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     print('running in a PyInstaller bundle', sys._MEIPASS)
@@ -38,6 +38,8 @@ isDepth3 = True
 isEvalDepth3 = False
 
 isAnalysis = False
+
+isLoad = False # true if loaded from analysis text file
 
 NTSC = 0
 PAL = 1

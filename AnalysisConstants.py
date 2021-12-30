@@ -70,7 +70,7 @@ INVALID_COLOR = MID_GREY
 feedbackColors = {RAPID: C_RAPID, BEST : C_BEST, EXCELLENT : C_EXCE, INACCURACY : C_INAC,
                   MISTAKE : C_MIST, BLUNDER : C_BLUN, NONE : WHITE, MAJOR_MISSED : C_BLUN,
                   MINOR_MISSED : C_INAC, INVALID : INVALID_COLOR, MEDIOCRE : C_MEDI}
-feedbackString = {MEDIOCRE : "Mediocre", RAPID : "Rather Rapid", BEST : "Best Move", EXCELLENT : "Excellent", NONE : "ERROR",
+feedbackString = {MEDIOCRE : "Mediocre", RAPID : "Rather Rapid", BEST : "Best Move", EXCELLENT : "Excellent",
                   INACCURACY : "Inaccuracy", MISTAKE : "Mistake", BLUNDER : "Blunder", INVALID : "ERROR"}
 
 adjustmentString = {INVALID : "Invalid", MAJOR_MISSED : "Major Missed Adj.", MINOR_MISSED : "Minor Missed Adj.", NONE : ""}

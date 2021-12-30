@@ -13,7 +13,7 @@ import os
 from colors import *
 import AnalysisConstants as AC
 
-
+import SaveAnalysis
 from TetrisUtility import *
 from Callibration import Calibrator
 from RenderVideo import render
@@ -61,25 +61,34 @@ def dragFile():
         pygame.time.wait(20)
 
 
-def run(calibrator):
+def run(positionDatabase = None, hzInt = None):
+
+    calibrator = Calibrator()
 
     running = True
     while running:
+
+        if c.isLoad:
+
+            c.done = True
+            c.doneEval = True
+
+        else:
     
-        output = calibrator.callibrate()
+            output = calibrator.callibrate()
+                
+            if output == None:
+                return # exit if pygame screen closed. This also happens if it's an image an callibrate() directly calls analysis
             
-        if output == None:
-            return # exit if pygame screen closed. This also happens if it's an image an callibrate() directly calls analysis
-        
-        firstFrame, lastFrame, bounds, nextBounds, level, lines, score, hzInt = output
-        print("Level: {}, Lines: {}, Score: {}, hz: {}, depth 3: {}".format(level,lines,score,c.hzString, c.isDepth3))
+            firstFrame, lastFrame, bounds, nextBounds, level, lines, score, hzInt = output
+            print("Level: {}, Lines: {}, Score: {}, hz: {}, depth 3: {}".format(level,lines,score,c.hzString, c.isDepth3))
 
-        print("Successfully callibrated video.")
-        print("First, last:", firstFrame, lastFrame)
-        
+            print("Successfully callibrated video.")
+            print("First, last:", firstFrame, lastFrame)
+            
 
-        positionDatabase = render(firstFrame, lastFrame, bounds, nextBounds, level, lines, score)
-        print("Num positions: ", len(positionDatabase))
+            positionDatabase = render(firstFrame, lastFrame, bounds, nextBounds, level, lines, score)
+            print("Num positions: ", len(positionDatabase))
             
         if positionDatabase is not None:
             # If true, logo clicked and go back to calibration
@@ -280,13 +289,27 @@ def main():
         
         c.filename = filename
 
-        if ".png" in filename or ".jpeg" in filename or ".jpg" in filename:
-            print("Is image")
-            c.isImage = True
-        calibrator = Calibrator()
+        if ".txt" in filename:
 
+            positionDatabase, gamemode, hzInt, hzTimeline = SaveAnalysis.read(filename)
+            if positionDatabase == None:
+                pygame.quit()
+                sys.exit()
+            else:
+                c.gamemode = gamemode
+                c.isLoad = True
+                c.hzString = hzTimeline
+                run(positionDatabase, hzInt)
 
-        run(calibrator)
+        else:
+
+            if ".png" in filename or ".jpeg" in filename or ".jpg" in filename:
+                print("Is image")
+                c.isImage = True
+
+            run()
+
+        
         
 
 if __name__ == "__main__":

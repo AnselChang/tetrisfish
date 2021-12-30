@@ -290,7 +290,7 @@ class Bounds:
         averagedMinosInts = np.mean(minosList, axis = 0)
 
         # We use a step function for each element: f(x) = 1 if x >= COLOR_CALLIBRATION else 0
-        finalMinos = np.heaviside(averagedMinosInts - self.config.COLOR_CALLIBRATION, 1) # 1 means borderline case (x = COLOR_CALLIBRATION) still 1
+        finalMinos = np.heaviside(averagedMinosInts - self.config.COLOR_CALLIBRATION, 1).astype(int) # 1 means borderline case (x = COLOR_CALLIBRATION) still 1
 
         return finalMinos
     
