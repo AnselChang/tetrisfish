@@ -109,6 +109,41 @@ def printData(position):
     
     print(url)
 
+
+def generateHypotheticalLines(depth3):
+    
+    text = []
+    colors = []
+    values = []
+    for line in depth3:
+        try:
+            piece, prob, pos, val = LETTER_TO_PIECE[line["pieceSequence"]], round(100*line["probability"]), line["moveSequence"][0], round(line["resultingValue"],1)
+            colors.append(BLACK)
+            values.append(val)
+
+            placement = pieceOnBoard(piece, *pos)
+            string = getPlacementStr(placement, piece)
+            text.append("If {} ({}%), do {} = {}".format(TETRONIMO_LETTER[piece], prob, string, val))
+            
+        except:
+            print(line)
+            traceback.print_exc()
+        
+
+    lowIndex = 0
+    highIndex = 0
+    
+    for i in range(len(values)):
+        if values[i] < values[lowIndex]:
+            lowIndex = i
+        if values[i] > values[highIndex]:
+            highIndex = i
+
+    colors[lowIndex] = BRIGHT_RED
+    colors[highIndex] = BRIGHT_GREEN
+
+    return text, colors
+
 def makeAPICallPossible(position):
 
     if not c.isAnalysis:
@@ -122,13 +157,20 @@ def makeAPICallPossible(position):
     
  # API call for possible moves
     url = "https://stackrabbit.herokuapp.com/engine-movelist?board={}&currentPiece={}&nextPiece={}&level={}&lines={}&inputFrameTimeline={}"
+    url2 = "https://stackrabbit.herokuapp.com/engine-movelist?board={}&currentPiece={}&level={}&lines={}&inputFrameTimeline={}"
     url = url.format(b1Str, currStr, nextStr, level, lines, x_and_dots)
+    url2 = url2.format(b1Str, currStr, level, lines, x_and_dots)
     
     print(url)
 
     json = getJson(url)
-    #print(json)
+    nnb = getJson(url2)[0]
 
+    # Parse best NNB move data
+    text, _ = generateHypotheticalLines(nnb["hypotheticalLines"])  
+    position.setNNB(float(nnb["totalValue"]), pieceOnBoard(position.currentPiece, *nnb["placement"]), position.currentPiece, text)
+
+    # Parse NB movelist data
     i = 0
     for data in json:
         
@@ -141,33 +183,7 @@ def makeAPICallPossible(position):
         currMask = pieceOnBoard(position.currentPiece, *currData["placement"])
         nextMask = pieceOnBoard(position.nextPiece, *nextData["placement"])
 
-        depth3 = nextData["hypotheticalLines"] # a list of placement probabilities
-        text = []
-        colors = []
-        values = []
-        for line in depth3:
-            try:
-                piece, prob, pos, val = LETTER_TO_PIECE[line["pieceSequence"]], round(100*line["probability"]), line["moveSequence"][0], round(line["resultingValue"],1)
-                colors.append(BLACK)
-                values.append(val)
-            except:
-                print(line)
-                traceback.print_exc()
-            placement = pieceOnBoard(piece, *pos)
-            string = getPlacementStr(placement, piece)
-            text.append("If {} ({}%), do {} = {}".format(TETRONIMO_LETTER[piece], prob, string, val))
-
-        lowIndex = 0
-        highIndex = 0
-        
-        for i in range(len(values)):
-            if values[i] < values[lowIndex]:
-                lowIndex = i
-            if values[i] > values[highIndex]:
-                highIndex = i
-
-        colors[lowIndex] = BRIGHT_RED
-        colors[highIndex] = BRIGHT_GREEN
+        text, colors = generateHypotheticalLines(nextData["hypotheticalLines"])        
 
         unique = position.addPossible(float(currData["totalValue"]), currMask, nextMask, position.currentPiece, position.nextPiece, text, colors)
 

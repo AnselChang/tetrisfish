@@ -508,26 +508,33 @@ class AnalysisBoard:
 
         # When mouse is hovering over a possible placement
         if hoveredPlacement is not None:
-
             board += colorMinos(hoveredPlacement.move1, curr, white2 = True)
-            if np.logical_and(board, hoveredPlacement.move2).any(): # There was some sort of line clear, so can't just put next piece.
-                # Attempt putting it the number of line clear rows above
-                numFilledRows = np.count_nonzero(board.all(axis=1))
-                move2shifted = np.roll(hoveredPlacement.move2, 0 - numFilledRows,axis=0)
-                if not np.logical_and(board, move2shifted).any():
-                    board += colorMinos(move2shifted, self.position.nextPiece, white2 = True)
+
+            # In the case best NNB move being displayed, do not draw next piece ontoboard
+            if not isArray(hoveredPlacement.move2):
+                finalHoverArray = empty()
+                
+            else:
+                # Otherwise, draw next piece
+                
+                if np.logical_and(board, hoveredPlacement.move2).any(): # There was some sort of line clear, so can't just put next piece.
+                    # Attempt putting it the number of line clear rows above
+                    numFilledRows = np.count_nonzero(board.all(axis=1))
+                    move2shifted = np.roll(hoveredPlacement.move2, 0 - numFilledRows,axis=0)
+                    if not np.logical_and(board, move2shifted).any():
+                        board += colorMinos(move2shifted, self.position.nextPiece, white2 = True)
+                        # Next box ideal placement is displayed transparently
+                        finalHoverArray = move2shifted
+                    else:
+                        finalHoverArray = empty()
+                        
+                else: # Regular case of showing next box
+                    board += colorMinos(hoveredPlacement.move2, self.position.nextPiece, white2 = True)
                     # Next box ideal placement is displayed transparently
-                    finalHoverArray = move2shifted
-                else:
-                    finalHoverArray = empty()
-                    
-            else: # Regular case of showing next box
-                board += colorMinos(hoveredPlacement.move2, self.position.nextPiece, white2 = True)
-                # Next box ideal placement is displayed transparently
-                finalHoverArray = hoveredPlacement.move2
+                    finalHoverArray = hoveredPlacement.move2
 
         else:
-            # If not, just regular analysis board display
+            # If there is no hypothetical placemenet hovered, just regular analysis board display
 
             # We add current piece to the board
             if type(self.position.placement) == np.ndarray:

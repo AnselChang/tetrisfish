@@ -54,7 +54,7 @@ def clamp(n,smallest,largest):
 
 # return empty 20x10 array
 def empty(rows = 20, cols = 10):
-    return np.zeros([rows,cols], dtype = int)
+    return np.zeros([rows,cols], dtype = np.uint8)
 
 def isEmpty(arr):
     return not np.any(arr)

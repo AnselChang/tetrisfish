@@ -46,7 +46,7 @@ L_PIECESHAPE = np.array([
         [0,0,1,1],
         [0,0,0,0]
     ]
-])
+], dtype = np.uint8)
 
 Z_PIECESHAPE = np.array([
     [
@@ -61,7 +61,7 @@ Z_PIECESHAPE = np.array([
         [0,0,1,0],
         [0,0,0,0]
     ]
-])
+], dtype = np.uint8)
 
 S_PIECESHAPE = np.array([
     [
@@ -76,7 +76,7 @@ S_PIECESHAPE = np.array([
         [0,0,0,1],
         [0,0,0,0]
     ]
-])
+], dtype = np.uint8)
 
 J_PIECESHAPE = np.array([
     [
@@ -103,7 +103,7 @@ J_PIECESHAPE = np.array([
         [0,0,1,0],
         [0,0,0,0]
     ]
-])
+], dtype = np.uint8)
 
 T_PIECESHAPE = np.array([
     [
@@ -130,7 +130,7 @@ T_PIECESHAPE = np.array([
         [0,0,1,0],
         [0,0,0,0]
     ]
-])
+], dtype = np.uint8)
 
 O_PIECESHAPE = np.array([
     [
@@ -139,7 +139,7 @@ O_PIECESHAPE = np.array([
         [0,1,1,0],
         [0,0,0,0]
     ]
-])
+], dtype = np.uint8)
 
 
 # for nextbox usage
@@ -148,49 +148,49 @@ I_PIECEMASK = np.array([
     [1, 1, 1, 1, 1, 1, 1, 1],
     [1, 1, 1, 1, 1, 1, 1, 1],
     [0, 0, 0, 0, 0, 0, 0, 0],
-])
+], dtype = np.uint8)
 
 L_PIECEMASK  = np.array([
     [0, 1, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 0, 0, 0, 0, 0],
     [0, 1, 1, 0, 0, 0, 0, 0],
-])
+], dtype = np.uint8)
 
 Z_PIECEMASK  = np.array([
     [0, 1, 1, 1, 1, 0, 0, 0],
     [0, 1, 1, 1, 1, 0, 0, 0],
     [0, 0, 0, 1, 1, 1, 1, 0],
     [0, 0, 0, 1, 1, 1, 1, 0],
-])
+], dtype = np.uint8)
 
 S_PIECEMASK  = np.array([
     [0, 0, 0, 1, 1, 1, 1, 0],
     [0, 0, 0, 1, 1, 1, 1, 0],
     [0, 1, 1, 1, 1, 0, 0, 0],
     [0, 1, 1, 1, 1, 0, 0, 0],
-])
+], dtype = np.uint8)
 
 J_PIECEMASK  = np.array([
     [0, 1, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 0],
     [0, 0, 0, 0, 0, 1, 1, 0],
     [0, 0, 0, 0, 0, 1, 1, 0],
-])
+], dtype = np.uint8)
 
 T_PIECEMASK  = np.array([
     [0, 1, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 0],
     [0, 0, 0, 1, 1, 0, 0, 0],
     [0, 0, 0, 1, 1, 0, 0, 0],
-])
+], dtype = np.uint8)
 
 O_PIECEMASK  = np.array([
     [0, 0, 1, 1, 1, 1, 0, 0],
     [0, 0, 1, 1, 1, 1, 0, 0],
     [0, 0, 1, 1, 1, 1, 0, 0],
     [0, 0, 1, 1, 1, 1, 0, 0],
-])
+], dtype = np.uint8)
 
 TETRONIMO_MASKS = [I_PIECEMASK, L_PIECEMASK, Z_PIECEMASK, S_PIECEMASK, J_PIECEMASK, T_PIECEMASK, O_PIECEMASK]
 TETRONIMO_SHAPES = [I_PIECESHAPE, L_PIECESHAPE, Z_PIECESHAPE, S_PIECESHAPE, J_PIECESHAPE, T_PIECESHAPE, O_PIECESHAPE]

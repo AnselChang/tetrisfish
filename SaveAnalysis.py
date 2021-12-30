@@ -68,6 +68,9 @@ def read(filename):
             pos.feedback = AC.feedback[p["feedback"]]
             pos.adjustment = AC.adjustment[p["adjustment"]]
 
+            n = p["nnb"]
+            pos.setNNB(n["eval"], decodeArray(n["m1"]), pos.currentPiece, n["text"])
+
             for m in p["possible"]:
                 possible = Position.PossibleMove(m["eval"], decodeArray(m["m1"]), decodeArray(m["m2"]),
                                                  pos.currentPiece, pos.nextPiece, m["text"], m["colors"], m["m1str"], m["m2str"])
@@ -97,34 +100,50 @@ def encodePositions(positionDatabase, gamemode, hzNum, hzTimeline):
     JSON["hzTimeline"] = hzTimeline
 
     positions = []
+    i = 0
     for p in positionDatabase:
-        pJson = {}
-        
-        pJson["board"] = encodeArray(p.board)
-        pJson["placement"] = encodeArray(p.placement)
-        pJson["current"], pJson["next"] = p.currentPiece, p.nextPiece
-        pJson["lines"], pJson["currLines"], pJson["level"], pJson["trans"], pJson["score"] = p.lines, p.currLines, p.level, p.transition, p.score
-        pJson["frame"] = p.frame
-        pJson["eval"] = [p.evaluation, p.playerNNB, p.bestNNB, p.playerFinal, p.bestFinal]
-        pJson["feedback"] = AC.feedback.index(p.feedback)
-        pJson["adjustment"] = AC.adjustment.index(p.adjustment)
 
-        possible = []
-        for move in p.possible:
-            mJson = {}
+        try:
+            pJson = {}
+            
+            pJson["board"] = encodeArray(p.board)
+            pJson["placement"] = encodeArray(p.placement)
+            pJson["current"], pJson["next"] = p.currentPiece, p.nextPiece
+            pJson["lines"], pJson["currLines"], pJson["level"], pJson["trans"], pJson["score"] = p.lines, p.currLines, p.level, p.transition, p.score
+            pJson["frame"] = p.frame
+            pJson["eval"] = [p.evaluation, p.playerNNB, p.bestNNB, p.playerFinal, p.bestFinal]
+            pJson["feedback"] = AC.feedback.index(p.feedback)
+            pJson["adjustment"] = AC.adjustment.index(p.adjustment)
 
-            mJson["eval"] = move.evaluation
-            mJson["m1str"], mJson["m2str"] = move.move1Str, move.move2Str
-            mJson["text"] = move.depth3Text
-            mJson["colors"] = move.colors
-            mJson["m1"] = encodeArray(move.move1)
-            mJson["m2"] = encodeArray(move.move2)
+            nJson = {}
+            pn = p.moveNNB
+            nJson["eval"] = pn.evaluation
+            nJson["m1"] = encodeArray(pn.move1)
+            nJson["text"] = pn.depth3Text
+            
+            pJson["nnb"] = nJson
 
-            possible.append(mJson)
+            possible = []
+            for move in p.possible:
+                mJson = {}
 
-        pJson["possible"] = possible
+                mJson["eval"] = move.evaluation
+                mJson["m1str"], mJson["m2str"] = move.move1Str, move.move2Str
+                mJson["text"] = move.depth3Text
+                mJson["colors"] = move.colors
+                mJson["m1"] = encodeArray(move.move1)
+                mJson["m2"] = encodeArray(move.move2)
 
-        positions.append(pJson)
+                possible.append(mJson)
+
+            pJson["possible"] = possible
+
+            positions.append(pJson)
+            
+        except:
+            print("skip position", i)
+            
+        i += 1
 
     JSON["positions"] = positions
 
@@ -133,7 +152,6 @@ def encodePositions(positionDatabase, gamemode, hzNum, hzTimeline):
 
 # Take nparray, return encoded string. Convert to uint8 then base64 encoding
 def encodeArray(array):
-    print(array)
     int8 = np.packbits(array)
     return base64.b64encode(int8)
 
@@ -142,7 +160,7 @@ def decodeArray(string):
 
     b = base64.decodebytes(string)
     int8 = np.frombuffer(b, dtype=np.uint8)
-    decoded = np.unpackbits(int8).reshape(20,10).astype(np.uint64)
+    decoded = np.unpackbits(int8).reshape(20,10).astype(np.uint8)
     #print(decoded.dtype)
     return decoded
 

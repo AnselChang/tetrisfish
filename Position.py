@@ -1,12 +1,14 @@
 import random
 from PieceMasks import *
-from TetrisUtility import print2d, getPlacementStr
+from TetrisUtility import print2d, getPlacementStr, isArray
+from PygameButton import getTooltipSurface
 import AnalysisConstants as AC
 
 BLUNDER_THRESHOLD = -50
 
 # A possible move is defined by the possible current piece placement followed by the possible next piece placement.
 # The next piece placement should NOT be preceded by a line clear calculation for the current piece. This may be tricky
+# For NNB objects, move2 = None and move2Str = none
 class PossibleMove:
 
     # numpy 2d arrays
@@ -16,7 +18,8 @@ class PossibleMove:
         
         if move1Str == None or move2Str == None:
             self.move1Str = getPlacementStr(move1, currentPiece)
-            self.move2Str = getPlacementStr(move2, nextPiece)
+            if isArray(move2):
+                self.move2Str = getPlacementStr(move2, nextPiece)
         else:
             self.move1Str = move1Str
             self.move2Str = move2Str
@@ -88,6 +91,8 @@ class Position:
         self.adjustment = adjustment
 
         self.possible = [] # Best possible placements as found by SR
+        self.moveNNB = None
+        self.tooltipNNB = None
 
     def reset(self, includePossible = False):
         self.startEvaluation = False
@@ -109,6 +114,16 @@ class Position:
             node = node.prev
             count += 1
         return count
+
+    def setNNB(self, evaluation, move, currentPiece, text):
+        self.moveNNB = PossibleMove(evaluation, move, None, currentPiece, None, text, None)
+        fulltext = ["The no-next-box evaluation of your placement",
+                    "compared to the best placement's nnb evaluation",
+                    "",
+                    "Next piece possibilities for best NNB move ({}):".format(self.moveNNB.move1Str)]
+                    
+        fulltext.extend(text)
+        self.tooltipNNB = getTooltipSurface(fulltext)
 
     # add if only no duplicate first piece location. Return false if duplicate
     def addPossible(self,evaluation, move1, move2, currentPiece, nextPiece, text, colors):

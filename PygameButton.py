@@ -61,7 +61,9 @@ class ButtonHandler:
         self.buttons[b.ID] = b
 
     def addInvisible(self, x1, y1, x2, y2, tooltip):
-        self.invisTooltips.append(InvisibleTooltip(x1, y1, x2, y2, tooltip))
+        invis = InvisibleTooltip(x1, y1, x2, y2, tooltip)
+        self.invisTooltips.append(invis)
+        return invis
 
     def updatePressed(self, mx, my, click):
         
@@ -113,7 +115,7 @@ class ButtonHandler:
         # Draw invisible tooltips
         for t in self.invisTooltips:
             if t.hovering(mx,my):
-                self.displayTooltip(t.tooltipSurface, mx, my, False, 0)
+                self.displayTooltip(t.altTooltipSurface if t.isAlt else t.tooltipSurface, mx, my, False, 0)
 
     def get(self, buttonID):
 
@@ -148,9 +150,15 @@ class InvisibleTooltip:
         self.x2 = x2
         self.y2 = y2
         self.tooltipSurface = getTooltipSurface(tooltip)
+        
+        self.isAlt = False
+        self.altTooltipSurface = None
 
     def hovering(self, mx, my):
         return mx >= self.x1 and mx <= self.x2 and my >= self.y1 and my <= self.y2
+
+
+        
 
 # Abtract class button for gui
 class Button(ABC):

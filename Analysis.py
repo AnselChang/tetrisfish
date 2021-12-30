@@ -297,7 +297,10 @@ def analyze(positionDatabase, hzInt):
 
 
     buttons.addTooltipButton(905, 112, ["Click on the current piece (shortcut: spacebar) to change its placement.", "Press 'R' to rotate the piece"])
-    buttons.addInvisible(1046, 447, 1341, 513, ["The no-next-box evaluation of your placement", "compared to the best placement's nnb evaluation"])
+    nnb = buttons.addInvisible(1046, 447, 1341, 531,
+                               ["The no-next-box evaluation of your placement",
+                                "compared to the best placement's nnb evaluation",
+                                "(Best NNB move loading...)"])
     buttons.addInvisible(1033, 532, 1341, 580, ["Navigate hypothetical placements. Add", "hypothetical placements by clicking the next box.", "Shortcuts: Z, X"])
     buttons.addInvisible(1029, 660, 1341, 838, ["Left click to add a new piece to the board,", "or right (or ctrl) click to change the next piece"])
     
@@ -488,7 +491,13 @@ def analyze(positionDatabase, hzInt):
                 hoveredPlacement = pos.possible[pb.i]
                 break
 
-        # If a possible placement is clicked, make that move
+        # If hovering over nnb text, display NNB move
+        nnb.isAlt = nnb.hovering(mx,my) and pos.moveNNB != None
+        if nnb.isAlt:
+            hoveredPlacement = pos.moveNNB
+            nnb.altTooltipSurface = pos.tooltipNNB
+
+        # If a possible placement is clicked (either from NB movelist or NNB), make that move
         if hoveredPlacement is not None and click:
             print("press possible move")
             analysisBoard.placeSelectedPiece(hoveredPlacement.move1)
@@ -581,7 +590,12 @@ def analyze(positionDatabase, hzInt):
             except:
                 playerNNB = "N/A"
                 bestNNB = "N/A"
-            blitCenterText(c.screen, c.font2bold, "NNB: {} ({})".format(playerNNB, bestNNB), WHITE, 470, cx = cx)
+            blitCenterText(c.screen, c.font2bold, "Player NNB: {}".format(playerNNB), WHITE, 450, cx = cx)
+            if pos.moveNNB == None:
+                text = "(Loading best NNB move...)"
+            else:
+                text = "({} -> {})".format(pos.moveNNB.move1Str , bestNNB)
+            blitCenterText(c.screen, c.font2bold, text, WHITE, 490, cx = cx)
         else:
             blitCenterText(c.screen, c.fontbold, "Loading...", WHITE, 250, cx = cx)
         
