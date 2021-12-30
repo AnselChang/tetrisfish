@@ -56,7 +56,6 @@ class PreviewLayout:
         black space around. Otherwise we will fail horrendously
         """
         perc = self.inner_box_size[0] * self.inner_box_size[1]
-        print(f"optimize_perc = {perc}")
         return perc < 0.9
 
     @property

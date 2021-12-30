@@ -136,14 +136,6 @@ def get_board(img):
     print("final results:", results)
     return results
 
-"""
-def adjust_board_result(rect):
-    nes_pix_x = rect.width / float(NES_PIXELS_BOARD_WIDTH)
-    nes_pix_y = rect.height / float(NES_PIXELS_BOARD_HEIGHT)
-    rect.right = int(rect.right + nes_pix_x*1)
-    rect.bottom = int(rect.bottom + nes_pix_y*1)
-    return rect
-"""
 
 def get_next_box(img, board_coord, suggested):
     """

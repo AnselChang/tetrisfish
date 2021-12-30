@@ -16,7 +16,7 @@ import cv2
 import math
 from calibrate.autolayout import Rect
 
-# that means minos are 16px by 16px roughly
+# that means minos are 64px by 64px roughly
 BLOCKMATCH_SCALE_FACTOR = 8.0
 NES_BLOCK_PIXELS = 8
 BLOCK_SIZE_PX = BLOCKMATCH_SCALE_FACTOR * NES_BLOCK_PIXELS
@@ -47,6 +47,7 @@ PIECE_TYPES = {(4,1): "I",
                (3,2): "LSTJZ",
                (2,2): "O"
               }
+
 def draw_and_show(image, rect_xywh, color=(0,0,255)):
     if isinstance(rect_xywh, Rect):
         l,t,r,b = rect_xywh.to_array()
@@ -58,6 +59,24 @@ def draw_and_show(image, rect_xywh, color=(0,0,255)):
     cv2.rectangle(image,(l,t),(r,b),color, 1)
     show_image(image)
 
+def adjust_gamma(image, gamma=1.0):
+    # build a lookup table mapping the pixel values [0, 255] to
+    # their adjusted gamma values
+    invGamma = 1.0 / gamma
+    table = np.array([((i / 255.0) ** invGamma) * 255
+        for i in np.arange(0, 256)]).astype("uint8")
+    # apply gamma correction using the lookup table
+    return cv2.LUT(image, table)
+
+def posterise_image(image, k):
+    i = np.float32(image).reshape(-1,1)
+    condition = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER,20,1.0)
+    ret, label, center = cv2.kmeans(i, k , None, condition,10, cv2.KMEANS_RANDOM_CENTERS)    
+    center = np.uint8(center)
+    final_img = center[label.flatten()]
+    final_img = final_img.reshape(image.shape)
+    return final_img, center
+
 def find_poi(image):
     """
     returns bounding rectangle of most likely tetrimino shape
@@ -66,22 +85,21 @@ def find_poi(image):
     source = image.copy()
     
     color = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-    # make blacks blacker, make whites whiter
-    #show_image(image, "stock")
+        
+    # convert image to black/white
+    # then, seal the 1 nespx gaps between minos
+    # and then join them.
     _, image = cv2.threshold(image,35,255, cv2.THRESH_BINARY)
-    
-    #show_image(image, "first threshold")
     image = cv2.GaussianBlur(image, (G_BLUR_FACTOR,G_BLUR_FACTOR), 0)
-    #show_image(image, "blur")
+    _, image = cv2.threshold(image,100,255,cv2.THRESH_BINARY)    
+
     iH,iW = image.shape
-    
-    #show_image(image)
-    _, image = cv2.threshold(image,100,255,cv2.THRESH_BINARY)
-    #show_image(image, "re-threshold")    
-    
+    # find the shapes in the image; this should be the bounding box
+    # of the tetrimino, and or "NEXT" text and random stray lines
     cnts = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[0] if len(cnts) == 2 else cnts[1]
     
+    # discard contours that don't match the tetrimino
     good_cnts = []
     for c in cnts:
         # Obtain bounding rectangle to get measurements
@@ -93,10 +111,11 @@ def find_poi(image):
             continue
 
         # remove thin lines
-        if w < 3 or h < 3:
+        if w < 3/BLOCKMATCH_SCALE_FACTOR or h < 3/BLOCKMATCH_SCALE_FACTOR:
             #draw_and_show(color,(x,y,w,h), (0,0,255))
             continue
         
+        # remove items that aren't tetrimino shaped
         block_size = block_count(w), block_count(h)
         if block_size not in PIECE_TYPES.keys():
             #draw_and_show(color,(x,y,w,h), (0,0,255))
@@ -109,6 +128,8 @@ def find_poi(image):
     if len(good_cnts) == 0:
         return [None, None]
     
+    # in the caase of NEXT and a mino, the NEXT looks like an I piece.
+    # we sort items so that tetriminos closer to center are prioritised.
     if len(good_cnts) > 1:
         middle = iW / 2.0, iH / 2.0
         good_cnts.sort(key=lambda x: x[1].sq_distance(middle))
@@ -120,10 +141,37 @@ def find_poi(image):
     # lets remove those!
     rect = shrink_bounding_box(source, block_size, rect)
 
-    #draw_and_show(color,rect,(0,255,0))
+    draw_and_show(color,rect,(0,255,0))
 
     return block_size, rect
 
+def auto_level(image):
+    """
+    Automatically expand dynamic range to 0,255
+    """
+    dark, bright, _, _ = cv2.minMaxLoc(image)
+    diff = bright - dark
+    if diff <= 0:
+        diff = 255.0
+    alpha = 255.0 / (bright - dark) * 1.0
+    beta = -dark*alpha/1.0
+    image = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
+    return image
+
+def find_posterise_limits(percs, block_size):
+    """
+    Returns the index from posterization, as well
+    as whether this is a white block piece (ITO)
+    """
+    piece_type = PIECE_TYPES[block_size]
+    if piece_type in ["I", "O"]:
+        return 1, True
+    else:
+        if percs[0] < 0.1: #pieces with white shine
+            return 2, False
+        else:
+            return 1, True
+    
 def shrink_bounding_box(image, block_size, rect):
     """
     now that we have POI, we want to 
@@ -131,21 +179,40 @@ def shrink_bounding_box(image, block_size, rect):
     this is a TODO for now
     """
     # gets subset of image, so any manipulations we make will still be on base image.
+    piece_type = PIECE_TYPES[block_size]
     image = image[rect.top:rect.bottom, rect.left:rect.right]
     dark, bright, _, _ = cv2.minMaxLoc(image)
     # y = alpha * x + beta
     # we want to do a simple rescale to fill 0-255 range
+    image, levels = posterise_image(image, 5)
+    #show_image(image, "posterised")
+    levels = [item[0] for item in levels]
+    levels.sort(reverse=True)
     
-    diff = bright - dark
-    if diff <= 0:
-        diff = 255.0
-    alpha = 255.0 / bright - dark
-    beta = dark*alpha
-    image = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
-    #show_image(image, "brightness corrected")
+    counts = [count_white(image,level) for level in levels]
+    px_cnt = counts[-1]
+    percs = [item / float(px_cnt) for item in counts]
+    cutoff_index, is_white= find_posterise_limits(percs,block_size)
+    _, image = cv2.threshold(image, levels[cutoff_index]-1, 255, cv2.THRESH_BINARY)
+    
+    coord = np.where(image>=255)
+    l, t, r, b = (np.min(coord[1]), np.min(coord[0]), 
+                    np.max(coord[1]), np.max(coord[0]))
+    
+    # on white pixels, we are cutting out the colored rim,
+    # so add it back. It's one nes pixel.
+    if is_white:
+        b += int(BLOCKMATCH_SCALE_FACTOR)
+        r += int(BLOCKMATCH_SCALE_FACTOR)
+        
+    
+    return Rect(l+rect.left, t+rect.top, r+rect.left, b+rect.top)
 
 
-    return rect
+def count_white(image, limit=200):
+    result = np.count_nonzero((image >= limit))
+    return result
+
     
 def convert_to_grayscale_8u(arr):
     """
@@ -177,8 +244,6 @@ def calc_new_rect(piece_type, rect):
     if not isinstance(rect, Rect):
         rect = Rect(*rect)
     
-    print ("Rect with piece", rect, piece_type)
-    
     if PIECE_TYPES[piece_type] == "I":
         block_height = rect.height
         rect.top = int(rect.top - 0.5*block_height)
@@ -192,18 +257,10 @@ def calc_new_rect(piece_type, rect):
         block_height = rect.height / 2.0
         rect.left = int(rect.left - block_width)
         rect.right = int(rect.right + block_width)
-    
-    #subtract one nes pixel from bottom right
-    """
-    block_width = rect.width / 2.0
-    block_height = rect.width / 2.0
-    rect.right = int(rect.right - block_width / NES_BLOCK_PIXELS)
-    rect.bottom = int (rect.bottom - block_width / NES_BLOCK_PIXELS)
-    """
-    print ("Rect after 4x2 adjustment", rect)
+
     return rect
 
-# run as python -m calibrate.blockmatch -i "full/path/to/images/folder"
+# run as python -m calibrate.blockmatch -i "D:/dev/tetrisfish/Images/Callibration/templates"
 if __name__ == '__main__':
     # construct the argument parser and parse the arguments
     ap = argparse.ArgumentParser()
