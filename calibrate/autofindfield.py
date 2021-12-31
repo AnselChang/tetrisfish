@@ -13,7 +13,7 @@ is_blackish
 )
 
 from calibrate.autolayout import (
-PREVIEW_LAYOUTS, LAYOUTS, PreviewLayout
+PREVIEW_LAYOUTS, LAYOUTS, PreviewLayout, Layout
 )
 
 from calibrate.rect import Rect
@@ -26,64 +26,70 @@ OPTIMIZE_FIELD_FACTOR = 4
 O_NES_HEIGHT = NES_PIXELS_BOARD_HEIGHT * OPTIMIZE_FIELD_FACTOR 
 O_NES_WIDTH = NES_PIXELS_BOARD_WIDTH * OPTIMIZE_FIELD_FACTOR
 
-
-
-
 import time
+
+BOARD_MIN_WIDTH_PERC = 0.1 # board must be > this width
+BOARD_VALID_HEIGHT_PERC = [0.35, 0.95] # board must be within height_perc
+IMAGE_BORDER = 5 # field cannot be touching edge of image
+
+PREVIEW_SIZE_LENIENCE = [0.7, 1.3]
+
+def touching_image_edge(rect:Rect, image_size_yx):
+    """
+    returns if the rect is too close to the images edge
+    """
+    return (rect.left < IMAGE_BORDER or 
+            rect.top < IMAGE_BORDER or
+            rect.right > image_size_yx[1] -5 or 
+            rect.bottom > image_size_yx[0] - 5)
+
 def get_board(img):
     """
     Takes an nparray image, or a PIL image
-    Returns a board rect and suggested Preview position.
+    Returns a list of tuples, containing:
+    * board rect 
+    * Layout object (containing suggested Preview)
     """
     t = time.time()
     arr = convert_img_to_nparray(img)
     arr = convert_to_grayscale(arr)
 
-    size = arr.shape[:2]
+    size = arr.shape[:2] #y,x
     
     results = []
+    valid_heights = [size[0] * percent for percent in BOARD_VALID_HEIGHT_PERC]
+    
     # check each attempt, removing them if the field is way too small or big.
     for attempt in LAYOUTS.values():
         # grab offset and swap x/y to y/x
         centre = list(attempt.fillpoint)
         
-        centre[0], centre[1] = int(centre[1]*size[0]), int(centre[0]*size[1]) # end result is y/x
+        centre[0], centre[1] = [int(centre[1]*size[0]), 
+                               int(centre[0]*size[1])] # end result is y/x
         
         result, temp_image = try_expand(arr, centre)
-        #print("potential field:", result)
-        if (result.width < 0.10 * size[1]):
-            #print ("Field too skinny, skipping")
-            #show_image(temp_image)
+        
+        if (result.width < BOARD_MIN_WIDTH_PERC * size[1]):
             continue
-        if (result.height > 0.95 * size[0] or
-            result.height < 0.35 * size[0]):
-            #print ("field too tall or short, skipping")
-            #show_image(temp_image)
+        if not(valid_heights[0] <= result.height <= valid_heights[1]):
             continue
-        # field can't touch top or bottom of screen
-        if (result.left < 5 or result.top < 5 or
-            result.right > size[1] -5 or result.bottom > size[0] - 5):
-            #print ("field too close to edge of image")
-            #show_image(temp_image)
+        if touching_image_edge(result, size):
             continue
-
         if result in [r[0] for r in results]:
             continue # duplicate result
         
         layout = attempt.clone()
         
         results.append([result, layout, temp_image])
-        
     
     if len(results) == 0:
         print("AI could not find a board")
         return results
 
-    results.sort(key=lambda x:x[0].area, reverse=True)
-    
-    max_area = results[0][0].area
     # in multi layouts, we will have lots of black rectangles :)
     # discard any rectangles that are clearly too small
+    results.sort(key=lambda x:x[0].area, reverse=True)
+    max_area = results[0][0].area
     results = list(filter(lambda x: x[0].area >= 0.98*max_area, results))
     results.sort(key=lambda x:x[0].area, reverse=True)
     
@@ -137,11 +143,22 @@ def optimize_field(result):
     inner_box[3] = 1.0 - result
     layout.inner_box = inner_box
 
+def get_preview_bounding_rect(nes_pixel_size, board_rect, layout:PreviewLayout):
+    """
+    returns the suggested bounding rectnagle of a previewLayout
+    """
+    np_x, np_y = nes_pixel_size
+    left = board_rect.left + np_x * layout.nes_px_offset[0]
+    top = board_rect.top + np_y * layout.nes_px_offset[1]
+    right = left + np_x * layout.nes_px_size[0]
+    bot = top + np_y * layout.nes_px_size[1]
+    return Rect(left, top, right, bot)
 
-def get_next_box(img, board_coord, suggested):
+def get_next_box(img, board_coord, suggested: Layout):
     """
     Iterates through all possible next box locations, starting with suggested one.
     """    
+    # inject suggested preview to start of list.
     suggested_preview = suggested.preview
     layouts = list(PREVIEW_LAYOUTS.values())
     layouts.remove(suggested_preview)
@@ -160,62 +177,59 @@ def get_next_box(img, board_coord, suggested):
     nes_pixel_size = [nes_pixel_x, nes_pixel_y]
     result = None
     for layout in layouts:
-        left = board_rect.left + nes_pixel_x * layout.nes_px_offset[0]
-        top = board_rect.top + nes_pixel_y * layout.nes_px_offset[1]
-        
+        rect = get_preview_bounding_rect(nes_pixel_size,board_rect,layout)        
         if layout.preview_type == PreviewLayout.HARDCODE: # e.g. ctm layout
-            right = left + nes_pixel_x * layout.nes_px_size[0]
-            bot = top + nes_pixel_y * layout.nes_px_size[1]
             rect = Rect(left,top,right,bot)
-        else:
-            best_corner = None
-            for corner in layout.inner_box_corners_nespx:
-                fill_point = [int(top + corner[1] * nes_pixel_y),
-                              int(left + corner[0] * nes_pixel_x)]
-                if not (0 <= fill_point[0] <= size[0] and 0 <= fill_point[1] <= size[1]):
-                    continue
-                
-                if not is_blackish(arr[fill_point[0],fill_point[1]]):
-                    continue
-                best_corner = corner
-                break
-            
-            if best_corner is None:
-                #debug_draw_layout(arr, layout, board_rect)
-                continue
-
-            rect, temp_image = try_expand(arr, fill_point)
-
-
-            # The preview's size should match the reference's size
-            # this means it should be roughly 4 Blocks wide and 2 blocks tall
-            legit = check_layout_size_legit(layout, nes_pixel_size, rect, temp_image)
-            if not legit:
-                continue
-
-            # break after first match
-            result = rect, layout
             break
+        
+        # find the first valid corner to fill from
+        best_corner = None
+        for corner in layout.inner_box_corners_nespx:
+            fill_point = [int(rect.top + corner[1] * nes_pixel_y),
+                          int(rect.left + corner[0] * nes_pixel_x)]
+            #check out of bounds
+            if not (0 <= fill_point[0] <= size[0] and
+                    0 <= fill_point[1] <= size[1]):
+                continue
+            if not is_blackish(arr[fill_point[0],fill_point[1]]):
+                continue
+            best_corner = corner
+            break
+            
+        if best_corner is None:
+            continue
+
+        rect, temp_image = try_expand(arr, fill_point)
+
+        # The preview's size should match the reference's size
+        # this means it should be roughly 4 Blocks wide and 2 blocks tall
+        legit = check_preview_size_legit(layout, nes_pixel_size, rect, temp_image)
+        if not legit:
+            continue
+
+        # break after first match
+        result = rect, layout
+        break
         
     
     if result is None:
         return None, None
 
     rect, layout = result
-
-    if layout.preview_type != PreviewLayout.HARDCODE:
-        if layout.should_suboptimize:
-            sub_rect = optimize_preview(arr, rect, layout)
-            if sub_rect is not None: #optimization passed
-                layout = layout.clone()
-                layout.recalc_sub_rect(sub_rect)
+    
+    if layout.should_suboptimize:
+        sub_rect = optimize_preview(arr, rect, layout)
+        if sub_rect is not None: #optimization passed
+            layout = layout.clone()
+            layout.recalc_sub_rect(sub_rect)
 
     
     #debug_draw_layout(arr, layout, board_rect)
 
     return (rect.to_array(), layout)
 
-def check_layout_size_legit(layout, nes_pixel_size, rect, fill_image):
+
+def check_preview_size_legit(layout, nes_pixel_size, rect, fill_image):
     """
     After we do a fill and find its size, we check against the template to see
     if its a logical size
@@ -227,13 +241,11 @@ def check_layout_size_legit(layout, nes_pixel_size, rect, fill_image):
     piece_width = layout.inner_box_size[0] * rect.width
     piece_height = layout.inner_box_size[1] * rect.height
 
-    if not ref_piece_width * 0.7 <= piece_width <= ref_piece_width * 1.3:
-        #print("inner_rect is too wide / skinny:", ref_piece_width, piece_width)
-        #show_image(fill_image)
+    valid_width = [num * ref_piece_width for num in PREVIEW_SIZE_LENIENCE]
+    valid_height = [num * ref_piece_height for num in PREVIEW_SIZE_LENIENCE]
+    if not valid_width[0] <= piece_width <= valid_width[1]:
         return False
-    if not ref_piece_height * 0.7 <= piece_height <= ref_piece_height * 1.3:
-        #print("inner_rect is too short / tall", ref_piece_height, piece_height)
-        #show_image(fill_image)
+    if not valid_height[0] <= piece_height <= valid_height[1]:
         return False
     return True
 
@@ -260,7 +272,6 @@ def optimize_preview(arr, rect, layout):
     return rect
    
 
-    
 def debug_draw_layout(arr, layout, board_rect):
     arr = np.array(arr, copy=True)
     red = (0,0,255, 0.5) #Blue green red

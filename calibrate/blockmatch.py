@@ -23,7 +23,7 @@ BLOCK_SIZE_PX = BLOCKMATCH_SCALE_FACTOR * NES_BLOCK_PIXELS
 # gaussian blur factor
 # we want to blur the minos so that the black borders disappear
 # therefore 4 nes pixels is about right.
-G_BLUR_FACTOR = int(5*math.ceil(BLOCKMATCH_SCALE_FACTOR)+1)
+G_BLUR_FACTOR = int(6*math.ceil(BLOCKMATCH_SCALE_FACTOR)+1)
 
 def show_image(image, text="image"):
     cv2.imshow(text, image)

@@ -67,6 +67,8 @@ class PreviewLayout(AbstractLayout):
         we should only do template matching if we have heaps of 
         black space around. Otherwise we will fail horrendously
         """
+        if self.preview_type == self.HARDCODE:
+            return False
         perc = self.inner_box_size[0] * self.inner_box_size[1]
         return perc < 0.9
 
