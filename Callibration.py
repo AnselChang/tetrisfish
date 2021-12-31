@@ -178,7 +178,9 @@ class Calibrator:
 
         buttons.addImage(ButtonIndices.CALLIBRATE, images[im_names.C_BOARD], 1724, 600, HYDRANT_SCALE, img2 = images[im_names.C_BOARD2],
                          tooltip = ["Set the bounds for the tetris board. One dot",
-                                    "should be centered along each mino."])
+                                    "should be centered along each mino.",
+                                    "Press 'B' to switch inner bounds"])
+
         buttons.addImage(ButtonIndices.NEXTBOX, images[im_names.C_NEXT], 2100, 600, HYDRANT_SCALE, img2 = images[im_names.C_NEXT2],
                          tooltip = ["Set the bounds across the active area of the entire",
                                     "next box. Make sure four dots are symmetrically placed",
@@ -347,8 +349,10 @@ class Calibrator:
         self.boundsManager = None
         self.bounds = Bounds(False, config=c)
         self.bounds.setRect(board)
+        self.bounds.setSubRect(suggested.inner_box)
         self.bounds.set()
         self.ai_error = None
+
         pixels, preview_layout = autofindfield.get_next_box(self.frame, board, suggested)
         if pixels is not None:
             self.nextBounds = Bounds(True, config=c)
@@ -680,7 +684,13 @@ class Calibrator:
                 # maxoutclub/regular/precise
                 if self.nextBounds is not None:
                     self.nextBounds.cycle_sub_rect()
-                    print ("Toggled bounds to :", self.nextBounds.sub_rect_name)
+                    print ("Toggled preview bounds to:", self.nextBounds.sub_rect_name)
+            elif event.key == pygame.K_b:
+                # toggle board subrectangle between 
+                # maxoutclub / regular
+                if self.bounds is not None:
+                    self.bounds.cycle_sub_rect()
+                    print ("Toggled board bounds to:", self.bounds.sub_rect_name)
             elif event.key in BoundsPicker.KEYBOARD_KEYS and not isKeyUsedForTextbox:
                 # numbers 1-9 for board selection
                 if self.boundsManager is not None:

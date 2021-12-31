@@ -23,7 +23,7 @@ BLOCK_SIZE_PX = BLOCKMATCH_SCALE_FACTOR * NES_BLOCK_PIXELS
 # gaussian blur factor
 # we want to blur the minos so that the black borders disappear
 # therefore 4 nes pixels is about right.
-G_BLUR_FACTOR = int(5*math.ceil(BLOCKMATCH_SCALE_FACTOR)+1)
+G_BLUR_FACTOR = int(6*math.ceil(BLOCKMATCH_SCALE_FACTOR)+1)
 
 def show_image(image, text="image"):
     cv2.imshow(text, image)
@@ -260,6 +260,56 @@ def calc_new_rect(piece_type, rect):
         rect.right = int(rect.right + block_width)
 
     return rect
+
+def is_blackish(tuple):
+    return tuple[0] < 20 and tuple[1] < 20 and tuple[2] < 20
+
+
+def try_expand(arr, centre):
+    """
+    flood fills array from centre (y,x)
+    Returns rect class
+    """    
+    not_blackish = not is_blackish(arr[centre[0],centre[1]])
+    if not_blackish:
+        return Rect(centre[1],centre[0],centre[1],centre[0]), None
+
+    arr = np.array(arr, copy=True)
+    red = (0,0,255) #Blue green red
+    
+    centre = centre[1], centre[0] # opencv uses x,y
+    cv2.floodFill(arr, None, centre, newVal=red, loDiff=(5, 5, 5), upDiff=(5, 5, 5))
+
+    #show_image(arr)
+    
+    red_px = np.where(np.all(arr == red, axis=-1))
+    
+    y_values = list(red_px[0])
+    y_values.sort()
+    x_values = list(red_px[1])
+    x_values.sort()
+    
+    top, bot = y_values[0], y_values[-1]
+    left, right = x_values[0], x_values[-1]
+    
+    # todo: check percentage of red pixels, it better be at least 50%:
+    # reject if there's an overwhelming amount of non-red
+
+    return (Rect(left, top, right, bot), arr)
+
+def convert_to_grayscale(arr):
+    """
+    converts a BGR (technically RGB works too) image to grayscale RGB,
+    an rgb image where RGB channels are the same and are luminance.
+    """
+    # Convert image to grayscale, but in RGB format
+    gray = cv2.cvtColor(arr, cv2.COLOR_BGR2GRAY)
+    arr = np.zeros_like(arr)
+    arr[:,:,0] = gray
+    arr[:,:,1] = gray
+    arr[:,:,2] = gray
+    return arr
+
 
 # run as python -m calibrate.blockmatch -i "D:/dev/tetrisfish/Images/Callibration/templates"
 if __name__ == '__main__':

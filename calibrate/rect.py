@@ -50,7 +50,14 @@ class Rect:
         """
         return (0 <= self.left <= self.right <= yx[1] and 
                 0 <= self.top <= self.bottom <= yx[0])
-           
+
+    def sub_rect_perc(self, sub_rect):
+        left = lerp(self.left, self.right, sub_rect[0])
+        top = lerp(self.top,self.bottom, sub_rect[1])
+        right = lerp(self.left,self.right, sub_rect[2])
+        bottom = lerp(self.top,self.bottom, sub_rect[3])
+        self.left, self.top, self.right, self.bottom = (left,top,right,bottom)
+
     def multiply(self, constant):
         self.left = self.left * constant
         self.top = self.top * constant
@@ -73,3 +80,6 @@ class Rect:
         ydist = (you[1] - point[1])
         result = xdist*xdist + ydist*ydist
         return result
+
+def lerp(small, big, value):
+    return small + (big-small) * value

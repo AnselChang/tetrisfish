@@ -1,24 +1,10 @@
 ﻿"""
 Helper classes for autocalibration
 """
-class Layout:
-    def __init__(self, name, fillpoint, preview):
+class AbstractLayout:
+    def __init__(self, name, inner_box):
         self.name = name
-        self.fillpoint = fillpoint # fill point in relative screen coords (x,y)
-        self.preview = preview # preview type
-
-class PreviewLayout:    
-    TIGHT=1
-    STANDARD=2 # flood fill the box, then choose subset based on nes_px_size    
-    HARDCODE=3 # don't expand, just hardcode it.
-    
-    def __init__(self, name, nes_px_offset, nes_px_size, inner_box, preview_type, preview_size):
-        self.name = name
-        self.nes_px_offset = nes_px_offset #e.g. (90, 90)
-        self.nes_px_size = nes_px_size #e.g (42, 32)
-        self.inner_box = inner_box # e.g. (0.1, 0.1, 0.9, 0.9)
-        self.preview_type = preview_type
-        self.preview_size = preview_size #e.g. 1.0
+        self.inner_box = inner_box
 
     def recalc_sub_rect(self, new_sub_rect):
         """Given a new subrect in nes_pixels, calculates inner_box"""
@@ -33,6 +19,32 @@ class PreviewLayout:
     def inner_box_size(self):
         return [self.inner_box[2] - self.inner_box[0],
                 self.inner_box[3] - self.inner_box[1]]
+
+#layout for board
+class Layout(AbstractLayout):
+    def __init__(self, name, fillpoint, preview, inner_box=None):
+        super().__init__(name, inner_box)
+        self.name = name
+        self.fillpoint = fillpoint # fill point in relative screen coords (x,y)
+        self.preview = preview # preview type
+    
+    def clone(self):
+        return Layout(self.name,self.fillpoint,self.preview,self.inner_box)
+
+#layout for preview
+class PreviewLayout(AbstractLayout):
+    TIGHT=1
+    STANDARD=2 # flood fill the box, then choose subset based on nes_px_size    
+    HARDCODE=3 # don't expand, just hardcode it.
+    
+    def __init__(self, name, nes_px_offset, nes_px_size, inner_box, preview_type, preview_size):
+        self.name = name
+        self.nes_px_offset = nes_px_offset #e.g. (90, 90)
+        self.nes_px_size = nes_px_size #e.g (42, 32)
+        self.inner_box = inner_box # e.g. (0.1, 0.1, 0.9, 0.9)
+        self.preview_type = preview_type
+        self.preview_size = preview_size #e.g. 1.0
+
     
     @property
     def fillpoint(self):
@@ -55,6 +67,8 @@ class PreviewLayout:
         we should only do template matching if we have heaps of 
         black space around. Otherwise we will fail horrendously
         """
+        if self.preview_type == self.HARDCODE:
+            return False
         perc = self.inner_box_size[0] * self.inner_box_size[1]
         return perc < 0.9
 
@@ -98,15 +112,29 @@ PREVIEW_LAYOUTS = { # stencil, stock capture etc.
                     # "CTM": #4p
                   }
 
-
-LAYOUTS = {"STANDARD": Layout("Standard", (0.5,0.5), PREVIEW_LAYOUTS["STANDARD"]),
-           "RIGHT_SIDE": Layout("Standard", (0.75,0.5), PREVIEW_LAYOUTS["STANDARD"]),
-           "STENCIL": Layout("Stencil™", (0.3,0.5), PREVIEW_LAYOUTS["STANDARD"]),
-           "MOC_LEFT": Layout("MaxoutClub", (0.422,0.302), PREVIEW_LAYOUTS["MOC"]), #ctwc 2p
-           "MOC_RIGHT": Layout("MaxoutClub", (0.578,0.302), PREVIEW_LAYOUTS["MOC"]), #ctwc 2p
-           "MOC_TOPLEFT": Layout("MaxoutClub", (0.444,0.204), PREVIEW_LAYOUTS["MOC4pLeft"]), #ctwc 4p
-           "MOC_TOPRIGHT": Layout("MaxoutClub", (0.556,0.204), PREVIEW_LAYOUTS["MOC4pRight"]), #ctwc 4p
-           "MOC_BOTLEFT": Layout("MaxoutClub", (0.444,0.669), PREVIEW_LAYOUTS["MOC4pLeft"]), #ctwc 4p
-           "MOC_BOTRIGHT": Layout("MaxoutClub", (0.556,0.669), PREVIEW_LAYOUTS["MOC4pRight"]) #ctwc 4p
+FIELD_INNER_BOX = { 
+                    "Standard": (0.01,0.0,0.99,0.993), #4 nespix black bottom
+                    "MOC": (0.0,0.0,1.0,1.0) #fills entire area pretty much.
+                  }
+                    
+                    
+LAYOUTS = {"STANDARD": Layout("Standard", (0.5,0.5), 
+                              PREVIEW_LAYOUTS["STANDARD"], FIELD_INNER_BOX["Standard"]),
+           "RIGHT_SIDE": Layout("Standard", (0.75,0.5), 
+                              PREVIEW_LAYOUTS["STANDARD"], FIELD_INNER_BOX["Standard"]),
+           "STENCIL": Layout("Stencil™", (0.3,0.5), 
+                              PREVIEW_LAYOUTS["STANDARD"], FIELD_INNER_BOX["Standard"]),
+           "MOC_LEFT": Layout("MaxoutClub", (0.422,0.302), 
+                              PREVIEW_LAYOUTS["MOC"], FIELD_INNER_BOX["MOC"]), #ctwc 2p
+           "MOC_RIGHT": Layout("MaxoutClub", (0.578,0.302), 
+                              PREVIEW_LAYOUTS["MOC"], FIELD_INNER_BOX["MOC"]), #ctwc 2p
+           "MOC_TOPLEFT": Layout("MaxoutClub", (0.444,0.204), 
+                              PREVIEW_LAYOUTS["MOC4pLeft"], FIELD_INNER_BOX["MOC"]), #ctwc 4p
+           "MOC_TOPRIGHT": Layout("MaxoutClub", (0.556,0.204), 
+                              PREVIEW_LAYOUTS["MOC4pRight"], FIELD_INNER_BOX["MOC"]), #ctwc 4p
+           "MOC_BOTLEFT": Layout("MaxoutClub", (0.444,0.669), 
+                              PREVIEW_LAYOUTS["MOC4pLeft"],FIELD_INNER_BOX["MOC"]), #ctwc 4p
+           "MOC_BOTRIGHT": Layout("MaxoutClub", (0.556,0.669), 
+                              PREVIEW_LAYOUTS["MOC4pRight"],FIELD_INNER_BOX["MOC"]) #ctwc 4p
           }
 
