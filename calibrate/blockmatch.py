@@ -14,7 +14,7 @@ import argparse
 import glob
 import cv2
 import math
-from calibrate.autolayout import Rect
+from calibrate.rect import Rect
 
 # that means minos are 64px by 64px roughly
 BLOCKMATCH_SCALE_FACTOR = 8.0

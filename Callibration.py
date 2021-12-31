@@ -110,11 +110,7 @@ class Calibrator:
     def callibrate(self):
         c.isAnalysis = False
         while True:
-            c.realscreen.fill([38,38,38])
-            # draw backgound
-            c.screen.blit(BACKGROUND_IMAGE[c.gamemode],[0,0])
-
-            surf = c.displayTetrisImage(self.frame)
+            
             self.mouse_status.start_frame_update()
             self.buttons.updatePressed(*self.mouse_status.pygame_button_handler())
             self.handle_video_buttons()
@@ -123,10 +119,10 @@ class Calibrator:
             self.handle_pal_button()
             self.handle_save_button()
             self.handle_load_button()
-
-            self.update_bounds()
+            self.handle_bounds()
             self.update_video_drag()
             
+
             result = self.handle_render_button(force = self.enterPressed)
             if result is not None:
                 if len(result) == 0:
@@ -134,8 +130,14 @@ class Calibrator:
                 else: 
                     return result
             
+            # rendering time. Note that order matters, since we need
+            # to cover up the rendering of bounds on the tetris image.
+            c.realscreen.fill([38,38,38])
+            c.displayTetrisImage(self.frame)
+            self.render_bounds() # this can blit into the ui area
+            c.screen.blit(BACKGROUND_IMAGE[c.gamemode],[0,0])            
+            self.update_video_sliders() #renders and calcuates at same time.
             self.render_sliders() # note this updates some values
-            self.update_video_sliders()
             self.render_error()
             self.render_text()
             self.buttons.display(c.screen,
@@ -479,7 +481,7 @@ class Calibrator:
     def clear_boundsManager(self):
         self.boundsManager = None
 
-    def update_bounds(self):
+    def handle_bounds(self):
         for bound, deassign in [(self.bounds, self.clear_bounds),
                                 (self.nextBounds, self.clear_nextBounds),
                                 (self.boundsManager, self.clear_boundsManager)]:
@@ -488,8 +490,7 @@ class Calibrator:
                 delete = bound.updateMouse(*self.mouse_status.bounds_handler())
                 if delete:
                     deassign()
-                else:
-                    bound.displayBounds(c.screen, nparray = self.frame)
+
     
     def handle_bounds_click(self):
         for item in [self.boundsManager, self.bounds, self.nextBounds]:
@@ -575,6 +576,11 @@ class Calibrator:
             
         print("loaded preset", data)
         self.error = ErrorMessage("Callibration preset loaded.", WHITE)
+
+    def render_bounds(self):
+        for bound in (self.bounds, self.nextBounds, self.boundsManager):
+            if bound is not None:
+                bound.displayBounds(c.screen, nparray=self.frame)
 
     def render_sliders(self):
         slider_args = self.mouse_status.slider_handler()
