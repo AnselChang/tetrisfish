@@ -141,7 +141,7 @@ def find_poi(image):
     # lets remove those!
     rect = shrink_bounding_box(source, block_size, rect)
 
-    draw_and_show(color,rect,(0,255,0))
+    #draw_and_show(color,rect,(0,255,0))
 
     return block_size, rect
 
