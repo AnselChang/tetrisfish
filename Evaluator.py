@@ -4,6 +4,7 @@ from PieceMasks import *
 from colors import *
 from numpy import ndarray
 from TetrisUtility import lineClear, pieceOnBoard, getPlacementStr
+import AnalysisConstants as AC
 
 from multiprocessing.dummy import Pool as ThreadPool
 import Evaluator
@@ -139,10 +140,17 @@ def generateHypotheticalLines(depth3):
         if values[i] > values[highIndex]:
             highIndex = i
 
-    colors[lowIndex] = BRIGHT_RED
-    colors[highIndex] = BRIGHT_GREEN
+    colors[lowIndex] = AC.C_BLUN
+    colors[highIndex] = AC.C_BEST
 
     return text, colors
+
+# return a formatted list based on eval explanation text
+def parseExplanation(text):
+    text = text[:text.index(", \nSUBTOTAL")]
+    result = ["","Eval Factors:"]
+    result.extend(text.split(", "))
+    return result
 
 def makeAPICallPossible(position):
 
@@ -167,7 +175,8 @@ def makeAPICallPossible(position):
     nnb = getJson(url2)[0]
 
     # Parse best NNB move data
-    text, _ = generateHypotheticalLines(nnb["hypotheticalLines"])  
+    text, _ = generateHypotheticalLines(nnb["hypotheticalLines"])
+    text.extend(parseExplanation(nnb["evalExplanation"]))
     position.setNNB(float(nnb["totalValue"]), pieceOnBoard(position.currentPiece, *nnb["placement"]), position.currentPiece, text)
 
     # Parse NB movelist data
@@ -183,7 +192,10 @@ def makeAPICallPossible(position):
         currMask = pieceOnBoard(position.currentPiece, *currData["placement"])
         nextMask = pieceOnBoard(position.nextPiece, *nextData["placement"])
 
-        text, colors = generateHypotheticalLines(nextData["hypotheticalLines"])        
+        text, colors = generateHypotheticalLines(nextData["hypotheticalLines"])
+        text2 = parseExplanation(currData["evalExplanation"])
+        text.extend(text2)
+        colors.extend([BLACK]*len(text2))
 
         unique = position.addPossible(float(currData["totalValue"]), currMask, nextMask, position.currentPiece, position.nextPiece, text, colors)
 

@@ -433,10 +433,11 @@ class BoundsPicker:
     def handle_keyboard_input(self, key):
         try:
             index = self.KEYBOARD_KEYS.index(key) % self.MAX_KEYBOARD_INDEX
-        except ValueError:
+            board = self.boards[index]
+            self.on_pick(board[0], board[1])
+        except:
             return
-        board = self.boards[index]
-        self.on_pick(board[0], board[1])
+        
 
 
     def updateMouse(self, mx, my, pressDown, pressUp):
