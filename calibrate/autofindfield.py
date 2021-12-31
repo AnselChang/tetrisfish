@@ -142,9 +142,10 @@ def get_next_box(img, board_coord, suggested):
     """
     Iterates through all possible next box locations, starting with suggested one.
     """    
+    suggested_preview = suggested.preview
     layouts = list(PREVIEW_LAYOUTS.values())
-    layouts.remove(suggested)
-    layouts.insert(0,suggested)
+    layouts.remove(suggested_preview)
+    layouts.insert(0,suggested_preview)
 
     arr = convert_img_to_nparray(img)
     arr = convert_to_grayscale(arr)
@@ -152,6 +153,7 @@ def get_next_box(img, board_coord, suggested):
     # convert to nes pixels
     size = arr.shape[:]
     board_rect = Rect(*board_coord)
+    board_rect.sub_rect_perc(suggested.inner_box) #change it to be its subrect inplace.
 
     nes_pixel_x = board_rect.width / float(NES_PIXELS_BOARD_WIDTH) 
     nes_pixel_y = board_rect.height / float(NES_PIXELS_BOARD_HEIGHT)
@@ -160,7 +162,6 @@ def get_next_box(img, board_coord, suggested):
     for layout in layouts:
         left = board_rect.left + nes_pixel_x * layout.nes_px_offset[0]
         top = board_rect.top + nes_pixel_y * layout.nes_px_offset[1]
-        
         
         if layout.preview_type == PreviewLayout.HARDCODE: # e.g. ctm layout
             right = left + nes_pixel_x * layout.nes_px_size[0]

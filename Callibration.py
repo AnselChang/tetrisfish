@@ -352,7 +352,6 @@ class Calibrator:
         self.bounds.setSubRect(suggested.inner_box)
         self.bounds.set()
         self.ai_error = None
-        suggested = suggested.preview
 
         pixels, preview_layout = autofindfield.get_next_box(self.frame, board, suggested)
         if pixels is not None:
