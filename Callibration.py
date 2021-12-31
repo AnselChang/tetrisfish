@@ -110,7 +110,6 @@ class Calibrator:
     def callibrate(self):
         c.isAnalysis = False
         while True:
-            
             self.mouse_status.start_frame_update()
             self.buttons.updatePressed(*self.mouse_status.pygame_button_handler())
             self.handle_video_buttons()
@@ -135,7 +134,7 @@ class Calibrator:
             c.realscreen.fill([38,38,38])
             c.displayTetrisImage(self.frame)
             self.render_bounds() # this can blit into the ui area
-            c.screen.blit(BACKGROUND_IMAGE[c.gamemode],[0,0])            
+            c.screen.blit(BACKGROUND_IMAGE[c.gamemode],[0,0])
             self.update_video_sliders() #renders and calcuates at same time.
             self.render_sliders() # note this updates some values
             self.render_error()
@@ -336,7 +335,9 @@ class Calibrator:
             self.bounds = None
             self.boundsManager = BoundsPicker(boards, c, self.handle_auto_board_selected, False)
             if len(boards) > 1:
-                self.ai_error = ErrorMessage("Multiple boards detected; please click one!", BRIGHT_GREEN)
+                max_board = min(len(boards),BoundsPicker.MAX_KEYBOARD_INDEX-1)
+                self.ai_error = ErrorMessage("Multiple boards detected; please click one "
+                                             f"(or press key 1-{max_board})!", BRIGHT_GREEN)
             
         
     def handle_auto_board_selected(self, board, suggested):
@@ -621,7 +622,7 @@ class Calibrator:
         # this one doesnt expire; they have to click button to proceed
         if self.ai_error is not None:
             text = c.font2.render(self.ai_error.text, True, self.ai_error.color)
-            c.screen.blit(text, [1730, 560])
+            c.screen.blit(text, [1720, 560])
             
     def render_text(self):
         # Draw timestamp
@@ -672,6 +673,10 @@ class Calibrator:
                 if self.nextBounds is not None:
                     self.nextBounds.cycle_sub_rect()
                     print ("Toggled bounds to :", self.nextBounds.sub_rect_name)
+            elif event.key in BoundsPicker.KEYBOARD_KEYS:
+                # numbers 1-9 for board selection
+                if self.boundsManager is not None:
+                    self.boundsManager.handle_keyboard_input(event.key)
 
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_SPACE:

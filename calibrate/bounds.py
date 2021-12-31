@@ -395,6 +395,12 @@ class Bounds:
         self.enable_drag = False
 
 class BoundsPicker:
+    # 1-0, then numpad 1 to 0
+    KEYBOARD_KEYS = (list(range(pygame.K_1, pygame.K_9+1)) +
+                     [pygame.K_0] +
+                     list(range(pygame.K_KP1, pygame.K_KP0+1)))
+    MAX_KEYBOARD_INDEX = 10
+
     """
     Class that displays and allows users to pick multiple bounds
     """ 
@@ -424,8 +430,14 @@ class BoundsPicker:
             self.bounds.append(bound)
 
 
-    def handle_keyboard_input(self, event):
-        pass
+    def handle_keyboard_input(self, key):
+        try:
+            index = self.KEYBOARD_KEYS.index(key) % self.MAX_KEYBOARD_INDEX
+        except ValueError:
+            return
+        board = self.boards[index]
+        self.on_pick(board[0], board[1])
+
 
     def updateMouse(self, mx, my, pressDown, pressUp):
         return False
@@ -441,5 +453,3 @@ class BoundsPicker:
                 self.on_pick(board[0],board[1])
                 break
 
-    def handle_keyboard(self):
-        pass
