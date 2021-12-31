@@ -26,13 +26,15 @@ from calibrate.rect import Rect
 from TetrisUtility import clamp, distance #todo: remove this dependency
 from enum import Enum
 
-from calibrate.autolayout import PREVIEW_LAYOUTS
+from calibrate.autolayout import PREVIEW_LAYOUTS, FIELD_INNER_BOX 
 
 class CalibrationStatus(Enum):
     TOP_LEFT = 1
     BOTTOM_RIGHT = 2
     ALREADY_SET = 0
 
+NUM_NEXTBOX_CELLS_X = 8
+NUM_NEXTBOX_CELLS_Y = 4
 class Bounds:
     # Pseudo random pixel offsets for sampling each block
     PIXEL_SAMPLE_OFFSETS = [[0,0],
@@ -80,8 +82,8 @@ class Bounds:
 
         if self.isNB:
             self.color = PURE_BLUE
-            self.horizontal = 8
-            self.vertical = 4
+            self.horizontal = NUM_NEXTBOX_CELLS_X
+            self.vertical = NUM_NEXTBOX_CELLS_Y
         else:            
             self.color = BRIGHT_RED
             self.horizontal = self.config.NUM_HORIZONTAL_CELLS
@@ -90,7 +92,7 @@ class Bounds:
         self.setDotColor()
         self.sub_rect_name = None
         self.isMaxoutClub = False
-        self._defineDimensions()
+        self._load_subrect()
         
         self.enable_drag = True
         self.enable_click = True
@@ -138,12 +140,15 @@ class Bounds:
         """
         if self.isNB:
             names = list(PREVIEW_LAYOUTS.keys())
-            idx = names.index(self.sub_rect_name)
-            idx = (idx + 1) % len(names)
-            self.sub_rect_name = names[idx]
-        self._defineDimensions()
+        else:
+            names = list(FIELD_INNER_BOX.keys())
 
-    def _defineDimensions(self):
+        idx = names.index(self.sub_rect_name)
+        idx = (idx + 1) % len(names)
+        self.sub_rect_name = names[idx]
+        self._load_subrect()
+
+    def _load_subrect(self):
         """
         Reads sub_rect from autolayouts
         """
@@ -154,8 +159,10 @@ class Bounds:
             self.setSubRect(layout.inner_box)
 
         else: # field
-            self.setSubRect((0.01,0.0,0.99,0.993)) #todo, read from autolayout
-            self.sub_rect_name = "field"
+            if self.sub_rect_name is None:
+                self.sub_rect_name = list(FIELD_INNER_BOX.keys())[0]
+            layout = FIELD_INNER_BOX[self.sub_rect_name]
+            self.setSubRect(layout) #todo: syntax parity with NB
 
     def mouseNearDot(self, mx, my):
         mx, my = self.convert_to_video_px(mx,my)
