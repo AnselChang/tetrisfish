@@ -129,12 +129,12 @@ class Calibrator:
                 else: 
                     return result
             
-            # rendering time. Note that order matters, since we need
-            # to cover up the rendering of bounds on the tetris image.
+            # rendering time. Note that order matters.
             c.realscreen.fill([38,38,38])
             c.displayTetrisImage(self.frame)
             self.render_bounds() # this can blit into the ui area
             c.screen.blit(BACKGROUND_IMAGE[c.gamemode],[0,0])
+            
             self.update_video_sliders() #renders and calcuates at same time.
             self.render_sliders() # note this updates some values
             self.render_error()
@@ -344,7 +344,7 @@ class Calibrator:
         """
         Called when the board_picker finds a suitable bound
         """
-        self.boundsManager = None        
+        self.boundsManager = None
         self.bounds = Bounds(False, config=c)
         self.bounds.setRect(board)
         self.bounds.set()
@@ -579,9 +579,17 @@ class Calibrator:
         self.error = ErrorMessage("Callibration preset loaded.", WHITE)
 
     def render_bounds(self):
+        """
+        renders the bounds
+        Technically order matters, however boundsManager and bounds 
+        should never both be non-null
+        """
+        surface = c.get_video_render_surface(transparent=True)
         for bound in (self.bounds, self.nextBounds, self.boundsManager):
             if bound is not None:
-                bound.displayBounds(c.screen, nparray=self.frame)
+                bound.displayBounds(surface, nparray=self.frame)
+                
+        c.screen.blit(surface,[0,0])
 
     def render_sliders(self):
         slider_args = self.mouse_status.slider_handler()
