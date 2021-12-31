@@ -14,9 +14,14 @@ and right few pixels since they are black.
 import numpy as np
 import pygame
 from colors import (
-PURE_BLUE, BRIGHT_BLUE, BRIGHT_RED, BRIGHT_GREEN, COLOR_CYCLE
-)  #todo: remove this dependency.
-
+BLACK,
+PURE_BLUE, 
+BRIGHT_BLUE, 
+BRIGHT_RED, 
+BRIGHT_GREEN, 
+COLOR_CYCLE
+)
+from calibrate.rect import Rect
 
 from TetrisUtility import clamp, distance #todo: remove this dependency
 from enum import Enum
@@ -89,6 +94,14 @@ class Bounds:
         
         self.enable_drag = True
         self.enable_click = True
+        self.board_index = None
+
+    def set_board_index(self, index):
+        """
+        Sets the board's index, in the case that we want the user
+        to be able to pick between boards
+        """
+        self.board_index = index
 
     def setDotColor(self, color_off=BRIGHT_RED,color_on=BRIGHT_GREEN):
         self.dot_color_on = color_on
@@ -143,8 +156,6 @@ class Bounds:
         else: # field
             self.setSubRect((0.01,0.0,0.99,0.993)) #todo, read from autolayout
             self.sub_rect_name = "field"
-
-    
 
     def mouseNearDot(self, mx, my):
         mx, my = self.convert_to_video_px(mx,my)
@@ -346,7 +357,22 @@ class Bounds:
                 color = self.dot_color_on if exists else self.dot_color_off
                 pygame.draw.circle(surface, color, [x,y], (r+2) if exists else r, width = (0 if exists else 3))
 
+        # present text for the board so people know which index it is
+        if self.board_index is not None:
+            rect = Rect(x1,y1,x2,y2)
+            self.render_board_index(surface, rect)
+
         return minos
+    
+    def render_board_index(self, surface, rect):
+        black_size = 40
+        black_area = [rect.centre[0] - black_size, rect.centre[1] - black_size,
+                        black_size*2, black_size*2]
+        pygame.draw.rect(surface, BLACK, black_area) #draw black rect
+        pygame.draw.rect(surface, self.color, black_area, width=2) #draw colored rectangle
+        text_image = self.config.fontbig.render(str(self.board_index), True, self.color)
+        start_x = rect.centre[0] - text_image.get_width() // 2
+        surface.blit(text_image, [start_x, black_area[1]])
 
     def to_json(self):
         return {"firstClick": self.firstClick,
@@ -369,11 +395,19 @@ class Bounds:
         self.enable_drag = False
 
 class BoundsPicker:
+    # 1-0, then numpad 1 to 0
+    KEYBOARD_KEYS = (list(range(pygame.K_1, pygame.K_9+1)) +
+                     [pygame.K_0] +
+                     list(range(pygame.K_KP1, pygame.K_KP0+1)))
+    MAX_KEYBOARD_INDEX = 10
+
     """
     Class that displays and allows users to pick multiple bounds
     """ 
     def __init__(self, board_list, config, on_pick, isNextBox):
         self.boards = board_list #board + suggestion
+        #sort boards from left to right, top to bottom
+        self.boards.sort(key=lambda x: (x[0][:2]))
         self.bounds = []
         self.config = config
         self.on_pick = on_pick
@@ -392,7 +426,17 @@ class BoundsPicker:
             bound.disable_mouse_input()
             bound.doNotDisplay = False
             bound.setDotColor(bound.color,bound.color)
+            bound.set_board_index(index+1)
             self.bounds.append(bound)
+
+
+    def handle_keyboard_input(self, key):
+        try:
+            index = self.KEYBOARD_KEYS.index(key) % self.MAX_KEYBOARD_INDEX
+        except ValueError:
+            return
+        board = self.boards[index]
+        self.on_pick(board[0], board[1])
 
 
     def updateMouse(self, mx, my, pressDown, pressUp):
@@ -409,5 +453,3 @@ class BoundsPicker:
                 self.on_pick(board[0],board[1])
                 break
 
-    def handle_keyboard(self):
-        pass

@@ -142,15 +142,26 @@ def getVideo():
 
 # Draw video frame
 def displayTetrisImage(frame):
-
+    """
+    uses bounded surf so we don't overblit into the GUI
+    """
     frame = frame.transpose(1,0,2) # convert from BGR to RGB
     surf = pygame.surfarray.make_surface(frame)
     surf = scaleImage(surf, SCALAR)
-    boundedSurf = pygame.Surface([X_MAX,Y_MAX])
+    boundedSurf = get_video_render_surface()
     boundedSurf.blit(surf,[VIDEO_X, VIDEO_Y])
     screen.blit(boundedSurf, (0, 0))
     return surf
 
+def get_video_render_surface(transparent=False):
+    """
+    returns a new surface to blit the video onto.
+    Can also return a transparent version for overlays.
+    """
+    size = [X_MAX,Y_MAX]
+    if transparent:
+        return pygame.Surface(size,pygame.SRCALPHA)
+    return pygame.Surface(size)
         
 # Go to specific frame for video capture
 def goToFrame(vcap, framecount, frame = None):

@@ -10,8 +10,9 @@ find_piece, calc_new_rect, BLOCKMATCH_SCALE_FACTOR
 )
 
 from calibrate.autolayout import (
-Rect, PREVIEW_LAYOUTS, LAYOUTS, PreviewLayout
+PREVIEW_LAYOUTS, LAYOUTS, PreviewLayout
 )
+from calibrate.rect import Rect
 
 NES_PIXELS_BOARD_HEIGHT = 160
 NES_PIXELS_BOARD_WIDTH = 80

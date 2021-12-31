@@ -110,11 +110,6 @@ class Calibrator:
     def callibrate(self):
         c.isAnalysis = False
         while True:
-            c.realscreen.fill([38,38,38])
-            # draw backgound
-            c.screen.blit(BACKGROUND_IMAGE[c.gamemode],[0,0])
-
-            surf = c.displayTetrisImage(self.frame)
             self.mouse_status.start_frame_update()
             self.buttons.updatePressed(*self.mouse_status.pygame_button_handler())
             self.handle_video_buttons()
@@ -123,10 +118,10 @@ class Calibrator:
             self.handle_pal_button()
             self.handle_save_button()
             self.handle_load_button()
-
-            self.update_bounds()
+            self.handle_bounds()
             self.update_video_drag()
             
+
             result = self.handle_render_button(force = self.enterPressed)
             if result is not None:
                 if len(result) == 0:
@@ -134,8 +129,14 @@ class Calibrator:
                 else: 
                     return result
             
+            # rendering time. Note that order matters.
+            c.realscreen.fill([38,38,38])
+            c.displayTetrisImage(self.frame)
+            self.render_bounds() # this can blit into the ui area
+            c.screen.blit(BACKGROUND_IMAGE[c.gamemode],[0,0])
+            
+            self.update_video_sliders() #renders and calcuates at same time.
             self.render_sliders() # note this updates some values
-            self.update_video_sliders()
             self.render_error()
             self.render_text()
             self.buttons.display(c.screen,
@@ -334,14 +335,16 @@ class Calibrator:
             self.bounds = None
             self.boundsManager = BoundsPicker(boards, c, self.handle_auto_board_selected, False)
             if len(boards) > 1:
-                self.ai_error = ErrorMessage("Multiple boards detected; please click one!", BRIGHT_GREEN)
+                max_board = min(len(boards),BoundsPicker.MAX_KEYBOARD_INDEX-1)
+                self.ai_error = ErrorMessage("Multiple boards detected; please click one "
+                                             f"(or press key 1-{max_board})!", BRIGHT_GREEN)
             
         
     def handle_auto_board_selected(self, board, suggested):
         """
         Called when the board_picker finds a suitable bound
         """
-        self.boundsManager = None        
+        self.boundsManager = None
         self.bounds = Bounds(False, config=c)
         self.bounds.setRect(board)
         self.bounds.set()
@@ -479,7 +482,7 @@ class Calibrator:
     def clear_boundsManager(self):
         self.boundsManager = None
 
-    def update_bounds(self):
+    def handle_bounds(self):
         for bound, deassign in [(self.bounds, self.clear_bounds),
                                 (self.nextBounds, self.clear_nextBounds),
                                 (self.boundsManager, self.clear_boundsManager)]:
@@ -488,8 +491,7 @@ class Calibrator:
                 delete = bound.updateMouse(*self.mouse_status.bounds_handler())
                 if delete:
                     deassign()
-                else:
-                    bound.displayBounds(c.screen, nparray = self.frame)
+
     
     def handle_bounds_click(self):
         for item in [self.boundsManager, self.bounds, self.nextBounds]:
@@ -576,6 +578,19 @@ class Calibrator:
         print("loaded preset", data)
         self.error = ErrorMessage("Callibration preset loaded.", WHITE)
 
+    def render_bounds(self):
+        """
+        renders the bounds
+        Technically order matters, however boundsManager and bounds 
+        should never both be non-null
+        """
+        surface = c.get_video_render_surface(transparent=True)
+        for bound in (self.bounds, self.nextBounds, self.boundsManager):
+            if bound is not None:
+                bound.displayBounds(surface, nparray=self.frame)
+                
+        c.screen.blit(surface,[0,0])
+
     def render_sliders(self):
         slider_args = self.mouse_status.slider_handler()
         # Draw sliders
@@ -615,7 +630,7 @@ class Calibrator:
         # this one doesnt expire; they have to click button to proceed
         if self.ai_error is not None:
             text = c.font2.render(self.ai_error.text, True, self.ai_error.color)
-            c.screen.blit(text, [1730, 560])
+            c.screen.blit(text, [1720, 560])
             
     def render_text(self):
         # Draw timestamp
@@ -666,6 +681,10 @@ class Calibrator:
                 if self.nextBounds is not None:
                     self.nextBounds.cycle_sub_rect()
                     print ("Toggled bounds to :", self.nextBounds.sub_rect_name)
+            elif event.key in BoundsPicker.KEYBOARD_KEYS:
+                # numbers 1-9 for board selection
+                if self.boundsManager is not None:
+                    self.boundsManager.handle_keyboard_input(event.key)
 
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_SPACE:
