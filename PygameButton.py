@@ -72,19 +72,22 @@ class ButtonHandler:
 
     # Return true if the left or right arrow was used to move the cursor in the text box. False otherwise (so frame in video will be changed instead)
     def updateTextboxes(self, key):
+
+        active = False
         for textbox in self.textboxes:
             if textbox.active:
                 if key == pygame.K_LEFT or key == pygame.K_RIGHT:
                     textbox.changeCursor(-1 if key == pygame.K_LEFT else 1)
-                    return True
+                    return True, True
                 elif  key == pygame.K_RETURN:
                     # Exit text box
                     textbox.active = False
-                    return True
+                    return True, True
                 else:
                     textbox.updateKey(key)
+                    active = True
 
-        return False
+        return False, active
 
     
     def displayTooltip(self, surf, mx, my, isPlacement, by):

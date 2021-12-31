@@ -1,8 +1,8 @@
 import numpy as np
 import base64, ast, pickle, traceback
 import AnalysisConstants as AC
-from os.path import exists
-from config import version
+from os.path import exists, join
+from config import version, application_path
 import Position
 
 """
@@ -30,6 +30,9 @@ def write(positionDatabase, isPAL, hzNum, hzTimeline):
     num = 1
     while True:
         filename = "save_v{}_{}_{}.txt".format(version, num, len(positionDatabase))
+        if application_path != None:
+            filename = join(application_path, filename)
+        print("Filename:", filename)
         
         if not exists(filename):
             file = open(filename, "w")

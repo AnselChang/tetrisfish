@@ -673,7 +673,7 @@ class Calibrator:
             self.mouse_status.end_press = True
             self.handle_left_release_event()
         elif event.type == pygame.KEYDOWN:
-            isTextBoxScroll = self.buttons.updateTextboxes(event.key)
+            isTextBoxScroll, isKeyUsedForTextbox = self.buttons.updateTextboxes(event.key)
             if isTextBoxScroll:
                 return
             if event.key in list(SCRUB_KEYSHIFT.keys()):
@@ -692,7 +692,7 @@ class Calibrator:
                 if self.bounds is not None:
                     self.bounds.cycle_sub_rect()
                     print ("Toggled board bounds to:", self.bounds.sub_rect_name)
-            elif event.key in BoundsPicker.KEYBOARD_KEYS:
+            elif event.key in BoundsPicker.KEYBOARD_KEYS and not isKeyUsedForTextbox:
                 # numbers 1-9 for board selection
                 if self.boundsManager is not None:
                     self.boundsManager.handle_keyboard_input(event.key)

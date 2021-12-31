@@ -6,8 +6,11 @@ version = "1.3"
 
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     print('running in a PyInstaller bundle', sys._MEIPASS)
+    application_path = os.path.dirname(sys.executable)
+    print(application_path)
 else:
     print('running in a normal Python process')
+    application_path = None
 
 def fp(filepath):
     
