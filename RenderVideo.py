@@ -298,8 +298,8 @@ def displayGraphics(positionDatabase, firstFrame, lastFrame):
 
         # Draw text for special thanks
         x = c.screen.get_width() / 2
-        y = 1040
-        color = [200,200,200]
+        y = 1015
+        color = WHITE
         for line in text:
            blitCenterText(c.screen, c.font, line, color, y, cx = x)
            y += 42
