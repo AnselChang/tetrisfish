@@ -27,6 +27,9 @@ class Layout(AbstractLayout):
         self.name = name
         self.fillpoint = fillpoint # fill point in relative screen coords (x,y)
         self.preview = preview # preview type
+    
+    def clone(self):
+        return Layout(self.name,self.fillpoint,self.preview,self.inner_box)
 
 #layout for preview
 class PreviewLayout(AbstractLayout):

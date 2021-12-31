@@ -422,11 +422,9 @@ class BoundsPicker:
         if len(board_list) == 1:
             on_pick(board_list[0][0], board_list[0][1])
             return
-
         
         for index, item in enumerate(board_list):
-            print('constructing bounds')
-            board, _ = item
+            board, layout = item
             bound = Bounds(isNextBox, config)
             bound.setRect(board)
             bound.color = COLOR_CYCLE[index%len(COLOR_CYCLE)]
@@ -434,6 +432,7 @@ class BoundsPicker:
             bound.doNotDisplay = False
             bound.setDotColor(bound.color,bound.color)
             bound.set_board_index(index+1)
+            bound.setSubRect(layout.inner_box)
             self.bounds.append(bound)
 
 
