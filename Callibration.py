@@ -424,7 +424,7 @@ class Calibrator:
             frame, _ = c.goToFrame(self.vcap, self.video_slider.left_frame)
                 
         board = self.bounds.getMinos(frame)
-        mask = extractCurrentPiece(board)
+        mask, _ = extractCurrentPiece(board)
         currPiece = getPieceMaskType(mask)
         preview = self.nextBounds.getMinos(frame)
         if currPiece is None:

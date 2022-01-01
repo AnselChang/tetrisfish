@@ -292,14 +292,14 @@ def _bfs(board, visited, startRow, startCol):
                 queue.append([r,c])
                 visited[r][c] = 1
 
-    return count == 4
+    return count
 
         
     
 
 # From a board, find the "floating" piece, defined to be a four-cell connected component. We only look at the top half of the board.
 # Return the mask of the piece
-def extractCurrentPiece(board):
+def extractCurrentPiece(board, condition = lambda count : (count == 4)):
     #print("extract")
     
     visited = empty(20,10) # 0 indicates empty. Otherwise, stores id of the connected component.
@@ -307,16 +307,17 @@ def extractCurrentPiece(board):
     for row in range(10):
         for col in range(len(visited[row])):
             # traverse left-right, then top-bottom
-            
-            if _bfs(board, visited, row, col):
-                # The component at [row,col] is a connected component of size 4
+
+            count = _bfs(board, visited, row, col)
+            if condition(count):
+                # The component at [row,col] is a connected component of size 4 (or size 4-7 if largerThanFour == True)
                 piecemask = empty(20,10)
 
                 # Reperform bfs on the array but instead of passing in visited, have it write the mino bits to piecemask
                 _bfs(board, piecemask, row, col)
-                return piecemask
+                return piecemask, count
             
-    return None
+    return None, 0
 
 def getPlacementStr(placement, piece):
 

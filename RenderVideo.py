@@ -123,11 +123,31 @@ def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, pre
         first = False
 
     # Means either new piece has spawned, or terrible terrible interlacing.
-    if count == stableCount + 4:
+    if stableCount + 4 <= count <= stableCount + 7:
         #print("possible piece spawn")
 
-        # we check if there is an actual piece that spawned with extractCurrentPiece()
-        currentMask = extractCurrentPiece(minosMain)
+        # interlaced piece possibly
+        if count > stableCount + 4:
+            interlacedMask, numMinos = extractCurrentPiece(minosMain, lambda count : (4 < count <= 7))
+
+            # if there are 5-7 minos on the "active" piece, try getting mino array again with higher color threshhold
+            if 4 < numMinos <= 7:
+                #print("interlaced active piece")
+                #print2d(interlacedMask)
+                c.COLOR_CALLIBRATION += 10
+                minosMain = bounds.getMinos(frame)
+                c.COLOR_CALLIBRATION -= 10
+            else:
+                return
+            
+        currentMask, _ = extractCurrentPiece(minosMain)
+
+        if not isArray(currentMask):
+            return
+
+        #print2d(currentMask)
+        #print2d(minosMain)
+        
         if len(positionDatabase) == 0:
              # It's the very first piece. We have to look through the permutations of all seven pieces
             currentP = getPieceMaskType(currentMask)
@@ -157,7 +177,7 @@ def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, pre
                 pool.apply_async(Evaluator.evaluate, (positionDatabase[-1],)) # We send the full position asynchronously to the evaluator
 
             # This position has a stable count. When the count gets bigger than this and extract() fruitful, then the next position will have started
-            stableCount = count
+            stableCount = stableCount + 4
             #print(stableCount)
 
             # This is a stable frame. We can get the next box here and create our new position object
