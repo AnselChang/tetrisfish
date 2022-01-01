@@ -159,6 +159,7 @@ def get_next_box(img, board_coord, suggested: Layout):
     Iterates through all possible next box locations, starting with suggested one.
     """    
     # inject suggested preview to start of list.
+    print (f"AI detected layout: {suggested.name}")
     suggested_preview = suggested.preview
     layouts = list(PREVIEW_LAYOUTS.values())
     layouts.remove(suggested_preview)
@@ -170,20 +171,20 @@ def get_next_box(img, board_coord, suggested: Layout):
     # convert to nes pixels
     size = arr.shape[:]
     board_rect = Rect(*board_coord)
-    board_rect.sub_rect_perc(suggested.inner_box) #change it to be its subrect inplace.
+    #change it to be its subrect inplace.
+    #board_rect.sub_rect_perc(suggested.inner_box) 
 
     nes_pixel_x = board_rect.width / float(NES_PIXELS_BOARD_WIDTH) 
     nes_pixel_y = board_rect.height / float(NES_PIXELS_BOARD_HEIGHT)
     nes_pixel_size = [nes_pixel_x, nes_pixel_y]
     result = None
     for layout in layouts:
-        rect = get_preview_bounding_rect(nes_pixel_size,board_rect,layout)        
+        rect = get_preview_bounding_rect(nes_pixel_size,board_rect,layout)
         if layout.preview_type == PreviewLayout.HARDCODE: # e.g. ctm layout
             rect = Rect(left,top,right,bot)
             break
         
-        # find the first valid corner to fill from
-        best_corner = None
+        # try to fill from each corner in the layout
         for corner in layout.inner_box_corners_nespx:
             fill_point = [int(rect.top + corner[1] * nes_pixel_y),
                           int(rect.left + corner[0] * nes_pixel_x)]
@@ -193,27 +194,27 @@ def get_next_box(img, board_coord, suggested: Layout):
                 continue
             if not is_blackish(arr[fill_point[0],fill_point[1]]):
                 continue
-            best_corner = corner
+
+            rect, temp_image = try_expand(arr, fill_point)
+
+            # The preview's size should match the reference's size
+            # this means it should be roughly 4 Blocks wide and 2 blocks tall
+            legit = check_preview_size_legit(layout, nes_pixel_size, rect, temp_image)
+            if not legit:
+                continue
+            layout = layout.clone()
+            # break after first match
+            result = rect, layout
             break
-            
-        if best_corner is None:
-            continue
-
-        rect, temp_image = try_expand(arr, fill_point)
-
-        # The preview's size should match the reference's size
-        # this means it should be roughly 4 Blocks wide and 2 blocks tall
-        legit = check_preview_size_legit(layout, nes_pixel_size, rect, temp_image)
-        if not legit:
-            continue
-
-        # break after first match
-        result = rect, layout
-        break
+        if result is not None:
+            break
         
-    
     if result is None:
-        return None, None
+        print ("Couldn't find preview using AI; using hardcoded layout")
+        rect = get_preview_bounding_rect(nes_pixel_size,board_rect,suggested_preview)
+        result = (rect.to_array(), suggested_preview.clone())
+        return result
+        
 
     rect, layout = result
     
