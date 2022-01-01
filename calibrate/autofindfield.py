@@ -171,14 +171,15 @@ def get_next_box(img, board_coord, suggested: Layout):
     # convert to nes pixels
     size = arr.shape[:]
     board_rect = Rect(*board_coord)
-    board_rect.sub_rect_perc(suggested.inner_box) #change it to be its subrect inplace.
+    #change it to be its subrect inplace.
+    #board_rect.sub_rect_perc(suggested.inner_box) 
 
     nes_pixel_x = board_rect.width / float(NES_PIXELS_BOARD_WIDTH) 
     nes_pixel_y = board_rect.height / float(NES_PIXELS_BOARD_HEIGHT)
     nes_pixel_size = [nes_pixel_x, nes_pixel_y]
     result = None
     for layout in layouts:
-        rect = get_preview_bounding_rect(nes_pixel_size,board_rect,layout)        
+        rect = get_preview_bounding_rect(nes_pixel_size,board_rect,layout)
         if layout.preview_type == PreviewLayout.HARDCODE: # e.g. ctm layout
             rect = Rect(left,top,right,bot)
             break
