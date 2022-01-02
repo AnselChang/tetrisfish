@@ -53,28 +53,24 @@ def plus(num):
 
 def handleAPICalls(positionDatabase):
     print("Started pool possible")
-    c.possibleCount = 0
     pool = ThreadPool(c.poolSize)
     for pos in positionDatabase:
         pos.startPossible = True
     pool.map(Evaluator.makeAPICallPossible, positionDatabase)
     pool.close()
     pool.join()
-    if c.isAnalysis:
-        c.done = True
+    c.done = True
     print("Ended pool possible")
 
 def handleAPIEvalCalls(positionDatabase):
     print("Started pool eval")
-    c.numEvalDone = 0
     pool = ThreadPool(c.poolSize)
     for pos in positionDatabase:
         pos.startDepth3 = True
     pool.map(Evaluator.evaluate, positionDatabase)
     pool.close()
     pool.join()
-    if c.isAnalysis:
-        c.doneEval = True
+    c.doneEval = True
     print("Ended pool eval")
 
 
@@ -186,9 +182,15 @@ def analyze(positionDatabase, hzInt):
 
 
     c.isAnalysis = True
+    c.done = False
+    c.doneEval = False
 
     c.isEvalDepth3 = True
     updatedGraph = c.isDepth3
+
+    c.possibleCount = 0
+    c.numEvalDone = 0
+
 
     # make api calls only if not loaded from text file (because otherwise info already there)
     if not c.isLoad:
@@ -353,6 +355,7 @@ def analyze(positionDatabase, hzInt):
             SaveAnalysis.write(positionDatabase, c.gamemode, hzInt, c.hzString)
         
         if not c.done and c.possibleCount >= len(positionDatabase) - 1:
+            print("c.done = true")
             c.done = True
         
         updateEvalCounter = (updateEvalCounter + 1) % 100
@@ -428,7 +431,12 @@ def analyze(positionDatabase, hzInt):
             analysisBoard.updatePosition(positionNum)
 
         elif buttons.get(B_LOGO).clicked and not c.isLoad:
+            c.isAnalysis = False
+            print("waiting for threads to finish...")
+            while not c.done or not c.doneEval:
+                time.sleep(0.2)
             # exit to calibration
+            print("threads finished")
             return True
 
 

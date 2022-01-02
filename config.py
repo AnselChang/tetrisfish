@@ -51,7 +51,7 @@ gamemode = NTSC
 poolSize = 20
 hzString = None
 
-session = requests.Session()
+session = None
 
 startLevel = -1
 

@@ -308,14 +308,14 @@ def extractCurrentPiece(board, condition = lambda count : (count == 4)):
         for col in range(len(visited[row])):
             # traverse left-right, then top-bottom
 
-            count = _bfs(board, visited, row, col)
-            if condition(count):
+            sizeOfConnectedComponent = _bfs(board, visited, row, col)
+            if condition(sizeOfConnectedComponent):
                 # The component at [row,col] is a connected component of size 4 (or size 4-7 if largerThanFour == True)
                 piecemask = empty(20,10)
 
                 # Reperform bfs on the array but instead of passing in visited, have it write the mino bits to piecemask
                 _bfs(board, piecemask, row, col)
-                return piecemask, count
+                return piecemask
             
     return None, 0
 

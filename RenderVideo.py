@@ -1,4 +1,4 @@
-import pygame, sys, time, cv2, requests
+import pygame, sys, time, cv2, requests, cProfile
 from multiprocessing.dummy import Pool as ThreadPool
 import threading
 import numpy as np
@@ -91,6 +91,18 @@ def forwardToDistinct(vcap, bounds, nextBounds, currentMinos):
         
     return False, None
 
+def getBoardWithThreshhold(frame, bounds, stableCount, increase):
+    
+    c.COLOR_CALLIBRATION += increase
+    minos = bounds.getMinos(frame)
+    c.COLOR_CALLIBRATION -= increase
+
+    count = np.count_nonzero(minos)
+    if count == stableCount + 4:
+        return minos
+    else:
+        return None
+
 
 # The number of workers in the pool (parallel-ness)
 pool = None
@@ -128,19 +140,22 @@ def parseBoard(vcap, positionDatabase, frame, bounds, nextBounds, minosMain, pre
 
         # interlaced piece possibly
         if count > stableCount + 4:
-            interlacedMask, numMinos = extractCurrentPiece(minosMain, lambda count : (4 < count <= 7))
+            interlacedMask = extractCurrentPiece(minosMain, lambda count : (5 <= count <= 7))
 
-            # if there are 5-7 minos on the "active" piece, try getting mino array again with higher color threshhold
-            if 4 < numMinos <= 7:
-                #print("interlaced active piece")
-                #print2d(interlacedMask)
-                c.COLOR_CALLIBRATION += 10
-                minosMain = bounds.getMinos(frame)
-                c.COLOR_CALLIBRATION -= 10
-            else:
+            # Not a good frame if no interlaced piece detected between 5-7 minos
+            if not isArray(interlacedMask):
                 return
-            
-        currentMask, _ = extractCurrentPiece(minosMain)
+        
+            # if there are 5-7 minos on the "active" piece, try getting mino array again with higher color threshhold
+            minosMain = getBoardWithThreshhold(frame, bounds, stableCount, 5)
+            if not isArray(minosMain):
+                minosMain = getBoardWithThreshhold(frame, bounds, stableCount, 10)
+
+            if not isArray(minosMain):
+                return
+                
+
+        currentMask = extractCurrentPiece(minosMain)
 
         if not isArray(currentMask):
             return
@@ -314,7 +329,7 @@ def displayGraphics(positionDatabase, firstFrame, lastFrame):
             
         
 
-        print(renderPercent, evalPercent)
+        #print(renderPercent, evalPercent)
 
         # Draw text for special thanks
         x = c.screen.get_width() / 2
@@ -335,9 +350,8 @@ def displayGraphics(positionDatabase, firstFrame, lastFrame):
         #time.sleep(0.1) # 10 fps
         pygame.time.wait(100) # 10 fps
 
+
 def doRender(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
-    global pool
-    pool = ThreadPool(c.poolSize)
 
     global first, wasLineClear
     first = True
@@ -374,8 +388,8 @@ def doRender(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
 
     startTime = time.time()
 
-    print(c.session)
-    testurl = "https://stackrabbit.herokuapp.com/rate-move-nb/00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000001100011101110001110111000111111110011111111001111111110/00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010000000101100011111110001111111000111111110011111111001111111110/I/Z/28/139/0/0/0/0/21/X../false"
+    print("Session: ", c.session)
+    testurl = "https://stackrabbit.herokuapp.com/rate-move?board=00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&secondBoard=00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000010000000001100000000&currentPiece=L&nextPiece=S&level=18&lines=0&inputFrameTimeline=X....&lookaheadDepth=1"
     print("session test with url {}: {}".format(testurl, c.session.get(testurl)))
 
      # Start vcap at specified frame from callibration
@@ -417,9 +431,7 @@ def doRender(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
     print("waiting for pool..", len(positionDatabase))
     pool.close()
     pool.join()
-    with doneLock:
-        done = True
-    print("Render done. Render time: {} seconds".format(round(time.time() - startTime,2)))
+    
     
 
     # End of loop signifying no more frames to read
@@ -432,11 +444,11 @@ def doRender(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
             print("Removed invalid position at the end")
             positionDatabase.pop()
 
-        print([p.evaluation for p in positionDatabase])
+    with doneLock:
+        done = True
+    print("Render done. Render time: {} seconds".format(round(time.time() - startTime,2)))
 
-        return positionDatabase
-    else:
-        return None
+
 
 done = False
 positionDatabase = [] # The generated list of all the positions in the video. To be returned
@@ -448,6 +460,12 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
     global done
     c.isAnalysis = True
     done = False
+    Position.numPos = 0
+
+    c.session = requests.Session()
+
+    global pool
+    pool = ThreadPool(c.poolSize)
 
     global positionDatabase, renderThread
     positionDatabase = []
