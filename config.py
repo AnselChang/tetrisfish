@@ -38,7 +38,7 @@ doneEval = False
 numEvalDone = 0
 
 isDepth3 = True
-isEvalDepth3 = False
+isEvalDepth3 = isDepth3
 
 isAnalysis = False
 

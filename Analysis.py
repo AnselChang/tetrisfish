@@ -539,7 +539,7 @@ def analyze(positionDatabase, hzInt):
         if not c.isDepth3 and not c.doneEval:
             percent = round(100 * c.numEvalDone / positionDatabaseLen)
             blitCenterText(c.screen, c.font2, "Processing depth 3... {}/{} ratings ({}%)".format(
-                c.numEvalDone, len(positionDatabase)-1,percent), PURE_BLUE, 140, cx = 320, s = 0)
+                c.numEvalDone, len(positionDatabase)-1,percent), BLUE, 140, cx = 320, s = 0)
     
 
         # Evaluation Graph

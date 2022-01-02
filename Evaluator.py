@@ -1,4 +1,4 @@
-import requests, traceback
+import requests, traceback, time
 import config as c
 from PieceMasks import *
 from colors import *
@@ -62,6 +62,7 @@ def evaluate(position):
 
     number = position.id
     print("Start eval ", number)
+    t = time.time()
 
     assert(position.nextPiece is not None)
     assert(type(position.placement) == ndarray)
@@ -70,7 +71,7 @@ def evaluate(position):
         b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots = getInfo(position)
         
         result = makeAPICallEvaluation(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots)
-        print("Finish eval ", number)
+        print("Finish eval ", number, time.time() - t)
         position.setEvaluation(*result)
         print("Set eval ", number)
 

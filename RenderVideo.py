@@ -1,4 +1,4 @@
-import pygame, sys, time, cv2, requests, cProfile
+import pygame, sys, time, cv2, requests
 from multiprocessing.dummy import Pool as ThreadPool
 import threading
 import numpy as np
