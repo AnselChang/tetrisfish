@@ -93,7 +93,7 @@ class Graph:
         self.dotSize = {AC.BEST : 9, AC.EXCELLENT : 9, AC.RAPID : 9, AC.MEDIOCRE : 9, AC.INACCURACY : 9,
                         AC.MISTAKE : 9, AC.BLUNDER : 9}
 
-        self.fullDotSize = {AC.INACCURACY : 9 , AC.MISTAKE: 9, AC.BLUNDER : 9}
+        self.fullDotSize = {AC.INACCURACY : 9 , AC.MISTAKE: 9, AC.BLUNDER : 9, AC.RAPID : 9}
 
         # Scale the array to resolution
         self.posIndices = [resolution*i for i in range(1+int(len(fullEvals) / resolution))] # the position index of each element in self.evals
@@ -308,10 +308,19 @@ class Graph:
 
     def drawFeedbackDots(self, surface, cx):
         # Graph feedback dots. Only show non-great moves and rather rapid in overall graph
+        i = -1
         for fb, x, y in self.feedbackList:
+            i += 1
+            if self.isDetailed and self.showHover:
+                if i < self.intervalIndex - self.intervalSize/2:
+                    continue
+                elif i > self.intervalIndex + self.intervalSize/2:
+                    break
+                
+            
             if fb == AC.INVALID:
                 continue
-            if self.isDetailed or (fb != AC.BEST and fb != AC.EXCELLENT and fb != AC.MEDIOCRE and fb != AC.RAPID):
+            if self.isDetailed or (fb != AC.BEST and fb != AC.EXCELLENT and fb != AC.MEDIOCRE):
                 selected = (x == cx) and self.hovering
                 if self.isDetailed:
                     size = self.dotSize[fb]

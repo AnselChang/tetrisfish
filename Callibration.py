@@ -205,7 +205,7 @@ class Calibrator:
         buttons.get(ButtonIndices.CHECK).isAlt = True
 
         buttons.addImage(ButtonIndices.PAL, images[im_names.C_CHECKMARK], 1890, 30, 0.3, img2 = c1dark, alt = images[im_names.C_CHECKMARK2],
-                         alt2 = c2dark, tooltip = ["PAL mode. Only configured for level 18+"])
+                         alt2 = c2dark, tooltip = ["PAL mode"])
 
         buttons.addInvisible(1726,880, 2480, 953, tooltip = ["The threshold for how bright the pixel must be to",
             "be considered a mino. You may need to increase",
@@ -412,9 +412,6 @@ class Calibrator:
 
         c.startLevel = self.get_button_value(ButtonIndices.LEVEL)
 
-        if c.gamemode == c.PAL and not self.get_button_value(ButtonIndices.LEVEL) in [18,19]:
-            self.error = ErrorMessage("Only level 18 and 19 are supported for PAL.")
-            return
         # If not callibrated, do not allow render
         if not self.bounds_valid():
             self.error = ErrorMessage("You must set bounds for the board and next box.")

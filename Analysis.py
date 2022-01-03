@@ -173,6 +173,19 @@ def calculateSummary(positionDatabase):
         blitCenterText(summary, c.fontbold,  acc4T, AC.scoreToColor(acc4, True), 220, s = 0)
 
     return keyPositions, gsummary, summary
+
+# return index of found element, -1 if None. Direction is 1 or -1
+def getIndex(array, startIndex, findValue, direction = 1):
+    # Search for next position with rating, wrapping around if necessary
+    foundIndex = -1
+    for i in range(startIndex + 1*direction, startIndex + (len(array)+1) * direction, direction):
+        index = (i + len(array)) % len(array)
+        if array[index] == findValue:
+            foundIndex = index
+            break
+
+    return foundIndex
+
     
     
 def analyze(positionDatabase, hzInt):
@@ -302,7 +315,7 @@ def analyze(positionDatabase, hzInt):
         text = c.font.render(name + ":", True, color)
         text2 = c.font.render(name + ":", True, lighten(color, 0.6))
 
-        buttons.addImage(name, text, x - text.get_width(), y, 1, margin = 0, img2 = text2, tooltip = ["Go to next {}...".format(name.lower())])
+        buttons.addImage(name, text, x - text.get_width(), y, 1, margin = 0, img2 = text2, tooltip = ["Go to next (leftclick) or previous (rightclick)..."])
         
         y += 41
         
@@ -316,7 +329,14 @@ def analyze(positionDatabase, hzInt):
     feedback = [p.feedback for p in positionDatabase]
 
 
-    buttons.addTooltipButton(905, 112, ["Click on the current piece (shortcut: spacebar) to change its placement.", "Press 'R' to rotate the piece"])
+    buttons.addTooltipButton(905, 112, ["Click on the current piece (shortcut: spacebar) to change its placement.",
+                                        "Press 'R' to rotate the piece",
+                                        "Click the next box piece (shortcut : right click) to place a new piece"])
+    buttons.addTooltipButton(2290, 940, ["Click on some portion of the graph to go to the position.",
+                                          "You can use the left/right arrow keys, as well as . and , to step forward and back",
+                                          "To scroll through, drag the dark slider, or use the scrollwheel."])
+
+    
     nnb = buttons.addInvisible(1046, 447, 1341, 531,
                                ["The no-next-box evaluation of your placement",
                                 "compared to the best placement's nnb evaluation",
@@ -415,7 +435,7 @@ def analyze(positionDatabase, hzInt):
 
         # Update with mouse event information        
         buttons.updatePressed(mx, my, click)
-        analysisBoard.update(mx, my, startPressed, key == pygame.K_SPACE, rightClick)
+        analysisBoard.update(mx, my, startPressed and not rightClick, key == pygame.K_SPACE, rightClick)
 
         # Hypothetical buttons
         if (buttons.get(B_HYP_LEFT).clicked or key == pygame.K_z) and analysisBoard.hasHypoLeft():
@@ -463,16 +483,9 @@ def analyze(positionDatabase, hzInt):
 
         # If rating label has been clicked, go to next position with that label
         for f in AC.feedback:
-            if buttons.get(AC.feedbackString[f]).clicked:
+            if buttons.get(AC.feedbackString[f]).pressed and (startPressed or rightClick):
 
-                # Search for next position with rating, wrapping around if necessary
-                num = analysisBoard.positionNum
-                foundIndex = -1
-                for i in range(num+1, num + len(feedback)):
-                    index = i % len(feedback)
-                    if feedback[index] == f:
-                        foundIndex = index
-                        break
+                foundIndex = getIndex(feedback, analysisBoard.positionNum, f, direction = 1 if startPressed else -1)
 
                 # next position with rating found
                 if foundIndex != -1:
@@ -702,5 +715,5 @@ def analyze(positionDatabase, hzInt):
 
         dt = (time.time() - startTime)*1000
         pygame.time.wait(int(max(0, MS_PER_FRAME - dt)))
-        #print("FPS: ", 1 / (time.time() - startTime))
+        print("FPS: ", 1 / (time.time() - startTime))
         

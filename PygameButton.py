@@ -95,7 +95,8 @@ class ButtonHandler:
             x = 1945
             y = by - 100
         else:
-            x = max(0,min(mx - surf.get_width()/2, c.screen.get_width() - surf.get_width()))
+            screenwidth = c.screen.get_width() - (163 if c.isAnalysis else 0)
+            x = max(0,min(mx - surf.get_width()/2, screenwidth - surf.get_width()))
             y = my - surf.get_height() - 25
             if y < 0:
                 y = my + 35

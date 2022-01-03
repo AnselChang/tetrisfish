@@ -391,7 +391,7 @@ class AnalysisBoard:
 
         if rightClick and self.nextBox.hover:
             self.newNextBox()
-        elif click and self.nextBox.hover:
+        elif not self.isHoverPiece and ((click and self.nextBox.hover) or (rightClick and HT.at(mx, my) == "tetris")):
             self.createNewPosition()
             
         # If true, we have placed the piece at some location.
