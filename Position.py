@@ -1,10 +1,14 @@
 import random
 from PieceMasks import *
 from TetrisUtility import print2d, getPlacementStr, isArray
-from PygameButton import getTooltipSurface
 import AnalysisConstants as AC
 
 BLUNDER_THRESHOLD = -50
+
+NNB_TEXT = ["The no-next-box evaluation of your placement",
+                    "compared to the best placement's nnb evaluation",
+                    "",
+                    "Next piece possibilities for best NNB move:"]
 
 # A possible move is defined by the possible current piece placement followed by the possible next piece placement.
 # The next piece placement should NOT be preceded by a line clear calculation for the current piece. This may be tricky
@@ -92,7 +96,6 @@ class Position:
 
         self.possible = [] # Best possible placements as found by SR
         self.moveNNB = None
-        self.tooltipNNB = None
 
     def reset(self, includePossible = False):
         self.startEvaluation = False
@@ -116,14 +119,19 @@ class Position:
         return count
 
     def setNNB(self, evaluation, move, currentPiece, text):
+        
         self.moveNNB = PossibleMove(evaluation, move, None, currentPiece, None, text, None)
-        fulltext = ["The no-next-box evaluation of your placement",
-                    "compared to the best placement's nnb evaluation",
-                    "",
-                    "Next piece possibilities for best NNB move ({}):".format(self.moveNNB.move1Str)]
-                    
-        fulltext.extend(text)
-        self.tooltipNNB = getTooltipSurface(fulltext)
+
+    def getTooltipNNB(self):
+
+        if self.moveNNB is None:
+            return None
+        
+        text = NNB_TEXT.copy()
+        text.extend(self.moveNNB.depth3Text)
+
+        return getTooltipSurface(text)
+        
 
     # add if only no duplicate first piece location. Return false if duplicate
     def addPossible(self,evaluation, move1, move2, currentPiece, nextPiece, text, colors):

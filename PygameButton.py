@@ -354,9 +354,8 @@ class PlacementButton(Button):
     def updatePressed(self, mx, my, click):
         super().updatePressed(mx, my, click, self.dy)
 
-    def update(self, evalStr, currentStr, nextStr, text, colors, isGreen):
+    def update(self, evalStr, currentStr, nextStr, isGreen):
 
-        self.setTooltip(text, colors)
         
         self.evalStr = evalStr
         self.currentStr = currentStr

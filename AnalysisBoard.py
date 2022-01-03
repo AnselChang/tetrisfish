@@ -172,6 +172,11 @@ class AnalysisBoard:
 
         self.isHoverPiece = False
 
+        self.prevBoard = None
+        self.prevHoverArray = None
+        self.prevSurf = None
+        self.prevHoverMove = False
+
         self.positionDatabase = positionDatabase
         self.positionNum = -1 # the index of the position in the rendered positionDatabase
         self.updatePosition(0)
@@ -554,11 +559,24 @@ class AnalysisBoard:
                 board += placement
                 
             finalHoverArray = self.hover
-        
-        surf = drawGeneralBoard(self.position.level, board, hover = finalHoverArray)
 
-        if hoveredPlacement is not None:
-            addHueToSurface(surf, MID_GREY, 0.23)
+        hoverMove = hoveredPlacement is not None
+
+        if (not self.prevBoard is None and not self.prevHoverArray is None and(self.prevBoard == board).all() and
+        (self.prevHoverArray == finalHoverArray).all() and self.prevHoverMove == hoverMove):
+            surf = self.prevSurf
+        else:
+            surf = drawGeneralBoard(self.position.level, board, hover = finalHoverArray)
+            if hoveredPlacement is not None:
+                addHueToSurface(surf, MID_GREY, 0.23)
+
+
+        self.prevBoard = board
+        self.prevHoverArray = finalHoverArray
+        self.prevSurf = surf
+        self.prevHoverMove = hoverMove
+
+        
 
         HT.blit("tetris", surf ,[self.x,self.y])
         

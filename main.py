@@ -61,6 +61,7 @@ def dragFile():
         pygame.time.wait(20)
 
 
+
 def run(positionDatabase = None, hzInt = None):
 
     calibrator = Calibrator()
@@ -93,11 +94,18 @@ def run(positionDatabase = None, hzInt = None):
         if positionDatabase is not None:
             # If true, logo clicked and go back to calibration
             running = analyze(positionDatabase, hzInt)
+
+            
+            #cProfile.runctx('test(positionDatabase, hzInt)', globals(), locals(), sort = "cumtime")
+            #running = False
+            
             print("Running: ", running)
             if running:
                 calibrator.reset()
                 
     calibrator.exit()
+
+
  
     
 
@@ -131,6 +139,8 @@ def main():
             run(positionDatabase, hzInt)
 
     else:
+
+        c.isLoad = False
 
         if ".png" in filename or ".jpeg" in filename or ".jpg" in filename:
             print("Is image")

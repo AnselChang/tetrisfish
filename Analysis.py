@@ -201,6 +201,9 @@ def analyze(positionDatabase, hzInt):
             threading.Thread(target=handleAPIEvalCalls, args=(positionDatabase,)).start()
         else:
             c.doneEval = True
+    else:
+        c.done = True
+        c.doneEval = True
 
     print("startanalysis2")
 
@@ -306,8 +309,7 @@ def analyze(positionDatabase, hzInt):
     buttons.addInvisible(1033, 532, 1341, 580, ["Navigate hypothetical placements. Add", "hypothetical placements by clicking the next box.", "Shortcuts: Z, X"])
     buttons.addInvisible(1029, 660, 1341, 838, ["Left click to add a new piece to the board,", "or right (or ctrl) click to change the next piece"])
     
-    if levels[0] < 29:
-        buttons.addInvisible(2016, 88, 2322, 400, ["Note: Level 29+ not included"])
+
     buttons.addInvisible(2054, 587, 2247, 696, ["The average loss of evaluation score", "for each placement"])
 
     
@@ -339,6 +341,7 @@ def analyze(positionDatabase, hzInt):
     updatePosIndex = None
 
     key = None
+    mousewheel = 0
     
     startPressed = False
     click = False
@@ -420,6 +423,10 @@ def analyze(positionDatabase, hzInt):
             analysisBoard.updatePosition(analysisBoard.positionNum+1)
             positionNum += 1
 
+        elif mousewheel != 0 and 0 <= (analysisBoard.positionNum+mousewheel) < len(positionDatabase):
+            analysisBoard.updatePosition(analysisBoard.positionNum+mousewheel)
+            positionNum += mousewheel
+
         elif (buttons.get(B_FASTLEFT).clicked or key == pygame.K_COMMA) and len(keyPositions[keyPositions < positionNum]) > 0:
             # Go to previous key position
             positionNum = keyPositions[keyPositions < positionNum].max()
@@ -490,20 +497,23 @@ def analyze(positionDatabase, hzInt):
             else:
                 bs[i].show = True
                 pm = pos.possible[i]
-                bs[i].update(plus(round(pm.evaluation,1)), pm.move1Str, pm.move2Str, pm.depth3Text, pm.colors, (pos.placement == pm.move1).all())
+                bs[i].update(plus(round(pm.evaluation,1)), pm.move1Str, pm.move2Str, (pos.placement == pm.move1).all())
 
         # Check mouse hovering over possible moves
         hoveredPlacement = None # stores the PossibleMove object the mouse is hovering on
-        for pb in bs:
+        for i in range(len(bs)):
+            pb = bs[i]
             if pb.pressed and pb.show:
                 hoveredPlacement = pos.possible[pb.i]
+                pb.setTooltip(pos.possible[i].depth3Text, pos.possible[i].colors)
                 break
+
 
         # If hovering over nnb text, display NNB move
         nnb.isAlt = nnb.hovering(mx,my) and pos.moveNNB != None
         if nnb.isAlt:
             hoveredPlacement = pos.moveNNB
-            nnb.altTooltipSurface = pos.tooltipNNB
+            nnb.altTooltipSurface = PygameButton.getTooltipSurface(pos.moveNNB.depth3Text)
 
         # If a possible placement is clicked (either from NB movelist or NNB), make that move
         if hoveredPlacement is not None and click:
@@ -619,6 +629,7 @@ def analyze(positionDatabase, hzInt):
         startPressed = False
         click = False
         rightClick = False
+        mousewheel = 0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.display.quit()
@@ -635,6 +646,9 @@ def analyze(positionDatabase, hzInt):
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1 and not pygame.key.get_pressed()[pygame.K_LCTRL]:
                     click = True
+
+            elif event.type == pygame.MOUSEWHEEL:
+                mousewheel += event.y
 
             elif event.type == pygame.KEYDOWN:
                 
@@ -655,3 +669,5 @@ def analyze(positionDatabase, hzInt):
 
         dt = (time.time() - startTime)*1000
         pygame.time.wait(int(max(0, MS_PER_FRAME - dt)))
+        #print("FPS: ", 1 / (time.time() - startTime))
+        
