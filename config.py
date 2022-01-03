@@ -55,6 +55,9 @@ session = None
 
 startLevel = -1
 
+isMac = sys.platform.startswith('darwin')
+print("Is mac: ", isMac)
+
 pygame.init()
 pygame.font.init()
 font = pygame.font.Font(fp('Images/Fonts/verdana.ttf'), 34)

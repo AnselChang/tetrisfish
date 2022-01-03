@@ -15,6 +15,7 @@ import AnalysisConstants as AC
 
 MS_PER_FRAME = 25
 
+scrollDirection = 1 if c.isMac else -1
 
 class EvalBar:
 
@@ -437,9 +438,9 @@ def analyze(positionDatabase, hzInt):
             analysisBoard.updatePosition(analysisBoard.positionNum+1)
             positionNum += 1
 
-        elif mousewheel != 0 and 0 <= (analysisBoard.positionNum+mousewheel) < len(positionDatabase):
-            analysisBoard.updatePosition(analysisBoard.positionNum+mousewheel)
-            positionNum += mousewheel
+        elif mousewheel != 0 and 0 <= (analysisBoard.positionNum + mousewheel*scrollDirection) < len(positionDatabase):
+            analysisBoard.updatePosition(analysisBoard.positionNum + mousewheel*scrollDirection)
+            positionNum += mousewheel*scrollDirection
 
         elif (buttons.get(B_FASTLEFT).clicked or key == pygame.K_COMMA) and len(keyPositions[keyPositions < positionNum]) > 0:
             # Go to previous key position
