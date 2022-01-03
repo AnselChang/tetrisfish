@@ -65,7 +65,7 @@ def scoreToColor(score, isKs):
         return C_BLUN
 
 INVALID_COLOR = MID_GREY
-    
+
 
 feedbackColors = {RAPID: C_RAPID, BEST : C_BEST, EXCELLENT : C_EXCE, INACCURACY : C_INAC,
                   MISTAKE : C_MIST, BLUNDER : C_BLUN, NONE : WHITE, MAJOR_MISSED : C_BLUN,

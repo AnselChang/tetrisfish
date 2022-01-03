@@ -140,7 +140,6 @@ def calculateSummary(positionDatabase):
     y = 0
     for f in reversed(AC.feedback):
         color = AC.feedbackColors[f]
-        blitCenterText(gsummary, c.font, AC.feedbackString[f] + ": ", color, y, s = 1)
         blitCenterText(gsummary, c.fontbold, str(count[f]), color, y+4, s = 0)
         y += 41
         
@@ -290,7 +289,22 @@ def analyze(positionDatabase, hzInt):
 
     buttons.addImage(B_LOGO, images[LOGO], 70, 30, hydrantScale, margin = 0,
                      img2 = images[LOGO] if c.isLoad else images[LOGO2], tooltip = ["Cannot calibrate from loaded data" if c.isLoad else "Exit to callibration page"])
-    
+
+
+    # Add clickable rating labels
+    x = 2250
+    y = 140
+    for f in reversed(AC.feedback):
+        name = AC.feedbackString[f]
+        color = AC.feedbackColors[f]
+
+        text = c.font.render(name + ":", True, color)
+        text2 = c.font.render(name + ":", True, lighten(color, 0.6))
+
+        buttons.addImage(name, text, x - text.get_width(), y, 1, margin = 0, img2 = text2, tooltip = ["Go to next {}...".format(name.lower())])
+        
+        y += 41
+        
 
     positionNum = 0
     analysisBoard = AnalysisBoard.AnalysisBoard(positionDatabase)
@@ -445,6 +459,24 @@ def analyze(positionDatabase, hzInt):
             # exit to calibration
             print("threads finished")
             return True
+
+        # If rating label has been clicked, go to next position with that label
+        for f in AC.feedback:
+            if buttons.get(AC.feedbackString[f]).clicked:
+
+                # Search for next position with rating, wrapping around if necessary
+                num = analysisBoard.positionNum
+                foundIndex = -1
+                for i in range(num+1, num + len(feedback)):
+                    index = i % len(feedback)
+                    if feedback[index] == f:
+                        foundIndex = index
+                        break
+
+                # next position with rating found
+                if foundIndex != -1:
+                    analysisBoard.updatePosition(foundIndex)
+                    positionNum = foundIndex
 
 
         # Update Graphs
