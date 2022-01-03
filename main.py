@@ -20,6 +20,7 @@ from RenderVideo import render
 from Analysis import analyze
 import Evaluator
 from multiprocessing.dummy import Pool as ThreadPool
+from multiprocessing import freeze_support
 
 
 
@@ -150,4 +151,5 @@ def main():
 
 
 if __name__ == "__main__":
+    freeze_support()
     main()
