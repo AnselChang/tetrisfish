@@ -104,7 +104,7 @@ def run(positionDatabase = None, hzInt = None):
             running = analyze(positionDatabase, hzInt)
 
             
-            #cProfile.runctx('test(positionDatabase, hzInt)', globals(), locals(), sort = "cumtime")
+            #cProfile.runctx('analyze(positionDatabase, hzInt)', globals(), locals(), sort = "cumtime")
             #running = False
             
             print("Running: ", running)

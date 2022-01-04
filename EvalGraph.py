@@ -82,6 +82,11 @@ class Graph:
 
         self.intervalSize = intervalSize
         self.intervalIndex = 0
+        
+        self.prevIntervalIndex = -1
+        self.prevCx = -1
+        self.finalSurface = None
+        
         self.bigRes = bigRes
 
         width = self.realwidth - 2 * self.HORI_PADDING
@@ -90,10 +95,8 @@ class Graph:
 
         self.surf = None
 
-        self.dotSize = {AC.BEST : 9, AC.EXCELLENT : 9, AC.RAPID : 9, AC.MEDIOCRE : 9, AC.INACCURACY : 9,
-                        AC.MISTAKE : 9, AC.BLUNDER : 9}
+        self.dotSize = 9
 
-        self.fullDotSize = {AC.INACCURACY : 9 , AC.MISTAKE: 9, AC.BLUNDER : 9, AC.RAPID : 9}
 
         # Scale the array to resolution
         self.posIndices = [resolution*i for i in range(1+int(len(fullEvals) / resolution))] # the position index of each element in self.evals
@@ -183,9 +186,14 @@ class Graph:
 
 
         self.surfLines = pygame.Surface([self.right+self.intervalSize * self.resolution * self.dist, self.realheight], pygame.SRCALPHA)
+        self.drawShades(self.surfLines)
+        self.drawPositionMarkers(self.surfLines)
         self.surfLines2 = self.surfLines.copy()
         self.drawLines(self.surfLines, self.points, 3)
         self.drawLines(self.surfLines2, self.points, 5)
+
+        self.drawFeedbackDots(self.surfLines)
+        self.drawFeedbackDots(self.surfLines2)
 
 
     def drawLines(self,surf, points, thickness):
@@ -290,45 +298,37 @@ class Graph:
 
         return cx
 
+    def isKeyRating(self, fb):
+        return self.isDetailed or (fb == AC.RAPID or fb == AC.INACCURACY or fb == AC.MISTAKE or fb == AC.BLUNDER)
+
     def drawHoverBox(self, surface, cx):
 
         HOVER_RADIUS = 7
         
-        pygame.draw.circle(surface, DARK_GREY, [cx, self.f([cx])[0]-self.VERT_OFFSET], HOVER_RADIUS)
             
         hoverBox = pygame.Surface([self.dist, self.realheight])
         hoverBox.fill(BLACK)
         hoverBox.set_alpha(50)
         surface.blit(hoverBox, [cx - self.dist / 2, 0])
 
+        fb = self.feedback[self.index]
+        if self.hovering and self.isKeyRating(fb):
+            size = self.dotSize * (1.5 if self.isDetailed else 1.3)
+            pygame.draw.circle(surface, lighten(AC.feedbackColors[fb], 0.6), [cx,self.f(cx)-2*self.VERT_OFFSET], size, width = 6)
+
     def drawBezierCurve(self, surface):
         surf = self.surfLines2 if self.hovering else self.surfLines
         subsurface = surf.subsurface(surface.get_rect())
         surface.blit(subsurface,[0,0])
 
-    def drawFeedbackDots(self, surface, cx):
+    def drawFeedbackDots(self, surface):
         # Graph feedback dots. Only show non-great moves and rather rapid in overall graph
-        i = -1
         for fb, x, y in self.feedbackList:
-            i += 1
-            if self.isDetailed and self.showHover:
-                if i < self.intervalIndex - self.intervalSize/2:
-                    continue
-                elif i > self.intervalIndex + self.intervalSize/2:
-                    break
-                
             
             if fb == AC.INVALID:
                 continue
-            if self.isDetailed or (fb != AC.BEST and fb != AC.EXCELLENT and fb != AC.MEDIOCRE):
-                selected = (x == cx) and self.hovering
-                if self.isDetailed:
-                    size = self.dotSize[fb]
-                else:
-                    size = self.fullDotSize[fb]
-                pygame.draw.circle(surface, lighten(AC.feedbackColors[fb], 0.8 if selected else 0.9), [x,y-2*self.VERT_OFFSET], size * (1.2 if selected else 1))
-                if selected:
-                    pygame.draw.circle(surface, lighten(AC.feedbackColors[fb], 0.6), [x,y-2*self.VERT_OFFSET], size * 1.3, width = 4)
+            if self.isKeyRating(fb):
+                pygame.draw.circle(surface, lighten(AC.feedbackColors[fb], 0.9), [x,y-2*self.VERT_OFFSET], self.dotSize)
 
     def drawPositionMarkers(self, surface):
         # Graph position markers
@@ -348,16 +348,21 @@ class Graph:
         surface.blit(slider, [leftX, 0])
         pygame.draw.rect(surface, BLACK, [leftX,0,self.intervalSize / self.resolution * self.dist,self.realheight], width = 5)
 
-    def blitGraphToSurface(self, moveableSurface, positionIndex):
-        
-         # Calculate smoothly-animating graph scroll
+    def calculateGraphShift(self, positionIndex):
+
+        # Calculate smoothly-animating graph scroll
         SLIDE_SPEED = 0.3
         finalGraphX = 0 - positionIndex * self.dist + self.intervalSize / 2 * self.dist
         self.currGraphX += (finalGraphX - self.currGraphX) * SLIDE_SPEED
-        if abs(finalGraphX - self.currGraphX) < 5:
+        if abs(finalGraphX - self.currGraphX) < 1:
             self.showHover = True
+            self.currGraphX = finalGraphX
+        elif abs(finalGraphX - self.currGraphX) < 5:
+            self.currGraphX += (finalGraphX - self.currGraphX) * 0.5
         else:
             self.showHover = False
+        
+    def blitGraphToSurface(self, moveableSurface):
 
         # Blit movable surface to surface
         surface = pygame.Surface([self.realwidth, self.realheight], pygame.SRCALPHA)
@@ -376,31 +381,30 @@ class Graph:
     def display(self, mx, my, positionIndex):
 
         self.intervalIndex = positionIndex // self.resolution
+        self.calculateGraphShift(positionIndex)
+        cx = self.getHoverLocation(mx)
 
         # If nothing has changed in the display, don't recalculate and simply blit to save time
-        if False:
-            HT.blit("graph", self.surf, [self.x,self.y])
+        if self.finalSurface != None and self.prevIntervalIndex == self.intervalIndex and self.prevCx == cx and self.showHover:
+            HT.blit("graph", self.finalSurface, [self.x,self.y])
             return
+
+        self.prevIntervalIndex = self.intervalIndex
+        self.prevCx = cx
         
         surf2 = pygame.Surface([self.right+self.intervalSize * self.resolution * self.dist, self.realheight], pygame.SRCALPHA)
-        self.drawShades(surf2)
-        
-        cx = self.getHoverLocation(mx)
+        self.drawBezierCurve(surf2)
         
         # Draw hover dot
         if self.hovering and self.showHover:
             self.drawHoverBox(surf2, cx)
 
-        self.drawBezierCurve(surf2)
-        self.drawFeedbackDots(surf2, cx)
-        self.drawPositionMarkers(surf2)
-        
         # If full graph, draw selection slider
         if not self.isDetailed:
             self.drawSlider(surf2, positionIndex)
 
-        finalSurface = self.blitGraphToSurface(surf2, positionIndex)        
-        HT.blit("graph", finalSurface, [self.x,self.y])
+        self.finalSurface = self.blitGraphToSurface(surf2)        
+        HT.blit("graph", self.finalSurface, [self.x,self.y])
     
 
 

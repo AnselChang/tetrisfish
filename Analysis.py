@@ -13,7 +13,7 @@ import EvalGraph, Evaluator
 import SaveAnalysis
 import AnalysisConstants as AC
 
-MS_PER_FRAME = 25
+MS_PER_FRAME = 33
 
 scrollDirection = 1 if c.isMac else -1
 
