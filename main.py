@@ -65,7 +65,9 @@ def dragFile():
 
 def run(positionDatabase = None, hzInt = None):
 
-    calibrator = Calibrator()
+    print(c.isLoad)
+
+    calibrator = None
 
     running = True
     while running:
@@ -76,7 +78,11 @@ def run(positionDatabase = None, hzInt = None):
             c.doneEval = True
 
         else:
-    
+
+            if calibrator is None:
+                calibrator = Calibrator()
+            
+            print("start calibrate")
             output = calibrator.callibrate()
                 
             if output == None:
@@ -94,6 +100,7 @@ def run(positionDatabase = None, hzInt = None):
             
         if positionDatabase is not None:
             # If true, logo clicked and go back to calibration
+            print("starting analysis")
             running = analyze(positionDatabase, hzInt)
 
             
@@ -127,9 +134,12 @@ def main():
     
     c.filename = filename
 
-    if ".txt" in filename:
+    if ".txt" in filename or ".tfish" in filename:
+
+        print("loading savefile...")
 
         positionDatabase, gamemode, hzInt, hzTimeline = SaveAnalysis.read(filename)
+        print(len(positionDatabase))
         if positionDatabase == None:
             pygame.quit()
             sys.exit()

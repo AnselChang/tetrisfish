@@ -1,8 +1,8 @@
 import numpy as np
-import base64, ast, pickle, traceback
+import base64, ast, pickle, traceback, datetime
 import AnalysisConstants as AC
 from os.path import exists, join
-from config import version, application_path
+from config import version, application_path, PAL
 import Position
 
 """
@@ -21,15 +21,18 @@ Possible moves: (x5)
 """
 
 # Write JSON to a text  file
-def write(positionDatabase, isPAL, hzNum, hzTimeline):
+def write(positionDatabase, gamemode, hzNum, hzTimeline):
 
     print("Started writing")
     
-    string = encodePositions(positionDatabase, isPAL, hzNum, hzTimeline)
+    string = encodePositions(positionDatabase, gamemode, hzNum, hzTimeline)
 
     num = 1
+    date = datetime.date.today().isoformat()
     while True:
-        filename = "save_v{}_{}_{}.txt".format(version, num, len(positionDatabase))
+        score = positionDatabase[-1].score
+        copy = " ({})".format(num) if num > 1 else ""
+        filename = "{}_{}_{}hz{}{}.tfish".format(date, score, hzNum, "P" if gamemode == PAL else "N", copy)
         if application_path != None:
             filename = join(application_path, filename)
         print("Filename:", filename)
@@ -48,6 +51,8 @@ def write(positionDatabase, isPAL, hzNum, hzTimeline):
 # Given a file, parses data and generates analysis
 # Returns positionDatabase, isPAL, hzNum
 def read(filename):
+
+    print("reading")
 
     file = open(filename, "r")
 
