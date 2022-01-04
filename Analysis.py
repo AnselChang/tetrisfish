@@ -715,5 +715,5 @@ def analyze(positionDatabase, hzInt):
 
         dt = (time.time() - startTime)*1000
         pygame.time.wait(int(max(0, MS_PER_FRAME - dt)))
-        print("FPS: ", 1 / (time.time() - startTime))
+        #print("FPS: ", 1 / (time.time() - startTime))
         
