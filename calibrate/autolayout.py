@@ -1,6 +1,9 @@
 ﻿"""
 Helper classes for autocalibration
 """
+import cv2  # Not actually necessary if you just want to create an image.
+import numpy as np
+from colors import COLOR_CYCLE
 class AbstractLayout:
     def __init__(self, name, inner_box):
         self.name = name
@@ -124,9 +127,9 @@ LAYOUTS = {"STANDARD": Layout("Standard", (0.5,0.5),
                               PREVIEW_LAYOUTS["STANDARD"], FIELD_INNER_BOX["Standard"]),
            "STENCIL": Layout("Stencil™", (0.3,0.5), 
                               PREVIEW_LAYOUTS["STANDARD"], FIELD_INNER_BOX["Standard"]),
-           "MOC_LEFT": Layout("MaxoutClub", (0.422,0.302), 
+           "MOC_LEFT_2p": Layout("MaxoutClub", (0.422,0.302), 
                               PREVIEW_LAYOUTS["MOC"], FIELD_INNER_BOX["MOC"]), #ctwc 2p
-           "MOC_RIGHT": Layout("MaxoutClub", (0.578,0.302), 
+           "MOC_RIGHT_2p": Layout("MaxoutClub", (0.578,0.302), 
                               PREVIEW_LAYOUTS["MOC"], FIELD_INNER_BOX["MOC"]), #ctwc 2p
            "MOC_TOPLEFT": Layout("MaxoutClub", (0.444,0.204), 
                               PREVIEW_LAYOUTS["MOC4pLeft"], FIELD_INNER_BOX["MOC"]), #ctwc 4p
@@ -138,3 +141,33 @@ LAYOUTS = {"STANDARD": Layout("Standard", (0.5,0.5),
                               PREVIEW_LAYOUTS["MOC4pRight"],FIELD_INNER_BOX["MOC"]) #ctwc 4p
           }
 
+
+def generate_documentation_fields():
+    RES = [720, 1280]
+    # make rgb image
+    image = np.zeros(RES + [3], np.uint8)
+    THICKNESS = 2
+
+    for index, layout_name in enumerate(LAYOUTS.keys()):
+        layout = LAYOUTS[layout_name]
+        color = COLOR_CYCLE[index]
+        color.reverse # rgb <-> bgr
+        center = layout.fillpoint
+        center = int(center[0] * RES[1]), int(center[1] * RES[0])
+        image = cv2.circle(image, center, 10, color, -1)
+        center = center[0] + 10, center[1] + 10
+        image = cv2.putText(image, layout_name, center, cv2.FONT_HERSHEY_SIMPLEX, 
+                   0.5, color, 2, cv2.LINE_AA)
+    cv2.imshow("hi", image)
+    #cv2.waitKey(0)
+    cv2.imwrite("docs/board_calibration/field-circles.png", image)
+
+def generate_documentation_previews():
+    pass
+
+# run this with
+# python -m calibrate.autolayout
+if __name__ == "__main__":
+    generate_documentation_fields()
+    generate_documentation_previews()
+        
