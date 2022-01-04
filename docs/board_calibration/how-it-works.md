@@ -6,7 +6,7 @@ Finding a field works by looking up a list of common layouts that we have hardco
 We try to run a paint "fill" command on these points:
 
 
-![fillpoints](docs/board_calibration/field-circles.png)
+![fillpoints](field-circles.png)
 
 We pick the biggest rectangle. If there are multiple large similarly sized rectangles,
 then we show all of them and let the user pick which one.
