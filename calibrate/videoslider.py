@@ -14,7 +14,7 @@ class ActiveSubSlider:
     SEGMENT = 2
 
 class VideoSlider:
-    
+    BOUNDS_SEPARATION = 30
     DEFAULT_X = 497
     DEFAULT_WIDTH = 922
     DEFAULT_Y = 1377
@@ -92,10 +92,10 @@ class VideoSlider:
         c = self.c
         # Draw video bounds sliders
         slider_args = slider_args + [True]
-        self.right_frame = self.rightSlider.tick(c.screen, self.right_frame / (c.totalFrames - 1), *slider_args)
+        self.right_frame = self.rightSlider.tick(c.screen, self.right_frame / (c.totalFrames - 1), *slider_args, minn = self.leftSlider.x + VideoSlider.BOUNDS_SEPARATION)
         self.right_frame = clamp(int(self.right_frame * c.totalFrames), 0, c.totalFrames - 100)
         slider_args = [slider_args[0] and not self.rightSlider.active] + slider_args[1:]
-        self.left_frame = self.leftSlider.tick(c.screen, self.left_frame / (c.totalFrames - 1), *slider_args)
+        self.left_frame = self.leftSlider.tick(c.screen, self.left_frame / (c.totalFrames - 1), *slider_args, maxx = self.rightSlider.x - VideoSlider.BOUNDS_SEPARATION)
         self.left_frame = clamp(int(self.left_frame * c.totalFrames),0,c.totalFrames - 100)
 
         # Update frame from video sliders

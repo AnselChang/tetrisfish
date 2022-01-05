@@ -35,13 +35,17 @@ class Slider:
 
         
     # return float 0-1 indicating position on slider rect
-    def tick(self, screen, value, startPress, isPressed, mx, my, animate = False):
+    def tick(self, screen, value, startPress, isPressed, mx, my, animate = False, minn = None, maxx = None):
         
         self.hover = self.isHovering(mx,my)
         if startPress and self.hover:
             self.active = True
             
         if isPressed and self.active:
+            if minn is not None:
+                mx = max(minn, mx)
+            if maxx is not None:
+                mx = min(mx, maxx)
             value =  self.adjust(mx)
         else:
             self.active = False
