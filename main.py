@@ -31,7 +31,7 @@ testingEval = False
 
 # Open a pygame window where you can drag a video into. Returns the filepath of the video.
 def dragFile():
-    spr_file_text = c.fontbold.render("Drag a valid image or video file here!", True, WHITE)
+    spr_file_text = c.fontbold.render("Drag a tetris video/image file, or a savefile with a .tfish extension here!", True, WHITE)
     rect = spr_file_text.get_rect()
 
     spr_file_image = None
