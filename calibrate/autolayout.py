@@ -4,6 +4,7 @@ Helper classes for autocalibration
 import cv2  # Not actually necessary if you just want to create an image.
 import numpy as np
 from colors import COLOR_CYCLE
+
 class AbstractLayout:
     def __init__(self, name, inner_box):
         self.name = name
@@ -141,33 +142,82 @@ LAYOUTS = {"STANDARD": Layout("Standard", (0.5,0.5),
                               PREVIEW_LAYOUTS["MOC4pRight"],FIELD_INNER_BOX["MOC"]) #ctwc 4p
           }
 
+def generate_generic_layouts():
+    result = {}
+    for x in [0.1,0.20,0.37,0.7,0.85]:
+        for y in [0.3, 0.65]:
+            layout = Layout("Generic", (x, y),
+                            PREVIEW_LAYOUTS["MOC"], FIELD_INNER_BOX["MOC"])
+            result[f"{x}, {y}"] = layout
+    return result
+
+GENERIC_LAYOUTS = generate_generic_layouts()
+
+def color_layout(image, layout, color, layout_name, RES):
+    color.reverse # rgb <-> bgr
+    center = layout.fillpoint
+    center = int(center[0] * RES[1]), int(center[1] * RES[0])
+    image = cv2.circle(image, center, 10, color, -1)
+    center = center[0] + 10, center[1] + 10
+    image = cv2.putText(image, layout_name, center, cv2.FONT_HERSHEY_SIMPLEX, 
+                0.5, color, 1, cv2.LINE_AA)
+    return image
 
 def generate_documentation_fields():
     RES = [720, 1280]
     # make rgb image
     image = np.zeros(RES + [3], np.uint8)
-    THICKNESS = 2
+    
+    #for name, layout in GENERIC_LAYOUTS.items():
+    #    image = color_layout(image, layout, [64,64,64], name,  RES)
 
-    for index, layout_name in enumerate(LAYOUTS.keys()):
-        layout = LAYOUTS[layout_name]
-        color = COLOR_CYCLE[index]
-        color.reverse # rgb <-> bgr
-        center = layout.fillpoint
-        center = int(center[0] * RES[1]), int(center[1] * RES[0])
-        image = cv2.circle(image, center, 10, color, -1)
-        center = center[0] + 10, center[1] + 10
-        image = cv2.putText(image, layout_name, center, cv2.FONT_HERSHEY_SIMPLEX, 
-                   0.5, color, 2, cv2.LINE_AA)
-    cv2.imshow("hi", image)
+    for index, (name, layout) in enumerate(LAYOUTS.items()):
+        color = COLOR_CYCLE[index % len(COLOR_CYCLE)]
+        image = color_layout(image, layout, color, name, RES)
+
+    #cv2.imshow("hi", image)
     #cv2.waitKey(0)
     cv2.imwrite("docs/board_calibration/field-circles.png", image)
 
+
 def generate_documentation_previews():
-    pass
+    SCALE_MULT = 5
+    RES = [220 * SCALE_MULT, 220 * SCALE_MULT]
+
+    # make rgb image
+    image = np.zeros(RES + [3], np.uint8)
+    TL = [70 * SCALE_MULT, 40 * SCALE_MULT]
+    BR = [TL[0] + 80 * SCALE_MULT, TL[1] + 160 * SCALE_MULT]
+    cv2.rectangle(image, TL, BR, 
+                 (0,255,0), -1)
+
+    texts = []
+    for layout in PREVIEW_LAYOUTS.values():
+        offset = layout.nes_px_offset
+        size = layout.nes_px_size
+        tl = [TL[0] + offset[0]*SCALE_MULT, TL[1] + offset[1] * SCALE_MULT]
+        br = [tl[0] + size[0] * SCALE_MULT, tl[1] + size[1] * SCALE_MULT]
+        tl = [int(i) for i in tl]
+        br = [int(i) for i in br]
+        
+        cv2.rectangle(image, tl, br, (0,0,255,128), -1)
+        inner_rect = layout.inner_box_nespx
+        tl2 = [tl[0] + inner_rect[0]*SCALE_MULT, tl[1] + inner_rect[1] * SCALE_MULT]
+        br2 = [tl[0] + inner_rect[2]*SCALE_MULT, tl[1] + inner_rect[3] * SCALE_MULT]
+        tl2 = [int(i) for i in tl2]
+        br2 = [int(i) for i in br2]
+        cv2.rectangle(image, tl2, br2, (255,0,0,128), -1)
+        texts.append([image, layout.name, tl.copy()])
+    
+    for text in texts:
+        cv2.putText(*text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1, cv2.LINE_AA)
+
+    #cv2.imshow("hi", image)
+    #cv2.waitKey(0)
+    cv2.imwrite("docs/board_calibration/field-previews.png", image)
 
 # run this with
 # python -m calibrate.autolayout
 if __name__ == "__main__":
     generate_documentation_fields()
     generate_documentation_previews()
-        
