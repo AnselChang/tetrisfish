@@ -145,7 +145,7 @@ class Calibrator:
             
             self.handle_pygame_events()
 
-            c.handleWindowResize()
+            c.drawWindow()
             
             pygame.display.update()
             pygame.time.wait(20)
@@ -659,8 +659,9 @@ class Calibrator:
             sys.exit()
 
         elif event.type == pygame.VIDEORESIZE:
-            c.realscreen = pygame.display.set_mode(event.size, 
-                                                   (pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE))
+
+                c.resizeScreen(pygame, event)
+            
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             self.mouse_status.start_press = True

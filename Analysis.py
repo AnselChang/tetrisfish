@@ -707,10 +707,10 @@ def analyze(positionDatabase, hzInt):
                 
             elif event.type == pygame.VIDEORESIZE:
 
-                c.realscreen = pygame.display.set_mode(event.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+                c.resizeScreen(pygame, event)
 
             
-        c.handleWindowResize(1.06)
+        c.drawWindow(1.06)
         pygame.display.update()
 
         dt = (time.time() - startTime)*1000

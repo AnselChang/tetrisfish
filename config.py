@@ -104,6 +104,7 @@ REAL_HEIGHT = REAL_WIDTH * 2856 / 4806
 # scaled width and height, arbitrary values that maintain aspect ratio and are high enough to have decent resolution
 SCREEN_WIDTH = 1280*2
 SCREEN_HEIGHT = 720*2
+RATIO = SCREEN_WIDTH / SCREEN_HEIGHT
 
 icon_surf = pygame.image.load(fp("Images/logo.png"))
 pygame.display.set_icon(icon_surf)
@@ -128,9 +129,16 @@ def reset():
 def timestamp(frame):
     return str(datetime.timedelta(seconds = round(frame / fps)))
 
+def resizeScreen(pygame, event):
+    global realscreen
+    
+    avg = (event.w / SCREEN_WIDTH + event.h / SCREEN_HEIGHT) / 2
+    realscreen = pygame.display.set_mode([avg * SCREEN_WIDTH, avg * SCREEN_HEIGHT], pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+
+
 # Display screen and handle events, keeping ratio when resizing window
 # Returns true if exited
-def handleWindowResize(scale = 1):
+def drawWindow(scale = 1):
 
     # Resize window, keep aspect ratio
     rs = realscreen.get_rect()

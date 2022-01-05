@@ -1,5 +1,5 @@
 # pyinstaller main.py --onefile --add-data="Images:Images"
-# tar -czf tetrisfish_mac_v1.tgz main
+# tar -czf tetrisfish_v1_3_7_mac.tgz main
 
 print("start")
 
@@ -23,7 +23,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 from multiprocessing import freeze_support
 
 
-
+import config as c
         
 testing = False
 testingEval = False
@@ -54,9 +54,9 @@ def dragFile():
                 return str(ev.file)
             
             elif ev.type == pygame.VIDEORESIZE:
-                c.realscreen = pygame.display.set_mode(ev.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
-
-        c.handleWindowResize()
+                c.resizeScreen(pygame, ev)
+                
+        c.drawWindow()
         pygame.display.update()
 
         pygame.time.wait(20)
@@ -119,7 +119,6 @@ def run(positionDatabase = None, hzInt = None):
 
 def main():
 
-    import config as c
     try:
         import pyi_splash
         pyi_splash.close()
