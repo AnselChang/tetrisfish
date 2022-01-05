@@ -311,7 +311,7 @@ class Graph:
         hoverBox.set_alpha(50)
         surface.blit(hoverBox, [cx - self.dist / 2, 0])
 
-        fb = self.feedback[self.index]
+        fb = self.feedback[min(self.index,len(self.feedback)-1)]
         if self.hovering and self.isKeyRating(fb):
             size = self.dotSize * (1.5 if self.isDetailed else 1.3)
             pygame.draw.circle(surface, lighten(AC.feedbackColors[fb], 0.6), [cx,self.f(cx)-2*self.VERT_OFFSET], size, width = 6)

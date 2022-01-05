@@ -340,8 +340,14 @@ def displayGraphics(positionDatabase, firstFrame, lastFrame):
            y += 42
 
 
-        pygame.event.get()
-        c.handleWindowResize()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.display.quit()
+                sys.exit()
+            elif event.type == pygame.VIDEORESIZE:
+                c.resizeScreen(pygame, event)
+                
+        c.drawWindow()
         pygame.display.update()
 
         frame += 1
