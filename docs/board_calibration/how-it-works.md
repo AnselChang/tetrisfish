@@ -31,7 +31,7 @@ Each of the fields from the previous stage have a "recommended" preview type,
 such as right side (classic nes tetris scene), top (Maxout club), side (maxout club).
 We try all preview types, starting with the recommended one.
 
-![preview](field-preview.png)
+![preview](field-previews.png)
 
 We iterate through each of the offsets for those layouts, and again use a flood fill.
 We check the flood fills size to ensure it vaguely matches what we expect.

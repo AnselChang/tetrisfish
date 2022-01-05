@@ -168,8 +168,8 @@ def generate_documentation_fields():
     # make rgb image
     image = np.zeros(RES + [3], np.uint8)
     
-    #for name, layout in GENERIC_LAYOUTS.items():
-    #    image = color_layout(image, layout, [64,64,64], name,  RES)
+    for name, layout in GENERIC_LAYOUTS.items():
+        image = color_layout(image, layout, [64,64,64], name,  RES)
 
     for index, (name, layout) in enumerate(LAYOUTS.items()):
         color = COLOR_CYCLE[index % len(COLOR_CYCLE)]
