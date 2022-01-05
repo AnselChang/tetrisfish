@@ -265,7 +265,7 @@ def is_blackish(tuple):
     return tuple[0] < 20 and tuple[1] < 20 and tuple[2] < 20
 
 
-def try_expand(arr, centre):
+def try_expand(arr, centre, fillDiff=5):
     """
     flood fills array from centre (y,x)
     Returns rect class
@@ -278,7 +278,8 @@ def try_expand(arr, centre):
     red = (0,0,255) #Blue green red
     
     centre = centre[1], centre[0] # opencv uses x,y
-    cv2.floodFill(arr, None, centre, newVal=red, loDiff=(5, 5, 5), upDiff=(5, 5, 5))
+    fillDiff = (fillDiff,fillDiff,fillDiff)
+    cv2.floodFill(arr, None, centre, newVal=red, loDiff=(5, 5, 5), upDiff=fillDiff)
 
     #show_image(arr)
     
