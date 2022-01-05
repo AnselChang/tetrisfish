@@ -13,7 +13,8 @@ is_blackish
 )
 
 from calibrate.autolayout import (
-PREVIEW_LAYOUTS, LAYOUTS, PreviewLayout, Layout
+PREVIEW_LAYOUTS, LAYOUTS, GENERIC_LAYOUTS, 
+PreviewLayout, Layout
 )
 
 from calibrate.rect import Rect
@@ -43,14 +44,8 @@ def touching_image_edge(rect:Rect, image_size_yx):
             rect.right > image_size_yx[1] -5 or 
             rect.bottom > image_size_yx[0] - 5)
 
-def get_board(img):
-    """
-    Takes an nparray image, or a PIL image
-    Returns a list of tuples, containing:
-    * board rect 
-    * Layout object (containing suggested Preview)
-    """
-    t = time.time()
+def _get_board(img, layouts, cutoff=5):
+    
     arr = convert_img_to_nparray(img)
     arr = convert_to_grayscale(arr)
 
@@ -60,14 +55,14 @@ def get_board(img):
     valid_heights = [size[0] * percent for percent in BOARD_VALID_HEIGHT_PERC]
     
     # check each attempt, removing them if the field is way too small or big.
-    for attempt in LAYOUTS.values():
+    for attempt in layouts.values():
         # grab offset and swap x/y to y/x
         centre = list(attempt.fillpoint)
         
         centre[0], centre[1] = [int(centre[1]*size[0]), 
                                int(centre[0]*size[1])] # end result is y/x
         
-        result, temp_image = try_expand(arr, centre)
+        result, temp_image = try_expand(arr, centre, cutoff)
         
         if (result.width < BOARD_MIN_WIDTH_PERC * size[1]):
             continue
@@ -83,7 +78,6 @@ def get_board(img):
         results.append([result, layout, temp_image])
     
     if len(results) == 0:
-        print("AI could not find a board")
         return results
 
     # in multi layouts, we will have lots of black rectangles :)
@@ -95,12 +89,29 @@ def get_board(img):
     
     for result in results:
         optimize_field(result)
-    
-    print("Time taken to ai find fields:", time.time()-t)
-    
+
     # convert to dumb rects
     results = [(r[0].to_array(), r[1]) for r in results]
     return results
+
+def get_board(img):
+    """
+    Takes an nparray image, or a PIL image
+    Returns a list of tuples, containing:
+    * board rect 
+    * Layout object (containing suggested Preview)
+    """
+    t = time.time()
+    result = _get_board(img, LAYOUTS)
+    if len(result) == 0:
+        print ("couldn't find board in default layouts, trying backup layouts")
+        result = _get_board(img, GENERIC_LAYOUTS, 30)
+        # if we tried twice and it failed, yikes
+        if len(result) == 0:
+            print("AI could not find a board")
+    print("Time taken to ai find fields:", time.time()-t)
+    return result
+
 
 def optimize_field(result):
     """
