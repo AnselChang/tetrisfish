@@ -311,7 +311,6 @@ def displayGraphics(positionDatabase, firstFrame, lastFrame):
 
             pygame.draw.rect(c.screen, WHITE, [x, 102, 5, h])
 
-
         pygame.draw.rect(c.screen, getColor(renderPercent), [78,102, width * renderPercent, height], border_radius = 15)
         pygame.draw.rect(c.screen, getColor(evalPercent), [1340, 102, width*evalPercent, height], border_radius = 15)
             
@@ -401,7 +400,7 @@ def doRender(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
      # Start vcap at specified frame from callibration
     global frameCount
     vcap.set(cv2.CAP_PROP_POS_FRAMES, firstFrame)
-    frameCount =  firstFrame - 1
+    
 
     while frameCount  <= lastFrame:
 
@@ -472,6 +471,9 @@ def render(firstFrame, lastFrame, bounds, nextBounds, levelP, linesP, scoreP):
 
     global pool
     pool = ThreadPool(c.poolSize)
+
+    global frameCount
+    frameCount =  firstFrame - 1
 
     global positionDatabase, renderThread
     positionDatabase = []
