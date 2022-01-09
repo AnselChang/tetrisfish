@@ -146,11 +146,15 @@ class PieceBoard:
             
 
     # Blit surface from current/next box to screen
-    def blit(self, level):
+    def blit(self, level, opacity = 1):
+
+        opacity = max(0, min(opacity, 1))
 
         minos = colorMinos(TETRONIMO_SHAPES[self.piece][0][1:], self.piece)
         if self.ID == None: # mousePiece
             board = drawGeneralBoard(level, minos, hover = True, small = True)
+            if opacity != 1:
+                board.fill((255, 255, 255, (1-opacity)*255), None, pygame.BLEND_RGBA_MULT)
             c.screen.blit(board, [self.offsetx + self.xaddoffset, self.offsety + self.yaddoffset])
         else: # nextBox
             board = drawGeneralBoard(level, minos, hover = self.hover)
@@ -176,10 +180,13 @@ class AnalysisBoard:
         self.prevHoverArray = None
         self.prevSurf = None
         self.prevHoverMove = False
+        self.hover = empty()
 
         self.positionDatabase = positionDatabase
         self.positionNum = -1 # the index of the position in the rendered positionDatabase
         self.updatePosition(0)
+        
+        self.isHoverPiece = not isArray(positionDatabase[0].placement)
 
         
 
@@ -197,17 +204,20 @@ class AnalysisBoard:
         self.position = self.positionDatabase[self.positionNum]
         
         self.init()
-        self.isHoverPiece = False
+        self.isHoverPiece = not isArray(self.position.placement)
         self.newAdjust = True
 
     def init(self):
         
         self.hoverNum = 0
         self.placements = []
-        self.hover = empty()
+        if isArray(self.position.placement):
+            self.hover = empty()
         self.ph = [-1,-1]
 
         self.newAdjust = True
+        print2d(self.hover)
+        print2d(self.position.placement)
 
         # Change current and nextbox pieces
         #self.currentBox.updatePiece(self.position.currentPiece)
@@ -223,7 +233,7 @@ class AnalysisBoard:
 
     # return whether there exists a previous hypothetical position
     def hasHypoLeft(self):
-        return self.position.prev is not None
+        return self.position.prev is not None and self.position.prev.placement is not None
 
     # return whether there exists a next hypothetical position
     def hasHypoRight(self):
@@ -336,6 +346,8 @@ class AnalysisBoard:
         
     # Update mouse-related events - namely, hover
     def update(self, mx, my, click, spacePressed, rightClick):
+
+        self.mx = mx
         
         self.nextBox.updateBoard(mx, my, click, type(self.position.placement) != np.ndarray)
 
@@ -405,21 +417,19 @@ class AnalysisBoard:
             print("enter placement selection mode")
             self.isHoverPiece = True
             self.newAdjust = True
-        elif spacePressed or click and ((len(self.placements) == 0 and HT.at(mx,my)=="tetris") or HT.none(mx,my)) and self.position.board[r][c1] == 0:
-            print("reset piece")
+        elif (self.position.prev is not None) and (spacePressed or click):
+            if (len(self.placements) == 0 and HT.at(mx,my) == "tetris") or (HT.none(mx,my) and self.position.board[r][c1] == 0):
+                print("reset piece")
+                self.isHoverPiece = False
+                self.newAdjust = True
 
-            self.isHoverPiece = False
-            self.newAdjust = True
+                if not isArray(self.position.placement):
+                    # In this case, the user is cancelling creating a new piece. So, delete this position and revert to previous position
+                    self.position = self.position.prev
+                    assert(self.position is not None)
+                    self.position.next = None
+                    self.nextBox.updatePiece(self.position.nextPiece)
 
-            if type(self.position.placement) != np.ndarray:
-                # In this case, the user is cancelling creating a new piece. So, delete this position and revert to previous position
-                self.position = self.position.prev
-                self.position.next = None
-                self.nextBox.updatePiece(self.position.nextPiece)
-
-
-    
-        
 
     def touchingCurrent(self,r,c1):
         if not rang(r,c1):
@@ -554,7 +564,10 @@ class AnalysisBoard:
                     else:
                         # If hovered state and no hovered piece, then draw mouse piece
                         self.mousePiece.updatePiece(self.position.currentPiece)
-                        self.mousePiece.blit(self.position.level)
+                        a = 400
+                        x = self.mx
+                        if x < 1400:
+                            self.mousePiece.blit(self.position.level, opacity = min(1, (a + x - 1400) / a))
             else:
                 board += placement
                 

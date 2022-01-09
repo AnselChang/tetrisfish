@@ -359,6 +359,7 @@ class Calibrator:
             self.nextBounds.setRect(pixels)
             self.nextBounds.setSubRect(preview_layout.inner_box)
             self.nextBounds.sub_rect_name = preview_layout.name
+
         else:
             self.ai_error = ErrorMessage("Couldn't find the Next box could not be found")
         
@@ -419,6 +420,8 @@ class Calibrator:
         
         if not c.isImage:
             frame, _ = c.goToFrame(self.vcap, self.video_slider.left_frame)
+        else:
+            frame = self.frame
                 
         board = self.bounds.getMinos(frame)
         mask = extractCurrentPiece(board)
@@ -428,7 +431,8 @@ class Calibrator:
             self.error = ErrorMessage("The current piece must be near the top, fully visible.")
             return
 
-        if getNextBox(preview) is None:
+        nextPiece = getNextBox(preview)
+        if nextPiece is None:
             self.error = ErrorMessage("Four dots must be centered inside each mino for next box.")
             return
         
@@ -439,17 +443,16 @@ class Calibrator:
         if c.isImage: # We directly call analysis on the single frame
 
             print("Rendering...")
-                        
+
             board -= mask # remove current piece from board to get pure board state
             print2d(board)
-            minosNext = nextBounds.getMinos(nparray = frame)
-            nextPiece = getNextBox(minosNext)
             c.hzString = PieceMasks.timeline[self.hzNum][c.gamemode]
-            pos = Position(board, currPiece, nextPiece, 
+            pos = Position(board, currPiece, nextPiece,
+                            placement = None, # we don't know the placement
                             level = self.get_button_value(ButtonIndices.LEVEL),
                             lines = self.get_button_value(ButtonIndices.LINES), 
                             score = self.get_button_value(ButtonIndices.SCORE))
-            Analysis.analyze([pos], timelineNum[c.gamemode][hzNum])
+            Analysis.analyze([pos], PieceMasks.timelineNum[c.gamemode][self.hzNum])
 
             return []
 

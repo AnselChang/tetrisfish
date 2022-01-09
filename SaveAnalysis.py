@@ -23,6 +23,9 @@ Possible moves: (x5)
 # Write JSON to a text  file
 def write(positionDatabase, gamemode, hzNum, hzTimeline):
 
+    if len(positionDatabase) < 2:
+        return
+
     print("Started writing")
     
     string = encodePositions(positionDatabase, gamemode, hzNum, hzTimeline)
@@ -61,8 +64,9 @@ def read(filename):
 
         positionDatabase = []
         for p in JSON["positions"]:
-            
-            pos = Position.Position(decodeArray(p["board"]), p["current"], p["next"], placement = decodeArray(p["placement"]))
+
+            placement = decodeArray(p["placement"])
+            pos = Position.Position(decodeArray(p["board"]), p["current"], p["next"], placement = placement)
             
             pos.evaluated = True
             pos.startEvaluation = True
@@ -115,7 +119,7 @@ def encodePositions(positionDatabase, gamemode, hzNum, hzTimeline):
             pJson = {}
             
             pJson["board"] = encodeArray(p.board)
-            pJson["placement"] = encodeArray(p.placement)
+            pJson["placement"] = encodeArray(p.placement) if p.placement is not None else None
             pJson["current"], pJson["next"] = p.currentPiece, p.nextPiece
             pJson["lines"], pJson["currLines"], pJson["level"], pJson["trans"], pJson["score"] = p.lines, p.currLines, p.level, p.transition, p.score
             pJson["frame"] = p.frame
@@ -150,6 +154,7 @@ def encodePositions(positionDatabase, gamemode, hzNum, hzTimeline):
             
         except:
             print("skip position", i)
+            print(traceback.format_exc())
             
         i += 1
 
