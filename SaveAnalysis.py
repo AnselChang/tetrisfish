@@ -1,5 +1,5 @@
 import numpy as np
-import base64, ast, pickle, traceback, datetime
+import base64, ast, traceback, datetime
 import AnalysisConstants as AC
 from os.path import exists, join
 from config import version, application_path, PAL

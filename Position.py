@@ -1,5 +1,6 @@
 import random
 from PieceMasks import *
+import config as c
 from TetrisUtility import print2d, getPlacementStr, isArray
 import AnalysisConstants as AC
 
