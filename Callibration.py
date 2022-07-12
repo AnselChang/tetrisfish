@@ -143,12 +143,28 @@ class Calibrator:
                                  self.mouse_status.x,
                                  self.mouse_status.y)
             
-            self.handle_pygame_events()
+            result = self.handle_pygame_events()
+            if type(result) == str: # filename
+                return result
 
             c.drawWindow()
             
             pygame.display.update()
             pygame.time.wait(20)
+
+    def update_new_footage(self):
+
+        # When new footage is dragged onto calibration screen
+        
+        self.init_image()
+        self.video_slider.vcap = self.vcap # vcap was passed by reference to video_slider but I for some reason vcap gets reassigned in init_image
+        self.set_zoom_automatically() # zoom is different for different resolution
+        
+        # bounds may be different for new video resolution, so update
+        if self.bounds is not None:
+            self.bounds.updateConversions()
+        if self.nextBounds is not None:
+            self.nextBounds.updateConversions()
 
     def init_image(self):
         if c.isImage:
@@ -664,7 +680,10 @@ class Calibrator:
         elif event.type == pygame.VIDEORESIZE:
 
                 c.resizeScreen(pygame, event)
+
+        elif event.type == pygame.DROPFILE and event.file is not None:
             
+            return str(event.file)
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             self.mouse_status.start_press = True
@@ -705,4 +724,6 @@ class Calibrator:
         self.mouse_status.pre_update_event_loop()
         self.enterPressed = False
         for event in pygame.event.get():
-            self.handle_pygame_event(event)
+            result = self.handle_pygame_event(event)
+            if type(result) == str:
+                return result

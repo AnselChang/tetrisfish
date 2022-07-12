@@ -3,7 +3,7 @@ Class that manages mouse and keyboard input for the slider,
 as well as rendering the three slider components
 """
 
-#todo: remove reliance on vcap :(
+#todo: remove reliance on vcap :(    (reply from 2022 Ansel -> future me has definitely had problems because of this)
 from enum import Enum
 from TetrisUtility import clamp
 import pygame

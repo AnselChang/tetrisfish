@@ -62,12 +62,12 @@ def dragFile():
         pygame.time.wait(20)
 
 
-
+calibrator = None
 def run(positionDatabase = None, hzInt = None):
 
-    print(c.isLoad)
+    global calibrator
 
-    calibrator = None
+    print(c.isLoad)
 
     running = True
     while running:
@@ -87,6 +87,12 @@ def run(positionDatabase = None, hzInt = None):
                 
             if output == None:
                 return # exit if pygame screen closed. This also happens if it's an image an callibrate() directly calls analysis
+            elif type(output) == str: # output is filename, new file just dragged into screen
+                c.filename = output
+                calibrator.update_new_footage()
+                
+                handleFile(output)
+                return # tail recursion, kind of. this is the hackiest of hacky solutions to act as an GOTO. do not write code like this ever, this code needs to be scrapped and completely rewritten
             
             firstFrame, lastFrame, bounds, nextBounds, level, lines, score, hzInt = output
             print("Level: {}, Lines: {}, Score: {}, hz: {}, depth 3: {}".format(level,lines,score,c.hzString, c.isDepth3))
@@ -115,23 +121,10 @@ def run(positionDatabase = None, hzInt = None):
 
 
  
-    
+def handleFile(filename):
 
-def main():
-
-    try:
-        import pyi_splash
-        pyi_splash.close()
-    except ImportError:
-        pass
-
-    filename = dragFile()
-    if filename == None:
-        return
-            
     print(filename)
     
-    c.filename = filename
 
     if ".txt" in filename or ".tfish" in filename:
 
@@ -157,6 +150,23 @@ def main():
             c.isImage = True
 
         run()
+
+
+
+def main():
+
+    try:
+        import pyi_splash
+        pyi_splash.close()
+    except ImportError:
+        pass
+
+    filename = dragFile()
+    if filename == None:
+        return
+
+    c.filename = filename
+    handleFile(filename)
 
 
 if __name__ == "__main__":
