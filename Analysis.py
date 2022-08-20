@@ -331,7 +331,7 @@ def analyze(positionDatabase, hzInt):
 
     buttons.addTooltipButton(905, 112, ["Click on the current piece (shortcut: spacebar) to change its placement.",
                                         "Press 'R' to rotate the piece",
-                                        "Click the next box piece (shortcut : right click) to place a new piece"])
+                                        "Click the next box piece (shortcut: right click) to place a new piece"])
     buttons.addTooltipButton(2290, 940, ["Click on some portion of the graph to go to the position.",
                                           "You can use the left/right arrow keys, as well as . and , to step forward and back",
                                           "To scroll through, drag the dark slider, or use the scrollwheel."])

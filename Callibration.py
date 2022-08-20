@@ -166,6 +166,10 @@ class Calibrator:
         if self.nextBounds is not None:
             self.nextBounds.updateConversions()
 
+        slider_components = self.init_video_sliders(VideoSlider.DEFAULT_SHAPE)
+        self.video_slider = VideoSlider(c, slider_components, 
+                            VideoSlider.DEFAULT_SHAPE, self.vcap)
+
     def init_image(self):
         if c.isImage:
             self.frame = cv2.imread(c.filename)

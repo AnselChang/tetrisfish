@@ -219,7 +219,7 @@ def makeAPICallPossible(position):
             c.possibleCount += 1
     
 
-    
+
 def makeAPICallEvaluation(b1Str, b2Str, currStr, nextStr, level, lines, x_and_dots):
 
     depth = "1" if c.isEvalDepth3 else "0"
