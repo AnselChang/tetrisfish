@@ -13,6 +13,7 @@ import os
 from colors import *
 import AnalysisConstants as AC
 
+
 import SaveAnalysis
 from TetrisUtility import *
 from Callibration import Calibrator
@@ -171,4 +172,10 @@ def main():
 
 if __name__ == "__main__":
     freeze_support()
-    main()
+    #main()
+    cProfile.run('main()', 'result.prof')
+
+    import pstats
+
+    p = pstats.Stats('result.prof')
+    p.sort_stats('cumulative').print_stats()
